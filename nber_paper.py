@@ -67,8 +67,8 @@ def citation_density(df):
     ax.axvline(log_cited_by_median, color='blue')
 
     # exponentiate median values
-    total_cites = np.exp(log_total_cites_median)
-    cited_by = np.exp(log_cited_by_median)
+    total_cites = int(np.exp(log_total_cites_median))
+    cited_by = int(np.exp(log_cited_by_median))
 
     caption = f"Vertical lines show median citations: \n \tTotal cites: {total_cites} \n \tTotal cited by: {cited_by}"
     plt.title('Distributions of citations in NBER (log scale)')

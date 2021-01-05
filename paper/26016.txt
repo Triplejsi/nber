@@ -1,0 +1,3695 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+            ON TESTING CONTINUITY AND THE DETECTION OF FAILURES
+
+                                        Matthew Backus
+                                          Sida Peng
+
+                                       Working Paper 26016
+                               http://www.nber.org/papers/w26016
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                     June 2019
+
+
+
+
+We are grateful to Timothy Armstrong, Simon Lee, Francesca Molinari, Serena Ng, and many
+conference and seminar participants for thoughtful comments. All remaining errors are our own.
+The views expressed herein are those of the authors and do not necessarily reflect the views of the
+National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2019 by Matthew Backus and Sida Peng. All rights reserved. Short sections of text, not to
+exceed two paragraphs, may be quoted without explicit permission provided that full credit,
+including © notice, is given to the source.
+On Testing Continuity and the Detection of Failures
+Matthew Backus and Sida Peng
+NBER Working Paper No. 26016
+June 2019
+JEL No. C01,C20,C52
+
+                                          ABSTRACT
+
+Estimation of discontinuities is pervasive in applied economics: from the study of sheepskin
+effects to prospect theory and "bunching" of reported income on tax returns, models that predict
+discontinuities in outcomes are uniquely attractive for empirical testing. However, existing
+empirical methods often rely on assumptions about the number of discontinuities, the type, the
+location, or the underlying functional form of the model. We develop a nonparametric approach
+to the study of arbitrary discontinuities --point discontinuities as well as jump discontinuities in
+the nth derivative, where n = 0,1,... -- that does not require such assumptions. Our approach
+exploits the development of false discovery rate control methods for lasso regression as proposed
+by G'Sell et al. (2015). This framework affords us the ability to construct valid tests for both the
+null of continuity as well as the significance of any particular discontinuity without the
+computation of nonstandard distributions. We illustrate the method with a series of Monte Carlo
+examples and by replicating prior work detecting and measuring discontinuities, in particular Lee
+(2008), Card et al. (2008), Reinhart and Rogoff (2010), and Backus et al. (2018b).
+
+
+Matthew Backus
+Graduate School of Business
+Columbia University
+3022 Broadway, Uris Hall 619
+New York, NY 10027
+and NBER
+matthew.backus@columbia.edu
+
+Sida Peng
+Microsoft Research
+sp947@cornell.edu
+1       Introduction
+
+This paper introduces a method for detecting discontinuities for when the econometrician knows
+little about the underlying parametric form, the number of discontinuities, the location of discon-
+tinuities, or their type (point, jump, kink, etc). Detection of these discontinuities is sometimes of
+direct economic interest: e.g., the study of tipping points in residential segregation (Card et al.,
+2008) or cheap-talk signaling conventions (Backus et al., 2018b). Moreover, as a specification test it
+is a step in the direction of "Sherlock Holmes" inference (Leamer, 1983): by allowing the researcher
+to be agnostic, it leaves open the possibility that they detect anomalies. In particular, it is useful
+as a placebo test for regression discontinuity and regression kink designs.
+
+Our agnosticism implies that we are testing against a large set of alternative hypotheses ­ many
+possible breaks ­ and so our procedure is adaptive. We are openly engaging in "data snooping,"
+i.e. model selection, and it is well-known that this is problematic for post-estimation inference.
+Inference after model selection, respecting these limitations, is an area of recent interest. Our
+solution eludes these problems (or, alternatively, the need for sample-splitting) by building our
+chosen inferential guarantee into the model selection procedure itself, so that there is no "post"
+selection. To be precise, we develop an estimator that detects discontinuities while controlling the
+False Discovery Rate (FDR) ­ i.e. the ratio of type I errors to the total number of rejections ­ at
+a pre-specified level (Benjamini and Hochberg, 1995).1
+
+The model selection component of our algorithm uses a lasso framework to construct an ordered
+sequence of hypothesis tests, i.e. potential discontinuities. We construct conditionally valid test
+statistics for each ­ that is, we explicitly condition on the event the hypothesis test was selected.
+Fithian et al. (2015) demonstrates that this conditioning is closely related to ­ and more powerful
+than ­ sample splitting. Because each hypothesis test is conditional on the last, to control the
+FDR we must then solve a sequential multiple comparison problem (MCP). To this end we take
+advantage of the Forward Stop algorithm of G'Sell et al. (2015) which extends FDR control from
+the simultaneous MCP setting of Benjamini and Hochberg (1995) to the sequential MCP setting. In
+simulations we are able to show that this sequential approach is more powerful than using standard
+FDR control with confidence intervals proposed by other recent work (van de Geer et al., 2014;
+Belloni et al., 2014). Intuitively, this is because that approach ignores correlation between the
+    1
+    FDR control has not seen wider adoption as an inferential standard in economics because it raises some philosophic
+questions around the interpretation of covariates, which is always conditional on controls. For instance, the effect
+of education on wages is different from the effect of education on wages conditional on a measure of ability. It is
+unclear how to interpret the conditional effect when the conditioning argument, here ability, is a false detection with
+some pre-specified likelihood. These issues will not arise in our context: the detection, false or otherwise, of one
+discontinuity, is irrelevant to the interpretation of another located elsewhere.
+
+
+
+                                                          1
+test statistics, which ours exploits via the nested structure of the hypothesis test. We somewhat
+incidentally contribute, therefore, to an emerging literature on using that correlation in FDR control
+(see Fan et al., 2012; Fan and Han, 2016; Basu et al., 2017).
+
+We also draw on a large literature on the detection of structural breaks. There are a number
+of salient technical challenges that this literature has confronted, beginning with the multiple
+comparison problem (MCP) implicit in testing at many potential break locations. One solution, to
+formalize the MCP as an order statistic problem, was proposed by Hawkins (1987) and generalized
+by Andrews (1993). A second thread in this literature has focused on the construction of confidence
+intervals for the parameter governing the size of a break at the most likely location (Hansen, 2000,
+2017). This is a nonstandard inference problem because nesting the null of continuity implies
+a discontinuity in the parameter set, and these papers develop methods for simulating from the
+distribution of the test statistic to obtain critical values. This literature suffers from the same failure
+of uniform validity that plagues all "data-snooping" or adaptive estimators (Leeb and P¨
+                                                                                       otscher,
+2005). Applied work has therefore relied on sample splitting, with the attendant loss of power.
+
+With respect to this literature we make several applied contributions: first, we are able to simul-
+taneously test for n-th order discontinuities (points, jumps, kinks, etc). We also allow for multiple
+unknown discontinuities. In this spirit the estimator is related to work on detection of multiple
+structural breaks. We compare our procedure to existing procedures for looking for multiple jumps
+(sequential sample splitting as in Bai (1997a), the sequential sup-F test of Bai and Perron (1998),
+and application of the BIC criterion as in Yao (1988)). Prior work has focused on consistency
+results without explicitly addressing the implicit multiple comparison problem, instead assuming
+that   0 asymptotically. This leaves little guidance for the applied researcher, with finite data, in
+choosing the size of the test. We highlight this point with a Monte Carlo simulation that shows the
+attendant risk of false discoveries when applying these methods in finite sample (i.e., real) applica-
+tions. Moreover, as we show in Section 4.4, even when the parametric form of the continuous part
+of the relationship is known and employed by the econometrician, sequential application of existing
+methods will often fail in the presence of multiple breaks. We emphasize this to highlight the signif-
+icance of being nonparametric in the treatment of that form: even if one knows the true functional
+form of the continuous part, in searching for the first break the model is interim-misspecified, which
+can lead to erroneous results.
+
+Finally and most importantly for applied work, our method is tractable and transparent, which we
+illustrate in applications to Lee (2008), Card et al. (2008), Reinhart and Rogoff (2010), and Backus
+et al. (2018b). Moreover, code for the estimator is publicly available.2
+  2
+      As of this writing, the most recent code can be found at https://github.com/psdsam/lasso break.
+
+
+
+                                                         2
+These applied contributions rest on several technical innovations that allow us to extend innovations
+in FDR control lasso, due to G'Sell et al. (2015), to our proposed method. First, we show the
+conditions under which the set of potential discontinuities, formulated as a design matrix, satisfy
+the irrepresentable condition (Theorem 1). This is key for our asymptotic results. Then, we extend
+results in Lockhart et al. (2014) to show that their proposed covariance test can accommodate
+the interim misspecification error that emerges in our setting (Theorem 2). Finally, we close the
+argument by demonstrating the asymptotic consistency of the proposed estimator (Theorem 3).
+In a slight detour, we prove two additional results for the discontinuities located by our estimator
+that allow us to make a direct comparison to prior work. These results, like that prior work,
+depend on a substantially more restrictive environment. There we show that the location of a
+single jump (Theorem 4) and a single kink (Theorem 5) enters the lasso active set is the max of
+two Wiener processes. In the jump case this is similar to that for the standard sup-F test derived
+in Bai (1997b). However we also derive the asymptotic distribution for the kink discontinuity case
+as   0 sufficiently slowly, which is stronger than Hansen (2017). As in prior work, these two
+results assume that the continuous part of the function is a constant zero.
+
+
+
+2        Model
+
+Our model decomposes the relationship between two variables, y and x, into a continuous part and
+a finite set of discontinuities. Let x be drawn from a continuous distribution (up to a set of mass
+points) with support [,  ], a compact subset of R, and
+
+                                      y = g (x) +                       dsk (x)sk + .                          (1)
+                                                    s=1...S k=0,...,K
+
+
+In this setting g (x) is bounded, continuous, and differentiable up to order K , while {dsk (x)} is a
+set of violations of continuity or differentiability and                 is an i.i.d. error term.3 With respect to
+notation, s indexes the location of the violation and k indexes the degree. In particular,
+                               
+                                1(x = zs )                    (point discontinuity)
+                               
+                                1(x  zs )                     (jump discontinuity)
+                               
+                      dsk (x) = 1(x  zs )(x - zs )            (discontinuous first derivative)                 (2)
+                               
+                                1(x  zs )(x - zs )2
+                               
+                                                              (discontinuous second derivative)
+                               
+                                    .                             .
+                               
+                                    .                             .
+                                    .                             .
+    3
+        We suppress here and where possible the index of the observations.
+
+
+
+                                                             3
+In this schema, zs denotes the location of a break point and s its magnitude. So far, we assume
+no knowledge on the magnitude of breaks, the number of breaks or the type of breaks.
+
+In empirical applications these discontinuities often have particular economic meaning:
+
+Example 1: Jump discontinuities in Lee (2008). In this classic paper, x is the Democrat vote share
+in the prior election, normalized to a margin of victory (or loss, for x < 0); y is the Democrat vote
+share in the current election, and the paper is interested measuring in a single jump discontinuity
+at z = 0 which is taken to represent the causal effect of incumbency on subsequent outcomes.
+
+Example 2: Jump discontinuities in Card et al. (2008). This paper studies discontinuities in the
+dynamics of neighborhood racial composition in order to study Schelling-style tipping models of
+segregation. Here x is the current fraction of non-white or hispanic residents, y is the rate of change
+of white residents, and the location and magnitude of a single jump discontinuity, which is assumed
+to exist, are unknown.
+
+Example 3: Kink discontinuities in Reinhart and Rogoff (2010) and Hansen (2017). The former
+paper proposes proposes that economic growth is discontinuously lower when the ratio of debt to
+output exceeds a particular threshold, modeled as a single kink discontinuity with an unknown
+location and magnitude. Hansen (2017) develops a new method for finding a single kink disconti-
+nuity at an unknown location and, in an application to the prior paper's data, finds evidence of a
+growth slowdown at a debt to GDP ratio of 44%.
+
+Example 4: Point discontinuities in Backus et al. (2018b). This paper studies bargaining on an
+online platform. They take y to be an expected bargaining outcome (e.g., negotiated price or
+average first buyer offer) and x the original asking price of the seller (who always moves first). The
+use of round number values in the asking price (e.g., 100, 200, ...) is interpreted as a cheap-talk
+signal of the seller's bargaining type, which elicits discontinuously different behavior by prospective
+buyers, represented by point discontinuities in E[y |x]. In an extension that prompted the present
+investigation, they take the set of discontinuities to be unknown and use lasso regression to detect
+them (see their Appendix B4).
+
+These examples highlight the wide range of interpretations of discontinuities in economic modeling.
+We replicate each of them in Section 6 to illustrate the application of our estimator, to compare
+results to those obtained using pre-existing methods, and to highlight the value of the added
+generality. The procedure is agnostic as to the meaning of any discontinuities ­ therefore it is
+applicable in each of these examples but it does not, on its own, imply any structural or causal
+interpretation.
+
+
+                                                  4
+3       Assumptions and Setup
+
+Here we develop the assumptions and lasso framework of our estimator. Section 3.1 introduces
+the central assumptions on the data-generating process. Next, Section 3.2 introduces the our
+"semi-lasso" specification and presents a preliminary result that maps it back into a standard lasso
+regression. Finally, Section 3.3 outlines restrictions on the design matrix ­ which summarizes the
+possible set of discontinuities ­ that guarantee the irrepresentable condition, the key condition that
+affords both the distribution of the test statistic we employ as well as the desirable asymptotic
+properties of the lasso.
+
+
+
+3.1     Assumptions
+
+
+For a given finite sample {(xi , yi )}n
+                                      i=1 , let (x(1) , x(2) , · · · , x(n) ) be order statistics. Note that point
+discontinuities are only identified at mass points of the distribution. Moreover, detection in the
+generic class of possible discontinuities is also problematic with finite data. For example, consider a
+jump discontinuity of known size  , and two possible locations, z and z . If, for some i, x(i-1) < z <
+z < x(i) , then the two discontinuities are equipollent, and therefore empirically indistinguishable.
+Therefore, for such a sample, the maximal meaningful set of jump discontinuities is n - 1, and will be
+strictly larger than n, e.g. if the econometrician is interested in multiple types (point, jump, kink,
+etc.). We cannot, therefore, simply add those discontinuities as regressors and obtain consistent
+estimates of their size and location using OLS. Instead, we adopt a model selection approach, and
+to that end we require four strong assumptions:
+
+Assumption 1. (Number of Discontinuities) The number of discontinuities is finite.
+
+
+This assumption is reasonable for most applied work given the bounded support of x. Sparseness is
+typically to be motivated by the economic intuition for the existence of the breaks in the first place,
+e.g. signaling conventions or institutional rules. However, when the economist is agnostic as the to
+existence or character of the discontinuities, for instance, when the method is used as a generalized
+placebo test to motivate a regression discontinuity design, this assumption can be strong.4
+
+Let Sm (x) denote the spline or power series, where m indexes the order (we omit this index in
+                                           ^m (x)  Sm (x) 
+all but the following assumption), so that g              ^ and the approximation error can be
+                       ^m (xi ). Define Smi  Sm (xi ), Sm  [Sm1 , Sm2 , · · · , Smn ] , 2
+written rmi  g (xi ) - g                                                                     2
+                                                                                        m  Ermi ,
+                                         n            -1
+Qm  E(Smi Smi ) and hmi  Smi (           i=1 Smi Smi ) Smi .
+    4
+    We do not allow the number of discontinuities to grow as a function of n to rule out cases with a sequence of
+discontinuities that are placed arbitrarily closely as n goes to infinity.
+
+
+                                                        5
+Assumption 2. (Eigenvalue Restriction) Let Km be the number of terms in power series or spline
+expansion. For every Km , there is a nonsingular constant Km by Km matrix B such that smallest
+eigenvalue 2
+           f,min of E(BSm (x)Sm (x)B ) is bounded away from 0 uniformly in Km and there is
+a sequence of constant 0 (Km ) satisfying supz BSm (x)  0 (Km ) and Km = Km (n) such that
+0 (Km )2 Km /n  0 as n  0
+
+
+Assumption 2 is the standard Newey (1997) assumption for series estimators. The bounds on the
+smallest and largest eigenvalues will allow us to look for discontinuities in the null space of the
+basis functions.
+
+Assumption 3. (Variance) The variance  2  E( 2
+                                             i ) is finite and bounded away from 0.
+
+
+
+Assumption 3 is standard in the literature, see Newey (1997) and Hansen (2014b). We require the
+variance to be bounded away from 0 so the test statistic is well defined.
+
+We also assume g (x) satisfies smoothness requirements that allow it to be approximated nonpara-
+metrically with splines or a power series. In order to derive the rate of convergence for the integrated
+mean squared error (IMSE), other technical conditions are required. Assumption 4 is equivalent to
+those required in Donald and Newey (1994) and Hansen (2014b).
+
+Assumption 4. (Smoothness)
+
+
+Let Sm (x) be either a spline or power series, and nested.
+
+
+  1. g (x) has s times continuous derivatives on X , with s > K , where K is the maximum order
+      of discontinuities to test.
+
+  2. Recall Km is the number of terms in power series or spline expansion and define Mn as the
+                                                                                4 /n = O (1)
+      maximum order of the spline or power series considered. Then let maxm<Mn Km
+                                     3 /n = O (1) for splines sieve.
+      for a power series or maxm<Mn Km
+
+  3. 2
+     m > 0 for all m < .
+
+
+
+Standard nonparametric approximation only requires g (x) to be continuously differentiable while
+Assumption 4.1 is stronger and assumes the degree of continuity of g (x) to be greater than the degree
+of discontinuity we are testing. Assumption 4.2 prevents overfitting of the model. Assumption 4.3
+bounds away the approximation error from 0.
+
+
+
+                                                   6
+3.2      Semi-Lasso and Lasso Regression
+
+
+Our analysis is general to discontinuities of arbitrary order, but for the sake of exposition we will
+focus on points, jumps, and kinks. The design matrix D(xi ) is comprised of a series of vectors
+characterizing discontinuities under consideration, e.g.:
+
+
+                             1xi =x(1) , 1xi =x(2) , · · · , 1xi =x(n) ;                            (point discontinuity)
+
+                         1xi >x(1) 1xi >x(2)        1xi >x(n-1)
+                                  ,          ,··· ,             , and                               (jump discontinuity)
+                           n-1       n-2                 1
+      (xi - x(1) ) × 1xi >x(1) (xi - x(2) ) × 1xi >x(2)        (xi - x(n) ) × 1xi >x(n-1)
+                              ,                         ,··· ,                                      (kink discontinuity)
+                1                        2                              n-1
+                       n
+­ where k =            i=k+1 (x(i)   - x(k) )2 . We normalize all the regressors to have norm 1 so they are
+balanced when penalized by lasso.
+
+The matrix D may be comprised of multiple types of discontinuities. For example, when the
+econometrician wishes to test for both jumps and kinks,
+
+                                 1xi >x(1) 1xi >x(2)        1xi >x(n-1) (xi - x(1) ) × 1xi >x(1)
+                     D(xi ) =             ,          ,··· ,            ,
+                                   n-1       n-2                 1                1
+
+
+                                 (xi - x(2) ) × 1xi >x(2)              (xi - x(n) ) × 1xi >x(n-1)
+                                                              ,··· ,                                 .
+                                              2                                  n-1
+
+
+Our procedure concerns itself with the following "semi-lasso" regression which, unlike a traditional
+lasso, penalizes only the vector  and not  :
+
+
+
+                             ^ 
+                            (, ^) = arg min             (yi - S (xi ) - D(xi ) )2 + | |1                              (3)
+                                             ,
+                                                    n
+
+
+
+­ where, recall, S (xi ) is a vector of linear basis functions for the space of continuous functions on
+[,  ], e.g. basis splines, D(xi ) is the set of potential discontinuities of interest, and  is the lasso
+penalty parameter. Note that this lasso specification is unique in that the continuous part  is
+entirely unpenalized ­ this is why we say our approach maintains the null of continuity.
+
+Finally, we show that minimization problem above is equivalent to a standard lasso problem in the
+
+
+
+                                                              7
+null space of the basis functions.
+
+Lemma 1. [Invariance of LASSO under Projection] The problem of (3) is equivalent to the fol-
+lowing standard lasso problem:
+
+                             ^) = arg min       1                        2
+                            (                     Mm Y - Mm D            2   + | |1              (4)
+                                                2
+
+­ where Mm is the projection matrix In×n - Sm (Sm Sm )-1 Sm .
+
+
+The proof, as for all that follows, is available in Appendix A. Having transformed our problem back
+into the standard lasso framework, we next turn to the condition that guarantees that our lasso is
+well-behaved.
+
+
+
+3.3      Irrepresentable Condition
+
+
+Write D = (D(x1 ) , D(x2 )) , · · · , D(xn ) ) , and denote Dj the j th column of D. Denote i as the
+ith entry of vector  . Let A0 be the index set of the true discontinuities and DA0 represents a
+sub-matrix of D with columns corresponding to those indexed in A0 . Let A0 = sign(A0 ).
+
+Definition 1 (Irrepresentable Condition). We say that the irrepresentable condition holds for
+ < 1, if
+                            max       sup       Dj DA0 (DA0 DA0 )-1 A0 < .
+                            j/ A0 A      1
+                                   0
+
+
+
+
+In a jump discontinuity design matrix, D is a lower triangular matrix after rearranging the rows.
+For example, the k th column is:
+
+                                                      1     1           1
+                        Dk =     0, 0, 0, · · · ,        ,     ,··· ,                 .
+                                                     n-k   n-k         n-k
+
+
+Assume A0 = {k }, that is we only have 1 single jump discontinuity. Thus DA0 DA0 = 1 and for all
+j = k,
+                                               min{(n - k ), (n - j )}
+                                 Dj DA0 =                                    < 1.
+                                                      (n - k )(n - j )
+For asymptotic, we assume the location of the discontinuities represented by the ordered statistics
+are fixed when n goes to infinity. Thus the irrepresentable condition holds. We show in Theorem
+1 below for the general cases:
+
+Theorem 1. [Design Matrices for Detecting Discontinuities]
+
+                                                         8
+Let p be the number of columns in the design matrix D 5 .
+(a) For any set A0  {1, 2, · · · , p}, the design matrix for point discontinuities satisfies the irrepre-
+sentable condition.
+ (b) For any set A0  {1, 2, · · · , p}, the design matrix for jump discontinuities satisfies the irrep-
+
+resentable condition.
+ (c) For any set A0  {1, 2, · · · , p} as a singleton, the design matrix for any combinations of point
+
+and 0 to K th order discontinuities satisfies the irrepresentable condition.
+
+Corollary 1 (Invariant of Irrepresentable Condition under Projection). Let Pz be a projection
+matrix such that Pz D has full column rank. If the design matrix D satisfies the irrepresentable
+condition, then Pz D also satisfies the irrepresentable condition.
+
+
+While these results are encouraging, it is also possible to demonstrate the the irrepresentable
+condition will not hold for many cases of interest.
+
+Corollary 2 (Kink Violation). The irrepresentable condition does not hold when there are two or
+more kinks.
+
+
+For the case where the econometrician wishes to allow for multiple kinks in arbitrary locations, the
+irrepresentable condition does not hold. Recall that the irrepresentable condition requires that there
+is no regressor in the complement of the active set that approximates a combination of regressors
+in the active set "too well" ­ i.e., such that with increasing data and a sharper regularization
+parameter, they still cannot be distinguished. Our negative result on this point hinges on the fact
+that for too arbitrarily close kinks, the error induced by combining them into one is second-order,
+and therefore lasso cannot be guaranteed to differentiate them.
+
+For such cases, stronger assumptions are required to guarantee consistency. Corollary 3 accom-
+plishes this by assuming that there exits a partition on the support of X such that each segment
+contains at most one kink discontinuity. This is sufficient to guarantee the irrepresentable condition.
+
+Corollary 3 (Irrepresentable Condition under Partition). Let {B1 , B2 , · · · , Bs } be a partition of
+the support of X . Define a block diagonal matrix  = diag [1 , 2 , · · · , s ], where i is the design
+matrix in partition i. If the irrepresentable condition is satisfied in each i , the design matrix 
+also satisfies the irrepresentable condition.
+  5
+   Notice that p = n in the jump discontinuity design matrix, but it can be different from n when we consider
+multiple types of discontinuities or if we want to consider discontinuities on a subset of the support.
+
+
+
+
+                                                     9
+Though it imposes a stronger restriction, Corollary 3 has a natural applied interpretation: our
+method can be applied on each segment of the partition, which can be accomplished with appro-
+priately flexible splines.
+
+
+
+4        Detecting Discontinuities
+
+Our procedure considers a nested sequence of models: starting from a null of continuity, each step
+in the sequence adds one additional discontinuity. The sequence of models is determined by knots
+of the coefficient path following the LARS algorithm of Efron et al. (2004).6 For each step in the
+sequence, we construct a test statistic. Conditional on a model, the "covariance test" is an interim
+hypothesis test of the null hypothesis that the true model is contained in the current model.
+
+This generates a sequence of interim p values associated with each marginal discontinuity, a sequence
+which can be used to control the false discovery rate of the procedure. We apply the sequential MCP
+approach of G'Sell et al. (2015) to select a critical threshold that guarantees the false discovery
+rate. In this section we explain each of these steps in detail, and conclude with a brief discussion
+of of the advantages of this approach vis-`
+                                          a-vis standard mean-squared error-based approaches.
+
+
+
+4.1        Nested Hypotheses
+
+
+Recall that from Lemma 1 our problem has been transformed into a standard lasso problem.
+Therefore, the model selection is determined by the choice of the lasso penalty term . The
+ordinary approach would be to choose  by either cross-validation or by using an estimate of  to
+approximate the rate-optimal . While convenient, these leave the researcher neither an inferential
+framework nor control over the Type I error rate ­ in our setting, the likelihood of falsely detecting
+discontinuities. Instead, we employ the FDR lasso framework of G'Sell et al. (2015) in order to
+control the probability of false inclusion of variables in the model. In particular, we use their
+forward stop algorithm, which proceeds path-wise along a sequence of covariance test statistics
+that offer interim significance tests for the marginal included variable (Lockhart et al., 2014). The
+solution  () of (4) is a continuous and piecewise linear function and can be computed via the
+LARS algorithm as Efron et al. (2004).
+
+Define 1  2  · · · as the critical values of the penalty parameter , i.e. the points associated
+with the entry of a new member in the active set, and therefore knots (change in slope) in the
+    6
+        These knots correspond to intercepts of the coefficient path of the lasso regression as we vary .
+
+
+                                                             10
+piecewise linear function  (). Let Ak = {j |j (k ) = 0} be the lasso active set associated with k .
+This implies that A1 =  and A1 is a singleton, and A1 , A2 , · · · is the sequence of models induced
+by the lasso path.
+
+Lasso may add or remove variables from its active set. At every time a variable is added to the
+active set, we want to test Ak  A0 = supp(0 ) where 0 is the true parameter. This setting leads
+us to a sequence of nested hypothesis H1 , H2 , · · · such that each hypothesis Hk can be rejected if
+all previous hypotheses H1 , H2 , · · · Hk-1 are rejected. In the next two subsections, we discuss how
+to construct test statistics at each step and how to control FDR under sequential setting.
+
+Remark. The existing literature has considered a different null hypothesis. The structural breaks
+literature considers the so called "incremental null", i.e. that the k th discontinuity does not improve
+the fit, irrespective of whether Ak contains the true model. We instead consider the so-called
+"complete null" i.e., whether the true model is already contained in Ak . The complete null implies
+the incremental null, and in this sense our approach is more conservative. See Fithian et al. (2017)
+for further discussion on this point.
+
+
+
+4.2    Covariance Test
+
+
+Let < ·, · > denote the dot product. Let Ak be the active set before the knot k , and suppose
+predictor j enters at k . Define ^A (k+1 ) be the lasso solution at k+1 but constrained to the set
+                                   k
+
+Ak :
+
+
+
+                     ^A (k+1 ) = arg min 1 Mm Y - Mm DA A
+                                                                   2
+                                                                       + k+1 Ak    1.
+                       k                               k  k        2
+                                     Ak 2
+
+
+
+Then the covariance test statistic as proposed in Lockhart et al. (2014) is:
+
+              Tk = < Mm Y, Mm D^(k+1 ) > - < Mm Y, Mm DA ^ (k+1 ) > / 2 .                           (5)
+                                                        k Ak
+
+
+
+
+Let the sign vector sA0  {-1, 1}|A0 | encode the active set in vector form, and consider the event:
+
+
+
+
+                                                  11
+B = The solution at step k0 in the lasso path has active set Ak = A0 ,
+
+          sign(sAk ) = sign((DA0 )+ Y ) = sA0 , and the next two knots are given by
+                                                 Dj (I - PAk0 )Y
+             k0 +1 =           max                                           , and
+                       j/ Ak0 {jk0 },s{-1,1}   s - Dj (DAk0 )+ sAk0
+                                               Dj (I - PAk0 +1 )Y                       Dj (I - PAk0 +1 )Y
+             k0 +2 =         max                                             ·1                                  < k0 +1   .
+                       j/ Ak0 +1 ,s{-1,1}   s - Dj (DAk0+1   )+ s   Ak0 +1           s - Dj (DAk0+1 )+ sAk0 +1
+
+
+
+Event B requires more than the event of consistent selection i.e {Ak0 = A0 }. It also requires the
+least squares estimate on A0 has the same signs as this lasso estimate and the next two models
+in the sequence Ak0 +1 and Ak0 +2 are adding variables. A necessary and sufficient condition for
+P(B )  1 is the irrepresentable condition in Zhao and Yu (2006).
+
+Theorem 2 (Covariance Test under Measurement Error). At any given step k on the LASSO path,
+let the covariance test statistics being defined as in equation (5). Under Assumption 1, 2, and 3,
+                                                                             
+assume the approximation error satisfies 2    m = o(1/(log(p))) and k+1  4 log p where  . Then
+
+
+                                              lim P(Tk > t)  e-t .
+                                             n
+
+
+Thus the standard exponential distribution serves as a conservative bound.
+
+
+                                                          -2s ) on 2 , where K
+Remark. The standard SEIVE estimates implies a rate of O(Km        m          m is the
+
+number of terms in Sm , s is the degree of the smoothness of g (xi ). The tuning parameter for the
+nonparametric part Km is chosen to increase as n  . Heuristically, 2        2
+                                                                   m = o(1/n ) is required
+in order for the distribution of the test statistics not to be affected by the empirical process. One
+advantage of the covariance test is its asymptotic relies on p goes to infinity instead of n. As a
+result, the approximation error can be further relaxed to be order o(1/(n log(p))).
+
+
+
+4.3   Sequential False Discovery Rate Control
+
+
+At each step on the lasso path where a covariate is added to the active set, we can construct test
+statistic Tk and the p-value pk associated with it. This leads to a sequential multiple comparison
+                                                                  ^)/ max(1, k
+problem. Recall the False Discovery Rate (FDR) is defined as E V (k           ^) , where V (k
+                                                                                            ^) is the
+number of null hypotheses among all the rejected hypotheses. The standard Benjamini-Hochberg
+method for FDR control can not be applied directly here because it is only valid for simultaneous
+
+
+                                                       12
+multiple comparison problems, which are sortable. We can not sort all of the p-values as our
+hypothesis are nested and have a natural order: the k   ^th hypothesis will only be rejected if the
+         ^ - 1 hypothesis are all rejected. G'Sell et al. (2015) propose the forward stopping rule
+previous k
+^F to control FDR in a sequential MCP problem:
+k
+
+                                                                 k
+                         ^F = max k  {1, · · · , n} : - 1
+                         k                                           log(1 - pi )   .
+                                                        k
+                                                               i=1
+
+
+
+This completes the estimator. To summarize, we set up the problem in the semi-lasso form of
+equation (3). This is transformed into a standard lasso using the projection matrix of the linear
+representation of g (·), as characterized by Lemma 1. Next, we compute the sequence of nested
+models using the LARS algorithm. For each addition of a discontinuity we compute the covariance
+test statistic described in Section 4.2. Finally, we select the k th model (and therefore all disconti-
+nuities contained) according to the forward stopping rule with a pre-specified false discovery rate
+chosen by the econometrician.
+
+
+
+4.4    Advantages of the LASSO Approach
+
+
+Our approach differs from mean-squared error minimization-based approaches in prior work. In-
+stead, we have gone out of our way to linearize the problem in order to apply lasso regression
+methods. This has a number of advantages.
+
+First, we are able to take advantage of developments in inference for lasso regression to construct
+uniformly valid confidence intervals. van de Geer et al. (2014) circumvents the post-selection
+uniformity issues raised in Leeb and P¨
+                                      otscher (2005) by computing approximate confidence intervals
+pre-selection.
+
+Second, the linearity of our problem also allows us to treat g (·) flexibly while still retaining the
+properties of a lasso, as we establish in Lemma 1. In this way we are careful to only use local
+variation to identify discontinuities. This is more than just a matter of being agnostic about g (·).
+Even if the true functional form of g (·) is known to the econometrician, the model is still misspecified
+in the interim when it tests for the first of multiple actual discontinuities.7 We highlight this point
+with a simulation of the following model, which consists of a linear g (·) and two positive kinks:
+   7
+    At face value, this seems to contradict the intuition that an estimator is more efficient when known parametric
+forms are exploited. But this is a straw man ­ here, the known parametric form is simply used incorrectly.
+
+
+
+
+                                                        13
+                                                                             ^(·)
+                            Figure 1: Detection with Inflexible and Flexible g
+
+
+
+
+                            (a)                                                         (b)
+
+
+
+
+Notes: This figure depicts a Monte Carlo simulation with 10,000 observations, two kinks at 0.3 and 0.7, and a constant
+g (·). First, we apply the standard covariance test and the true, constant functional form, with no flexible treatment
+of g^(·). One discontinuity is detected at a wrong location as in panel (a). Second, we use a basis spline approximation
+of g^(·) and both discontinuities are detected, see panel (b).
+
+
+
+
+                          Y = 1(X > z1 )(X - z1 )1 + 1(X > z2 )(X - z2 )2 + .                                       (6)
+
+
+In our simulation, we let (z1 , z2 ) = (0.3, 0.7), 1 = 10 and 2 = 10 and                    N (0, 1), and we take
+10,000 independent draws. Results from the application of our method are presented in Figure 1.
+In Panel (a) we allow the econometrician to use the known functional form of g (·). Using that form
+leads them the erroneous conclusion that there is one break in between the two. In Panel (b), the
+econometrician uses a basis spline of 2nd order and five knots and identifies the two discontinuities.
+                                                               ^(·) allows the estimator to use only
+This difference comes from the fact that the flexible form for g
+local variation to identify the first kink, ignoring the misspecification introduced by the fact that
+the second is not yet in the model.
+
+Third, there are several advantages related to the detection of multiple breaks. In particular, the
+consistency of Bai (1997a) and Bai and Perron (1998) depends on T  0 sufficiently slowly to
+control the multiple comparison problem asymptotically.8 This asymptotic guarantee gives little
+guidance to finite-sample implementation, because the rate at which  should be set in applied
+   8
+     From Bai (1997a) Theorem 11: "suppose that the size of the test T converges to zero slowly (T  0 yet
+lim inf t TT > 0)" and from Bai and Perron (1998) Proposition 8, "If T converges to 0 slowly enough (for the
+test based on FT (l + 1|l) to remain consistent)..."
+
+
+                                                          14
+                      Figure 2: Simulations: Comparing True Detections and FDR
+
+
+
+
+               (a) 500, b/2                           (b) 500, b                            (c) 500, 2b
+
+
+
+
+              (d) 1000, b/2                           (e) 1000, b                           (f) 1000, 2b
+
+
+
+
+              (g) 2000, b/2                          (h) 2000, b                            (i) 2000, 2b
+
+
+
+
+Notes: These panels compare four different methods (BIC, lasso, sample splitting, and sequential sup-F) of detecting
+discontinuities across different sample sizes and sizes of discontinuities. Sample sizes vary between 100, 200 and 500.
+The size of discontinuities varies between b = [16, 8, 24, -16, -24, 24, 8, 16, 8, 24], b/2 and 2b. The blue (left) box
+plots describe the number of true detections among the 10 discontinuities while the red (right) box plots describe the
+FDR.
+
+
+exercises is unspecified. In contrast, the FDR guarantee of our test has a natural interpretation
+for applied work in real (i.e., finite) datasets. To highlight this point, we conducted a number of
+simulations.
+
+The simulation is constructed with varying sample sizes (n = 100, 200, 500) and 10 jump discon-
+tinuities at z = (-1.5, -1, -0.5, -0.2, 0, 0.1, 0.2, 0.5, 1, 1.5). The data generating process is given
+
+
+                                                          15
+as
+                                              10
+                                       yi =          bj · 1(xi > zj ) +   i
+                                              j =1
+
+with x drawn i.i.d from a N (0, 1) process and          i    N (0, 1) and b = [16, 8, 24, -16, -24, 24, 8, 16, 8,
+24]. In this environment we consider four estimators: A BIC approach, our lasso-FDR estimator,
+sample splitting (Bai, 1997a), and the sequential sup-F test (Bai and Perron, 1998). The first
+approach, the BIC method, detects the most discontinuities among the four methods, between 6
+and 8, but at a cost of overdetection and no control on the FDR, which hovers around 30%. The
+second, our lasso-FDR method, detects between 2 and 8 discontinuities among the 10 and with
+a controlled FDR rate below 5%. Lasso-FDR method outperforms all other when the size of the
+discontinuities are 2b. Third, the sample splitting method uses classical Sup-F test as in Andrews
+(1993) at each step. Once a discontinuity is detected, the sample is split into two by the discontinuity
+and two Sup-F tests will be carried on the subsamples. In our case, sample splitting method detects
+around 3 - 6 discontinuities with a FDR in the range of 10% to 20%. Sample splitting may suffer
+from significant loss of efficiency when the sample size is small and when discontinuities are not
+evenly distributed. Fourth and fnally, the sequential sup-F method is based on the test proposed
+in Bai and Perron (1998). It is also based on the simultaneous minimization at each given number
+of discontinuities. The conditional sup-F test is testing the incremental null at each given step, as
+a result it should be less the conservative than the Lasso test at each step. Consistent with this,
+we find that it detects more of the true discontinuities, between 6 and 8, but it also has a much
+higher false discovery rate similar to the BIC method, often around 30%.
+
+As a final point of comparison, in terms of computational efficiency, BIC method and Sequential
+Sup-F method both require dynamic programming, which is of order O(n2 ). On the other hand,
+the scale of Lasso method is of order O(n) and it is much faster when n is large.
+
+A fourth advantage of our LASSO approach is that it allows backward steps ­ that is, the lasso
+path can remove, as well as add, variables ­ which is related to our second point above concerning
+interim misspecification. Asymptotically this is irrelevant if g (·) is sufficiently flexible, but in finite
+samples we found that the algorithm would often attempt to smooth two nearby breaks with the
+addition of a single large one, later introducing the two finer ones and replacing the original. That
+finite-sample misstep is a feature of the "one-at-a-time" approach.
+
+Fifth and finally, sup-F test-based approaches such as Andrews (1993), Bai and Perron (1998),
+Bai (1997a), Hansen (2017), use a trimming parameter to rule out boundaries of the support of
+X. More precisely, consider the first test of no discontinuity versus at least one discontinuity. The
+sup-F statistic can be written in LASSO notation as
+
+
+                                                            16
+                                  TsupF = 2
+                                          1 /^ 2 = sup Y Xj Xj Y /^2.
+                                                       j
+
+
+
+It is then easy to show that
+
+
+
+                                  P(TsupF > t)  1          as n       t.
+
+
+This result is shown with Corollary 1 in Andrews (1993). A trimming is required such that
+
+
+
+                                         
+                                        TsupF = sup Y Xj Xj Y,
+                                                 j 
+
+
+                                    
+­ for  = [0 N · · · , (1 - 0 )N ], TsupF converges to a Brownian bridge, where 0 is the tuning
+parameter. The trimming may yield a boot in power for discontinuities inside [0 N, (1 - 0 )N ],
+but lose power against discontinuities outside the interval.
+
+In contrast, our FDR lasso approach does not require the econometrician to choose a tuning pa-
+rameter. This is particularly important if the discontinuity is located close to the boundary of
+the trimmed support. In the following simulation, we compare the power curve of sup-F test and
+LASSO test when the location of a jump discontinuity is moving towards the edge. We consider
+the data generating process as:
+
+
+
+                                      yi = 1 + b · 1(xi > z ) +   i
+
+
+
+where X and     both generated under a standard normal distribution. We allow the location of the
+jump discontinuity z to vary from 2 to 2.8 and the size of the discontinuity to vary from 1 to 10.
+We choose 0.05 as the trimming parameter for the sup-F test, which is consistent with convention
+in this literature. The following graphs are generated with sample sizes n = 200 and with 200
+simulations. As shown in Figure 3, as the discontinuity moves closer to the boundary, the LASSO
+test demonstrates better power comparing to the sup-F test.
+
+Two last notes about the character of the test: First, it should not be surprising that it exhibits
+variable power, depending on the quality of the local approximation to g (x). In regions where there
+is little data, our approach will fail to detect discontinuities. While it is tempting to interpret this
+
+
+                                                  17
+                                Figure 3: Simulations: Comparing power
+
+
+
+
+                  (a)                                  (b)                                 (c)
+
+
+
+
+                  (d)                                  (e)                                 (f)
+
+
+
+
+                  (g)                                  (h)                                  (i)
+
+
+
+
+Notes: This figure compares the power of the Sup-F test against our lasso FDR approach. We consider the case with
+jump discontinuity moving from 2.0 to 2.8, towards the boundary of the trimmed support. The magnitude of the
+jump is varying from 1 to 10 in all cases. The sup-F test is trimmed at 0.05.
+
+
+as a bias in favor of flagging discontinuities where data is abundant, say near x , rather than where
+it is not, say near x , this is not precisely correct: it is a question of variable power. Rather, one
+might say that it is a bias in favor of flagging discontinuities near x rather than x conditional on
+the existence of discontinuities near both.
+
+Second, as in the derivation of the rate-optimal , our approach requires an estimate of  at
+every stage of the forward-stop algorithm. We estimate this object using OLS conditional on the
+
+
+                                                       18
+discontinuities included so far, so that the estimate is consistent under the interim null of the
+sequential MCP.
+
+
+
+5        Asymptotic Properties
+
+
+5.1      Integrated Mean Squared Error
+
+
+The selection consistency for our procedure can be guaranteed by allowing FDR  0 as n  .
+This is a similar argument to that of Bai and Perron (1998) who let the family-wise error rate
+converge to 0.
+
+Prior work has assumed that we are given the correct specification for the continuous function
+g (x). In this section, we explore the prediction consistency based on our estimator, holding the
+FDR fixed, and propose a procedure that is asymptotically valid to determine the specification for
+g (x).
+
+Formally, let (yi , xi ), i = 1, · · · , n be the sample we observed. We suspect the conditional mean is
+g (x) = E (y |x) with breaks at z1 < z2 < · · · < zs0 . Let              i   be a mean 0 process with variance  2
+unknown. The data generating process can be summarized as:
+
+                                                          s0
+                                         yi = g (xi ) +          j dj (xi ) +    i                             (7)
+                                                          j =1
+
+
+where dj (xi ) represents jump discontinuities.
+
+     ^ 
+Let (,  ^) be the estimator from (3) where g (x) is approximated with spline or power series. Define
+^ = {i, 
+I       ^i = 0}. Recall Dl (xi ) as the lth term in D(xi ). The integrated mean squared error (IMSE)
+for our estimator can be written as:
+                                                                                                  2
+                                                                                     s0
+             IM SEn (m) =         E g
+                                    ^m (x) +           Dl (x)^l - g (x) -                   dj (x)j  f (x)dx
+                                                  lI                                 j =1
+
+
+where
+
+                      g
+                      ^m (x) +           Dl (x)^l = Sm (x) ^m +                Dl (x)^l
+                                  lI                                    lI
+                                   s0                                    s0
+                        g (x) +          dj (x)j = Sm (x) m +                  dj (x)j + rm (x)
+                                  j =1                                  j =1
+
+
+                                                          19
+Theorem 3 (Convergence Rate for IMSE). Under Assumption 1, 2, 3 and 4, there exist a constant
+C such that
+                                                          Km      log(p)
+                              IM SEn (m)  22
+                                           m + 2
+                                                 2
+                                                             +C ·
+                                                           n        n
+
+
+The constant C depends on the sparsity s0 and the compatibility constant  . The compatibility
+constant is defined precisely in the proof (see Appendix A). For intuition, the lower bound on this
+constant is restricting collinearity between the spline approximation of g (·) and the design matrix
+Dn . This would fail if, for instance, the econometrician sought to identify kinks but approximated
+g (·) with a piecewise linear spline, which has, by construction, kinks.
+
+The first two terms in the IMSE expression are approximation error from the spline approximation
+to g (·), while the last term is the error introduced by the detection of, or failures to detect, dis-
+continuities in the lasso procedure. We show that the empirical process for LASSO approximation
+can be bounded using the Glivenko-Cantelli and P-Glivenko-Cantelli theorems (see van der Vaart
+(1998)).
+
+From Theorem 3, IM SEn (m)  0 as 2
+                                 m  0 and   0. Consider the following cross-validation
+process for a set of models m = {0, 1, · · · , M }. We first split the sample into training and prediction.
+We use the training data to detect the number of discontinuities and the parameters in g
+                                                                                       ^(x) and
+                                             ^
+then we use the prediction data to compute IM SE n (m) under each model. We choose the model
+that gives the smallest IM^SE n (m).
+
+
+This procedure is asymptotically valid as when we shrink F DR to 0,   0, as n  , 2
+                                                                                 m  0
+and K                 ^
+     n  0. Thus IM SE n (m) will be minimized under the true parameters at 0.
+      m
+
+
+
+
+5.2    Distribution of Break Point
+
+
+The consistency of the selected break points follows from the irrepresentable condition. In this
+section, we compare our estimators with those in Bai (1997a) and consider the limiting distribution
+of the location of the break when the magnitude of the break is shrinking to 0 as n  . We derive
+the distribution for the standard case when only one jump (or kink) discontinuity exists and g (·) is
+constant. We show that the lasso-detected location has similar distribution as the traditional mean
+square error estimates. However, as in that prior literature, the assumptions are more restrictive
+than in the above.
+
+Theorem 4 (Distribution of Jump Detection). Assume there is only one jump break such that the
+
+
+
+                                                    20
+data generating process is:
+
+                                           yi = d0
+                                                 1 (xi )1 + i , with
+
+                                                       0       if xi  z,
+                                      d0
+                                       1 (xi ) =
+                                                       1       if xi > z.
+
+Let k > 0 be an integer such that
+                                                x(k)  z < x(k+1)
+
+                     ^ be the lasso estimator from (3). Assume n  0 but nn  . There
+Let n = Op ( 1 ) and k
+exist a constant v , such that
+
+                                 2  ^
+                                 n (k - k ) d arg max(-|v | + 2W (|v |)),
+                                                           v
+
+
+­where W (v ) is a wiener process of degree v .
+
+
+In the kink discontinuity case, the convergence rate is slower than the jump discontinuity case.
+When the size of the discontinuity is constant with respect to the sample size n, we have a square-
+root-n convergence rate to a normal distribution, similar to the result in Hansen (2017).
+
+Theorem 5 (Distribution of Kink Detection). Assume there is only one kink break such that the
+data generating process is:
+
+                                       yi = d1
+                                             1 (xi )1 + i ,
+
+                                                   0              if xi  z .
+                                   d1
+                                    1 (xi ) =
+                                                   (xi - z )      if xi > z
+
+Let k > 0 be an integer such that
+                                                x(k)  z < x(k+1) .
+
+Assume 1 = E(x - x(k) ) and 2 = E(x - x(k) )2 both exit. Let 1 =                    n         ^ be the lasso
+                                                                                          and k
+                                                                                    n-k
+estimator from (3). For any n = O(1),
+                                                                                
+                                                                      1
+                                 n (x(k) - x(k
+                                             ^) ) d N
+                                                      0,
+                                                                            2
+                                                                                .
+                                                                  2 1-      1
+                                                                            2
+
+
+
+
+The results in both Theorem 4 and Theorem 5 hold when the size of the kink discontinuity shrinks
+                                                                                        
+towards 0 at a speed slower than 1/ n. When the shrinkage speed is faster than 1/ n, the
+selection consistency results of LASSO estimator no longer holds and the distributions converge to
+
+
+                                                       21
+a non-standard process. As a result, no uniformly valid inference for the location of discontinuity
+exits.
+
+
+
+6        Applications
+
+
+6.1        Placebo Tests for Structural Breaks
+
+
+A natural application of our procedure is to placebo testing for discontinuities in the RDD setting.
+While the location of a break is often known in advance from institutional details ­ for instance,
+majority rule voting implies a threshold at fifty percent ­ empirical researchers in this area would like
+to validate the existence of these discontinuities and know whether there are other, unanticipated
+ones that may affect results. This exercise takes advantage of the fact that we allow a flexible
+specification of g (·) and multiple potential breaks.
+
+By way of illustration, we replicate the electoral RD design of Lee (2008) using our estimator.
+Data for this exercise are available from the online data archive of Angrist and Pischke (2009).9
+Consistent with the design of that paper, we detect the discontinuity at the vote share margin of
+winning of zero (to be precise, 0.0003), and no further discontinuities, as depicted in Figure 4.
+
+
+
+6.2        A Jump Discontinuity with an Unknown Location
+
+
+Next, we follow Card et al. (2008) and consider our test in the context of detecting neighborhood
+"tipping." The theory of Schelling tipping points argues that intolerant white preferences generate
+residential dynamics that lead inexorably to neighborhood segregation. Let mt denotes the minority
+share of a neighborhood at time t. Their model suggests a discontinuity in the expected innovation
+in minority share conditional on mt-1 so that
+
+                      E(mt |mt-1 ) = 1(mt-1 < m )g (mt-1 ) + 1(mt-1  m )h(mt-1 ),
+
+­ for some unknown threshold m and some functions g and h, with a jump discontinuity at the
+threshold.
+
+Our design mirrors that in Card et al. (2008). We obtained data the Neighborhood Change Database
+(NCDB) from 1970-2010. As in their work, the unit of observation is the census tract, the change
+    9
+        See https://economics.mit.edu/faculty/angrist/data1/mhe.
+
+
+                                                         22
+                        Figure 4: Regression Discontinuity Design in Lee (2008)
+
+
+
+
+Notes: We use data from Lee (2008) and apply our method as a placebo test for regression discontinuity design.
+The x-axis represents the democratic vote share margin of victory (or loss) in period t. The y-axis represents the
+vote share in the subsequent election at t + 1. The red line indicates a quadratic polynomial fit determined by
+cross-validation. The green dash line represents the density plot and the marked black dotted line indicates the only
+detected discontinuity at 0.
+
+
+in minority shares are calculated using ten-year window, and we run our estimator separately for
+each time period and metropolitan area.
+
+Their paper assumes the existence of a single break and searches over the range [0, 2/3] to find it,
+assuming that g (·) is a constant function. Here we weaken the assumptions of their approach in
+two ways: first, we allow for multiple (or no) breaks. Second, we allow for more flexible forms for
+the g (·) function, including our preferred specification, which chooses the degree of the polynomial
+series using cross-validation.
+
+Results are reported in Table 1. In the first part of that table, we report the number of detections
+allowing for more or less flexibility in the specification of g (·). For instance, in the top-left part of
+the table, we see that the sup-F test finds breaks in 87 or the 93 metropolitan areas, while the lasso
+
+
+                                                         23
+approach finds only 51.
+
+Several features are apparent: first, especially in the presence of a more flexible functional form,
+many metropolitan areas appear to exhibit no evidence of a structural break or "tipping point."
+For between a quarter and half of the cases where a structural break is detected, the lasso approach
+actually detects two rather than one. Second, many of these breaks, especially once we allow for
+a more flexible functional form for g (·), are positive jumps rather than negative jumps, which is
+inconsistent with the model of Schelling-style tipping points. These inconsistencies are obscured
+when we assume the existence of a single jump, and so the generality afforded by our approach is
+especially important as we seek to assess the fit of the model. We do not believe this undermines the
+research agenda. Rather, in the spirit of "Sherlock Holmes inference" (Leamer, 1983), these results
+suggest new directions ­ perhaps the salient question is understanding why some metropolitan areas
+exhibit tipping behavior and others do not.
+
+In addition, variation in the results highlights the first-order significance of assumptions on the
+parametric form of g (·) for the performance of the detection algorithm. Much of the power of the
+Sup-F test to identify detections seems to be coming from the restrictive functional form assumption,
+that g (·) is a constant function on [0, 2/3].
+
+The second panel of Table 1 reports results for the lasso approach where the order of approximation
+of g (·) is chosen by cross-validation. We note that in this, our preferred specification, there is
+substantial heterogeneity in the choice of order, and second, that only in substantially less than
+half of metropolitan areas are we able to find any evidence of a structural break.
+
+Figures 5 and 6 present results for two cities, New York and Washington, DC respectively. For
+New York, the procedure detects a tipping point only for changes over 1970­1980, not for any other
+interval. Moreover, the importance of the quadratic fit of g (·), here chosen by cross-validation, is
+visually evident. In the absence of sufficient flexibility, it would be possible to detect a discontinuity
+generated primarily by misspecification. And, given the locally negative slope, that false detection
+would be likely appear to be a negative jump, equipollent with the predictions of the theoretical
+model of tipping points. Likewise in DC, for half of the time periods no discontinuity is detected.
+Moreover, for the period 1980­1990, the algorithm instead detects a positive jump, which has no
+interpretation in the theory.
+
+
+
+
+                                                   24
+                                       Table 1: Detection of Tipping Points
+
+
+
+                                         1970-1980                  1980-1990              1990-2000              2000-2010
+                                      sup-F           Lasso      sup-F         Lasso    sup-F         Lasso    sup-F         Lasso
+
+Full sample:
+  Constant:
+     MSAs with detections               90              48          91        66           92        63           70        47
+     Mean detected location          [0.1057]        [0.0834]   [0.1289]   [0.1103]    [0.1335]   [0.1077]    [0.1601]   [0.1286]
+     (Multiple/Postive detections)     (-/4)          (20/3)      (-/2)     (20/7)       (-/1)     (24/3)       (-/0)     (11/3)
+  Linear:
+     MSAs with detections               69              42          78        42           73        51           41        33
+     Mean detected location          [0.0901]        [0.0718]   [0.1209]   [0.1135]    [0.1258]   [0.1116]    [0.1598]   [0.1236]
+     (Multiple/Postive detections)    (-/23)          (9/15)      (-/8)     (5/8)        (-/1)     (4/5)        (-/1)      (4/4)
+  Qudratic:
+     MSAs with detections               55              35         54         39          38          29          11        20
+     Mean detected location          [0.0873]        [0.1090]   [0.1113]   [0.0989]    [0.1137]   [0.1198]    [0.1540]   [0.1094]
+     (Multiple/Postive detections)    (-/25)          (9/19)     (-/26)     (9/16)      (-/12)      (4/7)       (-/1)      (2/8)
+  3rd order:
+     MSAs with detections               48              30          51        43           25         24          3         16
+     Mean detected location          [0.0990]        [0.0952]   [0.1050]   [0.0796]    [0.1049]   [0.1312]    [0.1442]   [0.1157]
+     (Multiple/Postive detections)    (-/25)         (10/12)      (-28)     (6/22)       (-/7)      (3/6)       (-/1)      (3/7)
+  4th order:
+     MSAs with detections               50              34         46         48          25          25          2         16
+     Mean detected location          [0.1040]        [0.0916]   [0.1086]   [0.1030]    [0.1049]   [0.0882]    [0.1452]   [0.1123]
+     (Multiple/Postive detections)    (-/27)          (8/17)     (-/17)     (8/21)      (-/10)      (4/9)       (-/0)      (4/8)
+
+
+Cross-validation:
+  MSAs with detections                  62              48         63         51          47         37           18        20
+  Mean detected location             [0.0932]        [0.0834]   [0.1061]   [0.1042]    [0.1134]   [0.1347]    [0.1601]   [0.1615]
+  (Multiple/Postive detections)       (-/26)         (20/21)     (-/20)    (11/22)      (-/11)     (7/12)       (-/0)     (4/8)
+  Percentage of models selected:
+    Constant                         20.62%           7.22%     15.32%     10.81%      22.12%      7.96%      18.58%     13.27%
+    1st order                        13.40%          13.40%     12.61%     10.81%      14.16%     15.93%      15.04%     17.70%
+    2st order                        18.56%          24.74%     19.82%     23.42%      24.78%     21.24%      26.55%     27.43%
+    3st order                        19.59%          17.53%     22.52%     23.42%      19.47%     29.20%      25.66%     21.24%
+    4st order                        27.84%          37.11%     29.73%     31.53%      19.47%     25.66%      14.16%     20.35%
+
+
+# of MSAs in sample                             97                       111                    113                    113
+
+
+
+
+   Notes: Here we compare the performance of the Sup-F test and our lasso FDR approach using the NCDB data to
+   detect tipping points in patterns of neighborhood demographics. The upper portion of the table uses the four period
+                                                                ^(·). The lower portion reports results for our preferred
+   windows and five different models for the functional form of g
+   procedure, which uses cross-validation to determine the order of the approximation.
+
+
+
+
+                                                                 25
+                               Figure 5: Change in Minority Share: New York
+
+
+
+
+                             (a) 1970-1980                         (b) 1980-1990
+
+
+
+
+                             (c) 1990-2000                         (d) 2000-2010
+
+
+
+
+6.3   Regression Kink with an Unknown Threshold
+
+
+As an opportunity to compare our approach to the traditional structural breaks literature, we
+follow the replication of Reinhart and Rogoff (2010) in Hansen (2017), and achieve a similar size
+and power in the detection of the first discontinuity. In this model, the discontinuity represents a
+structural break in the relationship between the ratio of debt to GDP and the growth rate of GDP.
+
+Our setup mirrors Hansen (2017); the data are entirely simulated. The data generating process is
+the following:
+                              yt = 1 (xt -  )- + 2 (xt -  )+ + 3 yt-1 + 4 +   t                  (8)
+
+­ where   t    N (0,  2 ).
+
+
+
+To evaluate size, we set 1 = 2 = 0, 3 = 0.3, 4 = 3, and  2 = 16 to match the empirical
+
+
+                                                    26
+                      Figure 6: Change in Minority Share: Washington DC
+
+
+
+
+                       (a) 1970-1980                           (b) 1980-1990
+
+
+
+
+                       (c) 1990-2000                           (d) 2000-2010
+
+
+
+
+estimates from Reinhart and Rogoff (2010).
+
+In Table 2 we report results from one thousand simulations with a bootstrap size of one thousand,
+and compare our results to the MSE-based detection algorithm of Hansen (2017). Both tests exhibit
+no meaningful size distortion.
+
+Next, in Table 3 we compare the power of the two tests. We consider a range of values for 2 , from
+-0.16 to -0.02, and set the kink point at  = 40. Nominal size is set at  = 0.05. The power curves
+are similar, however the lasso approach performs slightly better when  is small and slightly worse
+when  is large.
+
+Table 4 documents the coverage of the two approaches. We do not condition on detection. This
+makes clear the failure of uniform validity ­ as   0, the coverage rate of the standard approach
+erodes, while the FDR lasso approach holds at 90%, even when there is no discontinuity.
+
+
+
+                                               27
+                         Table 2: Type I error of Lasso test vs threshold F test
+
+
+
+                                                                 
+                                           0.05    0.10      0.15     0.20     0.25
+                        threshold-F        0.051   0.0990    0.1469   0.1970   0.2460
+                           Lasso           0.071   0.1120    0.1520   0.2040   0.2450
+
+
+
+Notes: We compare the size of our lasso FDR test with threshold F test when there is no discontinuity in the true
+data generating process. We vary the nominal level of control from 5% to 25% and report the empirical incorrect
+rejection rate for 1000 simulations.
+
+
+Finally, in Table 5, we show bootstrap results for the break location ^ with comparison between the
+standard and lasso method. For standard method, we follow Hansen (2017) and report coverage
+and length of 95% confidence interval using native (±1.645s(^
+                                                             ) ), percentile, inverse percentile,
+symmetric percentile, and C , C  methods. For the lasso method, we report coverage and length
+of 95% confidence interval using the native (±1.645s(^
+                                                      ) ), percentile, inverse percentile, and sym-
+                              
+metric percentile method. Let (                                                           
+                                /2) denote the (/2) percentile of the bootstrap statistic  . The
+                                                  
+percentile confidence interval is represented by ((       
+                                                    /2) , (1-/2) ). The inverse percentile confidence
+                                
+interval is represented by (2 - (1           
+                                  -/2) , 2 - (/2) ). The symmetric percentile is represented by
+( -                                                       
+    (/2) ,  + (/2) ), where (/2) ) is the /2 quantile of | -  |. Note that C , C is not
+                                                                                
+
+
+available under the lasso method because the test specified in our setting can not be inverted in a
+similar way to the standard MSE test. While the coverage between MSE and lasso methods are
+very similar, the length of confidence interval is smaller under the lasso method.
+
+             Table 3: Power of of Lasso test vs threshold F test with nominal size 10%
+
+
+
+                                                              
+                         -0.02    -0.04     -0.06    -0.08       -0.10    -0.12    -0.14    -0.16
+            Hansen       0.0691   0.1130    0.2010   0.3110      0.4680   0.6200   0.7500   0.8540
+             Lasso       0.0920   0.1540    0.2626   0.3740      0.4690   0.5460   0.6690   0.6890
+
+
+
+Notes: We compare the power of our lasso FDR test with threshold F test when there is one kink discontinuity in the
+true data generating process. We vary the magnitude of discontinuity from -0.02 to -0.16 and report the empirical
+rate of detection under 1000 simulations. The nominal level of rejection is controlled at 10% level.
+
+
+
+
+                                                        28
+                Table 4: Coverage rate of nominal 90% CI for magnitude of discontinuity
+
+
+
+                                                                      
+                                                0.00      -0.01     -0.02     -0.04    -0.16
+                       ^ ± 1.645s(
+                                   ^)           0.8250    0.7950    0.8050    0.8100   0.8600
+                         Percentile             0.8100    0.8250    0.8150    0.8450   0.9200
+                     Inverse Percentile         0.8500    0.8650    0.8700    0.9000   0.8750
+                    Symmetric Percentile        0.8600    0.8650    0.8650    0.8950   0.8950
+
+                        lasso de-biased         0.8950    0.9000    0.9000    0.8950   0.9000
+
+
+
+Notes: We compare the coverage probability for the magnitude of the discontinuity using post fitting and de-biased
+methods. For post fitting, we use the full sample to estimate the location of discontinuity and then use the full sample
+to construct confidence interval conditioning on the detected discontinuity. For lasso de-biased method, we first use
+the full sample to detect the discontinuity and its lasso estimator. We then computer the bias for lasso estimator
+based on its analytic form and add it back to the lasso estimator.
+
+
+6.4       Signaling in Online Bargaining
+
+
+Finally, we replicate a result from Backus et al. (2018b), that the use of a round-number asking
+price in Best Offer listings on eBay.com elicits lower offers from buyers. In their paper, this result
+is a component of the argument that round numbers are signals of sellers' willingness to bargain.
+We are interested in the following regression:
+
+
+
+                Mean First Buyer Offeri = g (Asking Pricei ) +                1z (Asking Pricei ) + i .
+                                                                       z Z
+
+
+
+Here Z is a set of discontinuities, 1z (x) is an indicator function for the event x  [z, z + 1), and
+we are interested in selecting the correct active set of point (or rather, unit-length) discontinuities.
+Our data are drawn from Collectibles listings using the publicly available Best Offer bargaining
+dataset introduced by Backus et al. (2018a).10 We use observations where the asking price is in
+[x - 25, x + 25] for x  {100, 200, 300, 400, 500}.
+
+Results are presented in Figure 7. Solid vertical lines represent the selected set ­ in each scenario,
+the unit interval round to the nearest 100 is selected, and in the 400's case, we also select 413. This
+is consistent with the round-number effects identified by that paper.
+  10
+       See http://www.nber.org/data/bargaining/.
+
+
+
+
+                                                          29
+             Table 5: Coverage rate of nominal 90% CI for the location of discontinuity
+
+
+
+                                                                             
+                                          0.05          0.10          0.15          0.20           0.25
+Threshold F (MSE) method :
+^ ± 1.645s(^
+           )                              0.7900        0.7200        0.6850        0.6450         0.6050
+                                          (37.9457)     (31.8450)     (27.8699)     (24.8114)      (22.2712 )
+Percentile                                0.9550        0.8900        0.8650        0.8000         0.7650
+                                          (40.7975)     (32.5250)     (27.0200)     (23.2675)      (20.0700)
+Inverse Percentile                        0.8250        0.7950        0.7350        0.7100         0.6800
+                                          (40.7975)     (32.5250)     (27.0200)     (23.2675)      (20.0700)
+Symmetric Percentile                      0.9000        0.8450        0.7800        0.7500         0.7150
+                                          (41.9400)     (32.1950)     (26.5050)     (22.5850)      (19.5100)
+C                                         0.9050        0.8400        0.7800        0.7150         0.6450
+                                          (30.6950)     (24.6100)     (20.9950)     (18.4050 )     (16.0800)
+C                                         0.9200        0.8450        0.8050        0.7700         0.7250
+                                          (33.3950)     (27.3200)     (23.5250)     (20.9050)      (18.6600)
+Lasso (Covariance) method:
+Percentile                                0.9500        0.8650        0.8000        0.7700         0.7250
+                                          (28.0704)     (22.3397)     (18.9569)     (16.6049)      (14.5919)
+Inverse Percentile                        0.9200        0.8550        0.7850        0.7350         0.6850
+                                          (28.0704)     (22.3397)     (18.9569)     (16.6049)      (14.5919)
+Symmetric Percentile                      0.9500        0.8600        0.7950        0.7550         0.6900
+                                          (28.0731)     (22.2410)     (18.9754)     (16.4391)      (14.4893)
+
+
+
+Notes: Here we compare the coverage probabilities. The location of discontinuity is selected using either mean-square-
+error criterion or largest covariance between outcome and regressors, the basis for our lasso approach. We construct
+confidence intervals and report the empirical coverage under different methods. The length of confidence interval is
+reported in parentheses.
+
+
+
+
+                                                         30
+                                   Figure 7: Signaling in Online Bargaining
+
+
+
+
+           (a) Prices near $100                   (b) Prices near $200                  (c) Prices near $300
+
+
+
+
+                               (d) Prices near $400                  (e) Prices near $500
+
+
+
+
+Notes: Here we apply our lasso FDR method to the best offer bargaining dataset, in intervals 25 above and below
+the conjectured discontinuities. The x-axis are the price offered initially and y-axis is the final sell price. The orange
+dots are original data and blue circles depict the mean. The black line is the detected discontinuities using LASSO
+method.
+
+
+7     Discussion
+
+This paper has endeavored to introduce a new method to detect discontinuities using lasso regres-
+sion. The method is robust to an unknown number, type, location, and magnitude of discontinuities.
+
+Searching over a function to detect discontinuities is, by nature, an exercise in data snooping and
+so post-selection inference is problematic, here as in prior work. This problem is complicated
+further by allowing for multiple breaks, which makes the multiple selection problem sequential in
+character and, as we showed, raises substantial problems for existing approaches. Our solution to
+these problems is to avoid post-selection inference altogether, by building the desired inferential
+guarantee, false discovery rate control, into the selection process itself.
+
+Our lasso-based approach has the added advantage of linearity, so that it easily accommodates
+flexible estimation of the continuous part of the function. We showed that this flexibility is more
+
+
+
+                                                           31
+than mere agnosticism. Even if the empiricist knows the true functional form, the sequential
+character of testing for discontinuities introduces interim misspecification that can lead to false
+detections.
+
+We believe that the value of such an approach is twofold, and we highlighted both in our applica-
+tions. First, when the location of a theoretically-motivated discontinuity is unknown, as in Card
+et al. (2008) and Reinhart and Rogoff (2010), our approach offers a flexible approach to detection.
+But second, even when we posit the existence of a discontinuity in a particular location, as in Lee
+(2008) and Backus et al. (2018b), the method is a useful placebo test for additional discontinuities,
+a specification test that can alert the econometrician to either a failure of their assumed model, or
+the location of additional discontinuities that may complicate estimation.
+
+Finally, we hope that we have made a small contribution to the growing literature on the adoption
+of machine learning techniques in a way that maintains interpretable inferential guarantees, an
+important area for future work as empirical researchers economics adopt those tools.
+
+
+
+
+                                                 32
+References
+Andrews, D. W. K. (1993). Tests for parameter instability and structural change with unknown change point.
+  Econometrica, 61(4):821­856.
+
+Angrist, J. D. and Pischke, J.-S. (2009). Mostly Harmless Econometrics: An Empiricist's Companion. Princeton
+  University Press.
+
+Backus, M., Blake, T., Larsen, B., and Tadelis, S. (2018a). Sequential bargaining in the field: Evidence from millions
+  of online bargaining threads. NBER Working Paper No. 24306.
+
+Backus, M., Blake, T., and Tadelis, S. (2018b). On the empirical content of cheap-talk signaling: An application to
+  bargaining. forthcoming, Journal of Political Economy.
+
+Bai, J. (1997a). Estimating multiple breaks one at a time. Econometric Theory, 13(3):315­352.
+
+Bai, J. (1997b). Estimation of a change point in multiple regression models. The Review of Economics and Statistics,
+  79(4):551­563.
+
+Bai, J. and Perron, P. (1998). Estimating and testing linear models with multiple structural changes. Econometrica,
+  66(1):47­78.
+
+Basu, P., Cai, T. T., Das, K., and Sun, W. (2017). Weighted false discovery rate control in large-scale multiple
+  testing. Journal of the American Statistical Association.
+
+Belloni, A., Chernozhukov, V., and Kato, K. (2014). Uniform post selection inference for lad regression and other
+  z-estimation problems. Working Paper.
+
+Benjamini, Y. and Hochberg, Y. (1995). Controlling the false discovery rate: A practical and powerful approach to
+  multiple testing. Journal of the Royal Statistical Society. Series B (methodological), 57(1):289­300.
+
+B¨
+ uhlmann, P. and van de Geer, S. (2011). Statistics for High-Dimensional Data. Springer.
+
+Card, D., Mas, A., and Rothstein, J. (2008). Tipping and the dynamics of segregation. The Quarterly Journal of
+  Economics, 123(1):177­218.
+
+Donald, S. and Newey, W. K. (1994). Series estimation of semilinear models. Journal of Multivariate Analysis,
+  50(1):30­40.
+
+Efron, B., Hastie, T., Johnstone, I., and Tibshirani, R. (2004). Least angle regression. The Annals of Statistics,
+  32(2):407­499.
+
+Fan, J. and Han, X. (2016). Estimation of the false discovery proportion with unknown dependence. Journal of the
+  Royal Statistical Society: Series B (Statistical Methodology), pages n/a­n/a.
+
+Fan, J., Han, X., and Gu, W. (2012). Estimating false discovery proportion under arbitrary covariance dependence.
+  Journal of the American Statistical Association, 107(499):1019­1035.
+
+Fithian, W., Sun, D., and Taylor, J. (2015). Optimal inference after model selection. Working Paper.
+
+Fithian, W., Taylor, J., Tibshirani, R., and Tibshirani, R. (2017). Selective sequential model selection.
+
+
+
+                                                         33
+G'Sell, M. G., Wager, S., Chouldechova, A., and Tibshirani, R. (2015). Sequential selection procedures and false
+  discovery rate control. Working Paper.
+
+Hansen, B. E. (2000). Sample splitting and threshold estimation. Econometrica, 68(3):575­603.
+
+Hansen, B. E. (2014a).     Nonparametric Sieve Regression: Least Squares, Averaging Least Squares, and Cross-
+  Validation. Oxford Handbooks. Oxford Handbook of Applied Nonparametric and Semiparametric Econometrics
+  and Statisics.
+
+Hansen, B. E. (2014b). Oxford Handbook of Applied Nonparametric and Semiparametric Econometrics and Statistics.
+  Oxford University Press.
+
+Hansen, B. E. (2017). Regression kink with an unknown threshold. Journal of Business and Economic Statistics,
+  35:228­240.
+
+Hawkins, D. L. (1987). A test for a change point in a parametric model based on a maximal wald-type statistic.
+  Sankhy¯
+        a: The Indian Journal of Statistics, 49(3):368­376.
+
+Leamer, E. E. (1983). Let's take the con out of econometrics. American Economic Review, 73(1):31­43.
+
+Lee, D. S. (2008). Randomized experiments from non-random selection in u.s. house elections. Journal of Economet-
+  rics, 142:675­697.
+
+Leeb, H. and P¨
+              otscher, B. M. (2005). Model selection and inference: Facts and fiction. Econometric Theory, 21:21­59.
+
+Lockhart, R., Taylor, J., Tibshirani, R. J., and Tibshirani, R. (2014). A significance test for the lasso. The Annals
+  of Statistics, 42(2):413­468.
+
+Newey, W. K. (1997). Convergence rates and asymptotic normality for series estimators. Journal of Econometrics,
+  79(1):147­168.
+
+Reinhart, C. M. and Rogoff, K. S. (2010). Growth in a time of debt. American Economic Review: Papers and
+  Proceedings, 100:573­578.
+
+Tian, X. and Taylor, J. (2017). Asymptotics of selective inference. Scandinavian Journal of Statistics, 44(2):480­499.
+  10.1111/sjos.12261.
+
+van de Geer, S., B¨
+                  uhlmann, P., Ritov, Y., and Dezeure, R. (2014). On asymptotically optimal confidence regions and
+  tests for high-dimensional models. Annals of Statistics, 42(3):1166­1202.
+
+van de Geer, S. A. and B¨
+                        uhlmann, P. (2009). On the conditions used to prove oracle results for the lasso. Electronic
+  Journal of Statistics, 3:1360­1392.
+
+van der Vaart, A. (1998). Asymptotic Statistics. Cambridge University Press.
+
+Xie, H. and Huang, J. (2009). Scad-penalized regression in high-dimensional partially linear models. The Annals of
+  Statistics, 37(2):673­696.
+
+Yao, Y.-C. (1988). Estimating the number of change-points via schwarz' criterion. Statistics and Probability Letters,
+  6(3):181­189.
+
+Zhao, P. and Yu, B. (2006). On model selection consistency of lasso. Journal of Machine Learning Research, 7:2541­
+  2563.
+
+
+                                                    Appendix-1
+Appendices
+
+A     Proofs
+
+
+A-1     Proof of Lemma 1 [Invariance of LASSO under Projection]
+
+
+Let L = Y - Sm  - D          2   + | |1 . Then,
+                             2
+
+
+                                   L
+                                     = -2Sm Y + 2Sm Sm  + 2Sm D.                                    (A1)
+                                   
+^ must satisfy
+                 L
+                     = 0. Thus,
+                 
+                                          ^ = (S Sm )-1 S (Y - D )
+                                                                                                    (A2)
+                                                m        m
+
+Substituting equation (A2) into equation (3), we have:
+
+                                                                2
+                                    L = (I - PZ )(Y - D )       2   + | |1
+                                                           2
+                                          = Mm Y - Mm D    2   + | |1 ,
+
+­ where Mm = In - PZ .
+
+
+
+A-2     Proof of Theorem 1 [Design Matrices for Detecting Discontinuities]
+
+
+For point discontinuities in part (a), the design matrix is exactly the identity matrix In and thus
+the irrepresentable condition holds.
+
+Consider next jump discontinuities in part (b). For the general case, let DA0 = (Dj1 , Dj2 , · · · , Djs )
+such that j1 > j2 > · · · js . Thus,
+
+
+                                                                                     
+                                                   n-j1    n-j1               n-j1
+                                           1       n-j2    n-j3      ···      n-js
+                                   
+                                           n-j1            n-j2               .
+                                                                              .
+                                                                                     
+                                                    1                         .
+                                                                                     
+                                           n-j2            n-j3
+                                                                                     
+                                                                                     
+                       DA0 DA0    =        n-j1    n-j2
+                                                                                     .
+                                                                                     
+                                           n-j3    n-j3    1
+                                                                                     
+                                           .
+                                           .                         ..              
+                                   
+                                           .                              .          
+                                                                                     
+                                           n-j1
+                                           n-js    ···                        1
+
+
+
+
+                                                  Appendix-2
+Next, fix k and define the S -vector
+
+                                              Dk DA0 (DA0 DA0 )-1 .
+
+
+
+With this notation,
+
+         min{n - k, n - j1 }           n - j1            n - j1          n - j1                 n - j1
+                                = 1           + 2               + 3             + · · · + s
+           (n - k )(n - j1 )           n - j1            n - j2          n - j3                 n - js
+
+         min{n - k, n - j2 }           n - j1            n - j2          n - j2               n - j2
+                                = 1           + 2               + 3             · · · + s
+           (n - k )(n - j2 )           n - j2            n - j2          n - j3               n - js         (A3)
+                                ···
+
+         min{n - k, n - js }           n - j1            n - j2          n - j3               n - js
+                                = 1           + 2               + 3             · · · + s            .
+            (n - k )(n - js )          n - js            n - js          n - js               n - js
+
+
+                                                                                   n-j1
+From the above, compute the first line of (A3) minus the product of                n-j2     and the second line to
+obtain
+
+                     min{n - k, n - j1 }           n - j1 min{n - k, n - j2 }     j1 - j2
+                                             -                                = 1         .
+                        (n - k )(n - j1 )          n - j2   (n - k )(n - j2 )     n - j2
+
+Thus,                                       
+                                                  n-k
+                                                                k  j1
+                                                  n-j1
+
+                                      1 =         n-j1 k-j2
+                                                  n-k j1 -j2    j1 > k  j2 .
+                                            
+                                            0
+                                            
+                                                                j2 > k
+
+
+Next we show that the irrepresentable condition holds in each of the three cases. When k  j1 ,
+notice that 2 = 3 = · · · = s = 0 is a solution to the system. And since (DA0 DA0 ) is full rank,
+the solution is unique. Thus
+                                                               n-k
+                                            sup    |A0 | =            < 1,
+                                        A0    1
+                                                               n - j1
+
+­ and therefore the irrepresentable condition holds.
+
+                                                                                     n-j2
+When j1 > k  j2 , use the second line of (A3) minus the product of                   n-j3    and the third line to
+obtain
+
+
+
+
+                                                    Appendix-3
+                      min{n - k, n - j2 }           n - j2 min{n - k, n - j3 }
+                                              -
+                          (n - k )(n - j2 )         n - j3   (n - k )(n - j3 )
+                                j2 - j3             n - j1      (n - j1 )(n - j2 )
+                          = 2           + 1                -                          .
+                                n - j3              n - j2          n - j3
+
+
+Next, substitute 1 to get
+
+
+
+
+                      min{n - k, n - j2 }           n - j2 min{n - k, n - j3 }
+                                              -
+                          (n - k )(n - j2 )         n - j3   (n - k )(n - j3 )
+                                j2 - j3             n - j1      (n - j1 )(n - j2 )
+                          = 2           + 1                -                          .
+                                n - j3              n - j2          n - j3
+
+Thus,
+
+                                                    n - j2 j1 - k
+                                          2 =                     .
+                                                    n - k j1 - j2
+
+
+Notice that 3 = 4 = · · · = s = 0 is a solution to the system.
+
+
+                                              n - j1 k - j2       n - j2 j1 - k
+                       sup      |A0 | =                     +                   < 1,
+                     A0    1
+                                              n - k j1 - j2       n - k j1 - j2
+
+­ and therefore the irrepresentable condition holds.
+
+Finally, when j2 > k , since 1 = 0, we can rewrite the system as:
+
+                 min{n - k, n - j2 }              n - j2        n - j2               n - j2
+                                        = 2              + 3           · · · + s
+                    (n - k )(n - j2 )             n - j2        n - j3               n - js
+
+                 min{n - k, n - j3 }              n - j2        n - j3               n - j3
+                                        = 2              + 3           · · · + s
+                    (n - k )(n - j3 )             n - j3        n - j3               n - js
+                                        ···
+
+                 min{n - k, n - js }              n - j2        n - j3               n - js
+                                        = 2              + 3           · · · + s            ,
+                    (n - k )(n - js )             n - js        n - js               n - js
+
+
+
+
+                                                  Appendix-4
+­and we are back to the initial system with s-1 equations. By induction, we have sup                A0    1
+                                                                                                              |A0 |,
+thus the irrepresentable condition holds.
+
+
+
+Finally, for case (c), we prove by induction. First we show that the design matrix for point and
+jump discontinuities satisfies the irreprenstable condition, then we assume it holds till the K - 1th
+discontinuities and prove for the K th discontinuity
+
+when there is only one discontinuity but its type (kink or jump) is unknown, the design matrix D
+is a combination of both point and jump dummies :
+
+                                    00
+                                   Dk  = (0, 0, 0, · · · , 1, · · · , 0) ,
+
+                         0                        1     1           1
+                        Dk =    0, 0, 0, · · · ,     ,     ,··· , 
+                                                 n-k   n-k         n-k
+
+
+Since only one break exists, DA0 DA0 = 1. First, assume the break is a jump:
+
+                              0          min{(n - k ), (n - j )}
+                             Dj DA0 =                                  < 1, and
+                                               (n - k )(n - j )
+                             00        1
+                            Dj  DA0 =     < 1.
+                                      n-k
+
+
+Next, instead assume the break is a point. Then,
+
+                                     0                1
+                                    Dj DA0 =             < 1, and
+                                                     n-j
+                                    00
+                                   Dj  DA0 = 0 < 1.
+
+
+By Cauchy-Schwarz, a useful proposition for the following proof is:
+
+
+
+                                             2                                                                                       
+        n                                                        n                                        n
+                (x(i) - x(k) )L (x(i) - x(j ) )K  <                          (x(i) - x(k) )2L                         (x(i) - x(j ) )2K 
+  i=max{k+1,j +1}                                       i=max{k+1,j +1}                           i=max{k+1,j +1}
+                                                                                  
+                                                          n                             n
+                                                              (x(i) - x(k) )2L                (x(i) - x(j ) )2K   .
+                                                        i=j +1                        i=k+1
+
+
+
+
+                                              Appendix-5
+The proof proceeds by induction. Assume the irrepresentable condition holds when there is only
+one discontinuity up to the (K - 1)th order.
+
+First assume the break is a Lth order where L  (K - 1):
+
+
+
+                                  n                             L
+                     K            i=max{k+1,j +1} (x(i) - x(k) ) (x(i)   - x(j ) )K
+                    Dj DA0 =                                                          < 1.
+                                                    L k j
+                                                         K
+
+
+
+
+Next assume the break is K th order, for any L  (K - 1):
+
+
+
+                                  n                             K
+                     L            i=max{k+1,j +1} (x(i) - x(k) ) (x(i)   - x(j ) )L
+                    Dj DA0 =                                                          < 1,
+                                                    K k j
+                                                         L
+
+
+
+
+­ and for L = K ,
+                                  n                             K
+                     K            i=max{k+1,j +1} (x(i) - x(k) ) (x(i)   - x(j ) )K
+                    Dj   DA0 =                                                        < 1.
+                                                    K k j
+                                                         K
+
+
+
+
+A-3    Proof of Corollary 1: [Invariant of Irrepresentable Condition under Pro-
+       jection]
+
+
+Under the projection of PZ , the irrepresentable condition becomes:
+
+                    Dj PZ DA0 (DA0 PZ DA0 )-1 A0
+                    = trace PZ DA0 (DA0 PZ DA0 )-1 A0 Dj
+                    = trace (DA0 DA0 )-1 DA0 DA0 PZ DA0 (DA0 PZ DA0 )-1 A0 Dj
+                    = trace (DA0 DA0 )-1 DA0 A0 Dj
+                    = trace A0 Dj (DA0 DA0 )-1 DA0
+                    = trace A0 Dj (DA0 DA0 )-1 DA0 DA0 DA0 (DA0 DA0 )-1
+                    = trace A0 Dj DA0 (DA0 DA0 )-1
+                    = Dj DA0 (DA0 DA0 )-1 A0 < 1.
+
+
+                                             Appendix-6
+A-4      Proof of Corollary 2 [Kink Violation]
+
+
+Consider the two-kink case with, WLOG, k1 > k2 , so that
+                                                                                 n
+                                                                                 i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )
+                                                                                                                          
+               1    1
+                                                   1                                          k1 k2
+              DA   DA   =          n                                                                                      ,
+                 0    0            i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )
+                                                k1 k2                                            1
+
+­ and,
+                                                                                         n
+                                                                                         i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )
+                                                                                                                                  
+           1    1 -1       1                            1                          -                   k1 k2
+         (DA   DA   ) =                 n                                                                                         ,
+             0    0
+                           W -          i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )
+                                                       k1 k2                                             1
+
+                        n                                        2
+                        i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )
+­where W = 1 -                       k1 k2                           .
+
+
+Now pick j such that k1 > j > k2 , so
+                                    n                                            n
+                 1  1               i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(j ) )        i=j +1 (x(i) -x(k2 ) )(x(i) -x(j ) )
+                Dj DA 0
+                        =                        j k1                                        j k2
+                                                                                                                        .
+
+Then,
+
+              1  1     1    1 -1
+             Dj DA 0
+                     (DA 0
+                           DA 0
+                                ) [1, 1]
+                             n
+                    1        i=k1 +1 (x(i)- x(k1 ) )(x(i) - x(j ) )
+                =
+                    D                     j k1
+                        n                                          n
+                        i=k1 +1 (x(i) - x(k1 ) )(x(i) - x(k2 ) )   i=j +1 (x(i) - x(k2 ) )(x(i) - x(j ) )
+                -
+                                      k 1 k 2                                    j k 2
+                        n                                          n
+                        i=k1 +1 (x(i) - x(k1 ) )(x(i) - x(k2 ) )   i=k1 +1 (x(i) - x(k1 ) )(x(i) - x(j ) )
+                -
+                                      k 1 k 2                                    j k 1
+                        n
+                        i=j +1 (x(i) - x(k2 ) )(x(i) - x(j ) )
+                +
+                                       j k 2
+
+
+
+
+                                                            Appendix-7
+                         n                                             n
+              1                    - x(k1 ) )(x(i) - x(j ) )
+                         i=k1 +1 (x(i)                                 i=j +1 (x(i) - x(k2 ) )(x(i) - x(j ) )
+            =                                                    +
+              W                    j k1                                             j k2
+                    n
+                            ( x(i) - x (k1 ) )( x (i) - x (k2 ) )
+              1 - i=k1 +1
+                                   k1 k2
+                 n                                                 n
+                 i=k1 +1 (x(i) - x(k1 ) )(x(i) - x(j ) )           i=j +1 (x(i) - x(k2 ) )(x(i) - x(j ) )
+            =                                              +
+                               j k 1                                            j k2
+                    n
+                            (x(i) - x(k1 ) )(x(i) - x(k2 ) ) -1
+              1 + i=k1 +1                                             .
+                                   k1 k2
+
+
+                   n                                            n
+                   i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(j ) )        i=j +1 (x(i) -x(k2 ) )(x(i) -x(j ) )
+Define f (j ) =                 j k1                       +                j k2                       .
+
+                                             n
+                                             i=k1 +1 (x(i) -x(k1 ) )(x(i) -x(k2 ) )                           1 D (D D )-1 [1, 1] >
+Notice that f (k1 ) = f (k2 ) = 1+                         k1 k2                      and f is concave. Thus Dj  A0 A0 A0
+1 and the irrepresentable condition fails.
+
+
+
+A-5     Proof of Corollary 3 [Irrepresentable Condition under Partition]
+
+
+Note that A0 = diag (1    2            s
+                     A0 , A0 , · · · , A0 ) is block diagonal, so that
+
+
+
+
+                   (A0 A0 )-1 = diag ((1  1 -1    2  2 -1            s  s -1
+                                       A0 A0 ) , (A0 A0 ) , · · · , (A0 A0 ) ).
+
+
+
+For the j th column of , the non-zero entries are i
+                                                  j , i.e. the j th column in block i, thus
+
+
+
+
+                                     j A0 (A0 A0 )-1 = i i   i  i   -1
+                                                       j A0 (A0 A0 ) ,
+
+­and so,
+
+      max    sup       j A0 (A0 A0 )-1 A0 =                        max        max         sup              i i   i  i
+                                                                                                           j A0 (A0 A0 )
+                                                                                                                        -1
+                                                                                                                           < 1.
+      j/ A0 A      1
+                                                                i{1,2,··· ,s} j / A0 A        1
+             0                                                                        0
+
+
+
+
+                                                               Appendix-8
+A-6      Proof of Theorem 2 [Covariance Test under Measurement Error]
+
+
+Let Y = Sm  + rm + DA0 A0 + and Mm = (I - Sm (Sm Sm )-1 Sm ), then
+
+                                  Mm Y = Mm DA0 A0 + rm + Mm .
+
+Recall that rm is the measurement error in the spline approximation. We can plug this into the
+definition of the test statistic Tk in (5), yielding
+
+                   Tk = Y Mm D (k+1 ) - Y Mm DAk Ak (k+1 ) / 2
+                      = A0 DA0 Mm D (k+1 ) - A0 DA0 Mm DAk Ak (k+1 ) / 2
+                      + rm D (k+1 ) - DAk Ak (k+1 )                    / 2
+
+                      +    Mm D (k+1 ) - Mm DAk Ak (k+1 ) / 2 .
+
+
+Our strategy is to bound the approximation error, which appears in the second term of the expan-
+                                                            +
+sion above. Define PAk = Mm DAk (DAk Mm DAk )-1 DAk Mm and PA k
+                                                                = Mm DAk (DAk Mm DAk )-1 .
+Consider the term
+
+                                                                                  +             +
+        rm D (k+1 ) - DAk Ak (k+1 )             = rm (PAk+1 - PAk )y - k+1 · rm (PA k+1
+                                                                                        sk+1 - PA k
+                                                                                                    sk )
+                                                                    +             +
+                                                = (k - k+1 ) · rm (PA k+1
+                                                                          sk+1 - PA k
+                                                                                      sk )
+                                                                                +             +
+                                                 (k - k+1 ) · rm          2    PA k+1
+                                                                                      sk+1 - PA k
+                                                                                                  sk 2 .
+
+
+
+The last inequality follows from Cauchy-Schwarz. Notice that |s0 | is a constant with respect to n
+in our application. From Lemma 1 and Lemma 2 in Tian and Taylor (2017), for some   0 as
+                        
+n  , when k+1  4 log p with probability 1 - :
+
+
+
+                                                     |sk |0  Cs0 .
+
+Thus,
+                             +        2          2    +     2
+                            PA k
+                                 sk   2    sk    0   PA k        C 2 s2            2
+                                                                      0 max |Mm D |ij .
+                                                                         i,j
+
+
+
+By normalization, maxi,j |Mm D|ij is of order O(n-1/2 ). Thus when 2      2
+                                                                   m = E(rmi ) = o(1/(log p)),
+
+                                           2
+                                                                        +            +
+ E rm D (k+1 ) - DAk Ak (k+1 )                  n · 2             2
+                                                    m · (k - k+1 ) · E PAk+1 sk+1 - PAk sk
+                                                                                                           2
+                                                                                                           2   = op (1).
+
+
+
+                                                     Appendix-9
+Now consider a new process,
+                                       Y  = Mm DA0 A0 + .
+
+Define the test statistic
+
+                   
+                  Tk = Y  Mm D (k+1 ) - Y  Mm DAk Ak (k+1 ) / 2
+
+                      = A0 DA0 Mm D (k+1 ) - A0 DA0 Mm DAk Ak (k+1 ) / 2
+                      +     Mm D (k+1 ) - Mm DAk Ak (k+1 ) / 2 .
+
+
+Thus by Theorem 2 in Lockhart et al. (2014),
+
+
+
+                                                      
+                               lim P(Tk > t) = lim P(Tk > t)  e-t .
+                               n                  n
+
+
+
+
+A-7    Proof of Theorem 3 [Convergence Rate for IMSE]
+
+
+First, a definition: we say that the compatibility condition is met for the set A0 if, for some m > 0
+(independent of n), and for all  satisfying Ac
+                                             0      1    3  A0   1,   it holds that
+
+
+
+                                      A0   2
+                                           1    ( ^ m  )s0 /m
+                                                            2
+                                                              ,                                 (A4)
+
+­ where s0 is the number of elements in A0 and ^ m = (Mm Dn ) Mm Dn , which is the sample co-
+variance matrix. Define m to be the compatibility constant.
+
+
+
+Here we apply Lemma 1 in Xie and Huang (2009) and show that the compatibility constant for ^m
+is asymptotically transformation invariant for spline and polynomial basis as n  , i.e.
+
+
+                              1 ^
+                                m - Dn Dn         0        in probability.
+                              n
+
+
+Thus
+
+
+
+
+                                           Appendix-10
+                           ^ m   D Dn 
+                                    n
+                                 -       0                    in probability.
+                           A0 21       2
+                                    A0 1
+
+
+
+By Theorem 1, the irrepresentable condition holds for the design matrix Mn Dn . Since the irrep-
+resentable condition implies compatibility condition as shown in Theorem 9.1 in van de Geer and
+B¨
+ uhlmann (2009), there exits some 0 > 0 such that
+
+
+                                       ( Dn Dn  )      2
+                                                   s0 /0 .
+                                         A0 21
+
+
+As a result, there exist an absolute constant  > 0 such that for some m0 > 0,
+
+
+                                        ( ^ m)
+                                                s0 / 2 .
+                                         A0 21
+
+
+The compatibility assumptions leads to the following results as shown in Lemma 6.1 in B¨
+                                                                                       uhlmann
+and van de Geer (2011):
+
+
+
+                                 Mm Dn (^ -  ) 2 /n  42 s0 / 2 .                                  (A5)
+                                               2            m
+
+
+
+
+                              (^ - )   2
+                                            (^ - )      2
+                                                             162 s2  4
+                                       2                1         0 /m                            (A6)
+
+
+     ^ 
+Let (, ^) be estimates from the lasso as in (3). Notice that
+
+                                                                        s0
+        ^ = (S Sm )-1 S (Yn - Dn  ) = (S Sm )-1 S
+                                                             g (X ) +         dk (X )k + - Dn ^
+              m        m                m        m
+                                                                        k=1
+                                                            s0
+          = (Sm Sm )-1 Sm (g (X ) + ) + (Sm Sm )-1 Sm             dk (X )k - Dn ^
+                                                            k=1
+
+          =¨m - (S Sm )-1 S Dn (^ - ) ,
+                  m        m
+
+
+
+
+­ where ¨ = (S Sm )-1 S (g (X ) + ) are coefficients for a standard SEIVE regression on g (X ) + .
+              m        m
+
+
+
+
+                                           Appendix-11
+                                                    s0                 2
+IM SEn (m) =       ^m (x) - g (x) + Dn (x) 
+                 E g                       ^-            dk (x)k           f (x)dx
+                                                k=1
+                                                         2
+            =      ^m (x) - g (x) + Dn (x) (
+                 E g                        ^ - )            f (x)dx
+                                                                                                       2
+            =    E Sm (x) (¨m - m ) - rm (x) - Sm (x)(S Sm )-1 S Dn (^ -  ) + D(x) (^ - )                  f (x)dx
+                                                       m        m
+
+
+            =    E(Sm (x)(¨m - m ) - rm (x))2 f (x)dx
+
+                               (B 1)
+                                                                                 2
+            +    E Dn (x) (^ -  ) - Sm (x)(S Sm )-1 S Dn (^ - )                      f (x)dx
+                                            m        m
+
+                                            (B 2)
+
+            +2    E Sm (x)(~m - m ) - rm (x)         Dn (x) (^ -  ) - Sm (x)(S Sm )-1 S Dn (^ -  ) f (x)dx .
+                                                                              m        m
+
+                                                                  (B 3)
+
+
+
+
+First we look at (B3):
+
+
+2   E Sm (x)(~m - m ) - rm (x)     Dn (x) (^ -  ) - Sm (x)(S Sm )-1 S Dn (^ -  ) f (x)dx
+                                                            m        m
+
+                                  2                                                            2
+     E Sm (x)(~m - m ) - rm (x)       + E Dn (x) (^ -  ) - Sm (x)(S Sm )-1 S Dn (^ - )             f (x)dx
+                                                                   m        m
+
+= B1 + B2
+
+
+Notice that part (B1) is the standard SEIVE term and as shown in theorem 1 in Hansen (2014a),
+
+                                                              Km
+                                       (B 1) = 2
+                                               m+
+                                                  2
+                                                                 .
+                                                               n
+
+
+Now consider part (B2).
+
+
+
+                                                                       2
+(B 2) =     Dn (x) (^ -  ) - Sm (x) (S Sm )-1 S Dn (^ - )                  f (x)dx
+                                      m        m
+
+
+     = (^ - )       (Dn (x) - Sm (x) (Sm Sm )-1 Sm Dn ) (Dn (x) - Sm (x) (Sm Sm )-1 Sm Dn )f (x)dx (^ -  ).
+
+                                                              (B 4)
+
+
+
+
+                                           Appendix-12
+Define E(Sm (x) Sm (x)) = Qm . Define
+
+
+
+                                                                                                                                  
+                                                               P(x>x(1) )           P(x>x(2) )               P(x>x(n-1) )
+                                                                  n-1
+                                                                                        
+                                                                                     n-1 n-2
+                                                                                                      ···           
+                                                                                                                n-1 1 
+                                                              
+                                                               P(x>x(2) )           P(x>x(2) )               P(x>x(n-1) ) 
+                                                                                                      ···
+                                                              
+                                                               n-1n-2                  n-2
+                                                                                                                    
+                                                                                                                n-2 1 
+                                                                                                                          
+            DDn =          Dn (x)Dn (x) f (x)dx =             
+                                                                          .                                             .         .
+                                                                          .
+                                                                          .                                             .
+                                                                                                                        .         
+                                                                                                                                  
+                                                                 P(x>x(n-1) )       P(x>x(n-1) )             P(x>x(n-1) )
+                                                                        
+                                                                    n-1 1
+                                                                                           
+                                                                                       n-2 1
+                                                                                                      ···        1
+
+
+
+
+Notice that
+                1(x1 >x(1) )         1(x2 >x(1) )              1(xn >x(1) )      1(x1 >x(1) )         1(x1 >x(2) )                1(x1 >x(n-1) ) 
+                  
+                    n-1
+                                       
+                                         n-1
+                                                        ···      
+                                                                   n-1
+                                                                                       
+                                                                                       -1
+                                                                                                        
+                                                                                                          n-2
+                                                                                                                            ···        
+                1(x1 >x(2) )         1(x2 >x(2) )              1(xn >x(2) )      1(x2n                                                   1
+                                                                                  >x(1) )             1(x2 >x(2) )                1(x2 >x(n-1) ) 
+        
+                  
+                    n-2
+                                       
+                                         n-2
+                                                        ···      
+                                                                   n-2               n-1
+                                                                                                        
+                                                                                                          n-2
+                                                                                                                            ···        
+                                                                                                                                         1
+                                                                                                                                                 
+Dn Dn = 
+                                                                                                                                                 
+                      .
+                      .                                              .
+                                                                     .
+                                                                                            .
+                                                                                            .                                           .
+                                                                                                                                        .
+                                                                                                                                                   
+        
+                      .                                              .         
+                                                                                            .                                           .          
+                                                                                                                                                   
+               1(x1 >x(n-1) )      1(x2 >x(n-1) )             1(xn >x(n-1) )        1(xn >x(1) )      1(xn >x(2) )                1(xn >x(n-1) )
+                    
+                      1
+                                        
+                                          1
+                                                        ···        
+                                                                     1
+                                                                                      
+                                                                                        n-1
+                                                                                                        
+                                                                                                          n-2
+                                                                                                                            ···        
+                                                                                                                                         1
+                                                         
+                               n-2                   1
+                 1             n-1     ···          n-1 
+         
+                 n-2                                 1 
+                               1       ···
+         
+                 n-1                                n-2 
+        =         .                                 .   ,
+                                                        
+         
+                  .
+                  .                                 .
+                                                    .   
+                                                        
+                  1             1
+                 n-1           n-2     ···          1
+
+
+
+­ and
+                                                               n-1
+                                                         (1) )- n        P(x>x(2) )- n- 2                           1
+                                                                                                      P(x>x(n-1) )- n
+                                              P(x>x                                                                           
+                                     n-1
+                                                                                
+                                                                            n-1 n-2
+                                                                                      n
+                                                                                                ···           
+                                                                                                          n-1 1
+                                  x>x(2) )- n- 2
+                                                                         P(x>x(2) )- n- 2                           1
+                                                                                                                      
+                                P(                                                                    P(x>x(n-1) )- n
+                                n-1n-2       n                                        n
+                                                                                                ···           
+                                                                                                                      
+                      1                                                                                  
+                                                                              n-2                         n-2 1
+                                                                                                                      
+                 DDn - Dn Dn =        .                                                                       .
+                                                                                                                      
+                                                                                                                              .
+                      n        
+                                      .
+                                      .                                                                       .
+                                                                                                              .               
+                                               1                                       1                                    1
+                                                                                                                              
+                                               P(x>x(n-1) )- n           P(x>x(n-1) )- n              P(x>x(n-1) )- n
+                                                       
+                                                   n-1 1
+                                                                                 
+                                                                             n-2 1
+                                                                                                ···         1
+
+
+
+
+    ^ be the empirical distribution. By Glivenko-Cantelli, P
+                                                           ^ (x > x(i) ) =                                        n-i           
+Let P                                                                                                              n    + op (1/ n), and
+therefore
+
+                                                    1
+                                       DDn -          D Dn           0        with probability 1.
+                                                    n n
+
+
+
+
+                                                              Appendix-13
+Second, Define
+                                                                                                                           
+                                                        1(x>x(1) )Sm (x) f (x)dx                      E(Sm (x) |x>x(1) )
+                                                                                                           
+                                                                  n-1                                        n-1           
+                                                        1(x>x(2) )Sm (x) f (x)dx                      E(Sm (x) |x>x(2) )
+                                                                                                           
+                                                                                                                           
+                                                                  n-2                                        n-2
+                                                                                                                           
+         DSn =      Dn (x)Sm (x) f (x)dx =                           .
+                                                                                         =
+                                                                                                               .
+                                                                                                                           .
+                                           
+                                                                     .
+                                                                     .
+                                                                                          
+                                                                                                               .
+                                                                                                               .
+                                                                                                                           
+                                                                                                                           
+                                                                                                                           
+                                                       1(x>x(n-1) )Sm (x) f (x)dx                   E(Sm (x) |x>x(n-1) )
+                                                                                                            
+                                                                   1                                           1
+
+
+
+
+                                  1(x1 >x(1) )     1(x2 >x(1) )                  1(xn >x(1) )                      
+                                    
+                                      n-1
+                                                     
+                                                       n-1
+                                                                     ···           
+                                                                                     n-1              Sm (x1 )
+                                  1(x1 >x(2) )     1(x2 >x(2) )                  1(xn >x(2) )            
+                                    
+                                      n-2
+                                                     
+                                                       n-2
+                                                                     ···           
+                                                                                     n-2
+                                                                                                Sm (x2 ) 
+                 Dn Sm   =
+                                                                                                         
+                                        .
+                                        .                                            .
+                                                                                     .
+                                                                                                    .
+                                                                                                    .
+                                                                                                         
+                          
+                                        .                                            .        
+                                                                                                    .    
+                                                                                                         
+                                 1(x1 >x(n-1) )   1(x2 >x(n-1) )               1(xn >x(n-1) )
+                                                                     ···                       Sm (xn )
+                                        1                1                            1
+                                                                         n                      
+                                                                         i=1   1(xi >x(1) )Sm (xi )
+                                                                                  
+                                                                                    n-1
+                                                                         n                             
+                                                                         i=1   1(xi >x(2) )Sm (xi )
+                                                                                  
+                                                                                                       
+                                                                                    n-2
+                                                                                                       
+                         =        Dn (x)Sm (x) f (x)dx =                             .
+                                                                                                       .
+                                                         
+                                                                                     .
+                                                                                     .
+                                                                                                       
+                                                                                                       
+                                                                     n                                 
+                                                                     i=1   1(xi >x(n-1) )Sm (xi )
+                                                                                 
+                                                                                   1
+
+
+
+Notice first that
+
+
+                                  n
+                             1
+                                       1(xi > x(1) )Smj (xi ) p E(Smj (x)|x > x(1) ).
+                             n
+                                 i=1
+
+
+
+And notice 1(xi > x(1) )Smj (xi )  0 (m). By P-Glivenko-Cantelli, (see van der Vaart (1998)),
+
+
+
+                    sup Pn 1(xi > x(1) )Smj (xi ) - P1(xi > x(1) )Smj (xi )  0                             a.s.
+                     j
+
+
+
+And finally,
+
+           Qn =       Sm (x)Sm (x) f (x)dx =               Smi (x)Smj (x)f (x)dx                               = In×n ,
+                                                                                                i=1:n,j =1:n
+
+
+
+­ and,
+
+
+
+
+                                                      Appendix-14
+                                                        
+                                                        1 i = j
+                                   Smi (xk )Smj (xk ) =
+                                                        0 otherwise.
+
+
+We can further decompose (B4) into the empirical processes below:
+
+
+(B 4) =       (Dn (x) - Sm (x) (Sm Sm )-1 Sm Dn ) (Dn (x) - Sm (x) (Sm Sm )-1 Sm Dn )f (x)dx
+
+=      (Dn (x)Dn (x) - Dn (x)Sm (x) (Sm Sm )-1 Sm Dn
+
+- Dn Sm (Sm Sm )-1 Sm (x)Dn (x) + Dn Sm (Sm Sm )-1 Sm (x)Sm (x) (Sm Sm )-1 Sm Dn )f (x)dx
+
+=         Dn (x)Dn (x) f (x)dx -       Dn (x)Sm (x) f (x)dx(Sm Sm )-1 Sm Dn
+
+- Dn Sm (Sm Sm )-1          Sm (x)Dn (x) f (x)dx + Dn Sm (Sm Sm )-1    Sm (x)Sm (x) f (x)dx(Sm Sm )-1 Sm Dn
+
+= DDn - DSn (Sm Sm )-1 Sm Dn - Dn Sm (Sm Sm )-1 (DSn ) + Dn Sm (Sm Sm )-1 Qn (Sm Sm )-1 Sm Dn
+    1                                     1             1
+=     Dn (I - Sm (Sm Sm )-1 Sm )Dn + DDn - Dn Dn - DSn - Dn Sm (Sm Sm )-1 Sm Dn
+    n                                     n             n
+                 (B 5)                       (B 6)                          (B 7)
+                           1                                      1
+- Dn Sm (Sm Sm )-1    DSn - Dn Sm        + Dn Sm (Sm Sm )-1   Qn - Sm Sm (Sm Sm )-1 Sm Dn .
+                           n                                      n
+                    (B 8)                                          (B 9)
+
+
+
+
+For part (B5),
+
+             1
+    (^ - )     D (I - Sm (Sm Sm )-1 Sm )Dn (^ -  ) = Mm Dn (^ - )       2
+                                                                             42 s0 /m
+                                                                                    2
+                                                                                       42 s0 / 2 .
+             n n                                                        n
+
+
+
+
+The last inequality follows from equation (A5).
+
+For part (B6),
+
+                ^ -  ) DDn -       1        ^ -  )  DDn - 1 D Dn          ^ - ) 2
+               (                     Dn Dn (                           · (
+                                   n                         n n     
+                                                                                2
+                                                                              
+                                                    op (1/ n)162 s2  4
+                                                                  0 /m  op (1/ n).
+
+
+
+                                                        
+Similarly, (B7) and (B8) can be shown to be order op (1/ n). And (B9) is 0.
+
+
+
+
+                                             Appendix-15
+As a result,
+
+
+
+
+                                                                          Km
+                               IM SEn (m)  22
+                                            m + 2
+                                                  2
+                                                                             + 42 s0 / 2 .
+                                                                           n
+
+
+
+
+A-8     Proof of Theorem 4 [Distribution of Jump Detection]
+
+
+Let {(yi , xi )}n                                  0
+                i=1 be observed data. Assume yi = di 1 + i , such that
+
+
+
+
+                                                             0       if xi  z
+                                                 d0
+                                                  i =                                                    (A7)
+                                                             1       if xi > z.
+
+Let {(x(1) , x(2) , · · · , x(n) )} be the ordered statistic of {xi }n
+                                                                     i=1 . Let k > 0 be an integer such that
+
+
+                                                     x(k)  z < x(k+1) .
+
+Now define
+                                          (j )           0               if xi  x(j )
+                                         Di      =                                                       (A8)
+                                                         1               if xi > x(j ) .
+                                                         n-j
+
+                     (k) ~                                   
+We can rewrite yi = Di                  ~
+                          1 + i , where 1 =                      n - k1 . Thus:
+
+                                                 n
+                                 (j )                 (j ) (k) ~     (j )
+                             D          Y =          Di Di      1 + Di
+                                              i=1
+                                                                     n
+                                              
+                                                     (n-k)~1         i=j +1   i
+                                              
+                                                      
+                                                        n-j
+                                                                 +   
+                                                                       n-j
+                                                                                      if j  k            (A9)
+                                         =
+                                                                     n
+                                                           ~1
+                                                     (n-j )          i=j +1   i
+                                                                 +                   if j > k.
+                                              
+                                                       n-j             n-j
+
+
+
+
+                                                        Appendix-16
+                                  ^ = arg maxj V (j )
+Define V (j ) = (D(j ) Y )2 , and k
+
+                  V (j ) - V (k ) = (D(j ) Y )2 - (D(k) Y )2
+                                = Y (D(j ) D(j ) - D(k) D(k) )Y
+                                =~1 D(k) D(j ) D(j ) - D(k) D(k) D(k) ~1 + h( , ~1 )
+
+                                =~1 D(k) D(j ) D(j ) D(k) - 1 ~1 + h( , ~1 ).
+
+
+
+
+              h( , ~1 ) = 2~1 D(k) (D(j ) D(j ) - D(k) D(k) ) + (D(j ) D(j ) - D(k) D(k) ) .
+
+
+
+Define
+
+                                          ~1 1 - D(k) D(j ) D(j ) D(k) 
+                                                                       ~1
+                                 (j ) =                                     .
+                                                        |j - k |
+
+
+if j > k
+
+                                                        ~2
+                                                         1   2
+                                              (j ) =       = 1 .
+                                                       n-k
+
+
+if j < k
+
+                                                     ~2
+                                                          n-k 2
+                                                      1
+                                           (j ) =       =     .
+                                                    n-j   n-j 1
+
+
+                                                                          ^ - k| > C ) <  :
+By selection consistency of LASSO, for any fixed constant C , we have P (|k
+
+
+
+
+                                                Appendix-17
+                                    ^ - k | > C ) = P ( sup V (j )  V (k ))
+                                P (|k
+                                                             |j -k|>C
+
+                                                         P ( sup |h( , ~1 )|                    inf       |j - k | (j ))
+                                                             |j -k|>C                      |j -k|>C
+
+                                                                            h( , ~1 )
+                                                        P        sup                   inf  (j )
+                                                              |j -k|>C       j-k      |j -k|>C
+
+                                                                            h( , ~1 )
+                                                        P        sup                   K                  ,
+                                                              |j -k|>C       j-k
+
+            2 > 0.
+­ where K = 1
+
+
+
+When j > k ,
+
+                                                                        n                                 n
+            (j )       (j )            (k)       (k)        1                     2      1                          2
+       (D          D          ) - (D         D         ) =                   l        -                         l
+                                                           n-j                          n-k
+                                                                  l=j +1                              l=k+1
+                                                                                      n                                 j                   n
+                                                              j-k                                2       2
+                                                        =                                   l         -                         l                   l
+                                                          (n - j )(n - k )                              n-k
+                                                                                  l=j +1                            l=k+1               l=j +1
+                                                                        j
+                                                           1                      2
+                                                        -                     l
+                                                          n-k
+                                                                  l=k+1
+
+                                                        = (j - k )o(1).
+
+
+Similarly, one can show the same rate of convergence when j < k .
+
+
+
+Next consider 2~1 D(k) (D(j ) D(j ) - D(k) D(k) ) .
+
+
+
+When k > j ,
+
+                                                                                                      n                     n
+         2~1 D(k) D(j ) D(j ) - 2~1 D(k) D(k) D(k) = 21 n - k                                                 l - 21                l
+                                                        n-j
+                                                                                                l=j +1                  l=k+1
+                                                                                                     n                                  k
+                                                                                      j-k                               n-k
+                                                                            = 21                              l + 21                            l
+                                                                                      n-j                               n-j
+                                                                                                l=k+1                               l=j +1
+
+                                                                            = (j - k )o(1).
+
+
+
+                                                               Appendix-18
+                                             ^ - k| > C ) <  .
+and for any  , we can find a C such that P (|k
+
+
+
+
+                                              
+For Asymptotic, consider 1  0 but       n1  . In this case,  (j ) can no longer be treated as
+                                             ^ is
+               2 ). Thus, the convergence of k
+Op (1) but Op (1
+
+                                              ^ = k + Op ( 1         -2
+                                              k                           ).
+
+Let
+                                                    ^ = k + v-2 .
+                                                    k        n
+
+where n = Op ( 1 ) and v is a real number in a compact set. Define
+
+
+
+                              K (B ) = {w : w = k + [v- 2
+                                                      n ], |v | < B }.
+
+we derive the limiting process of V (w) - V (k ) for w  K (B ) and then use the continuous mapping
+                                                                                   
+theorem for arg max to derive the asymptotic distribution. Recall that 1 =     ~1 / n - k
+
+
+
+
+        V (w) - V (k ) = ~1 D(k) D(w) D(w) D(k) - 1 ~1 + 2~1 D(k) (D(w) D(w) - D(k) D(k) )
+
+                     + (D(w) D(w) - D(k) D(k) ) .
+
+
+When w > k ,
+
+                                                                      n-w
+                                    D(k) D(w) D(w) D(k) =                 .
+                                                                      n-k
+
+Thus,
+
+                                                                                       -2
+               ~1 D(k) D(w) D(w) D(k) - 1 
+                                          ~1 = -~2 w - k                       = -~2 [vn ] = -v.
+                                                 1                                 1
+                                                   n-k                               n-k
+
+
+Next,
+                                                                 n
+                                   (k)        (w)       (w)      l=w+1 l
+                               D         (D         D         ) =              , and
+                                                                     n-k
+
+
+
+
+                                                    Appendix-19
+                                                                                                n
+                                                                          l=k+1                                  l
+                                                      D(k) (D(k) D(k) ) =       .
+                                                                           n-k
+So
+                                                                                               w                                      w
+     ~1 D(k) (D(w) D(w) ) - ~1 D(k) (D(k) D(k) ) = -1                                                                         v-
+                                                                                                                               n
+                                                                                                                                 2
+                                                                                                        l   = -1                              l   d -W1 (v ),
+                                                                                                                              w-k
+                                                                                              l=k+1                                  l=k+1
+
+
+­ where W1 is a wiener process of degree v .
+
+
+
+And finally,
+
+
+
+                                                                          n                                      n
+           (w)       (w)        (k)       (k)        1                                 2      1                               2
+      (D         D         -D         D         ) =                                l       -                              l
+                                                    n-w                                      n-k
+                                                                  l=w+1                                     l=k+1
+                                                            n                                       w                                  w               n
+                                 w-k                                          2      1                               2      2
+                           =                                          l           -                          l           -                        l           l   .
+                             (n - w)(n - k )                                        n-k                                    n-k
+                                                           l=k+1                                l=k+1                                 l=k+1           l=k+1
+
+                           = op (1)
+
+
+
+
+When w < k
+
+                                                                                                   n-k
+                                                       D(k) D(w) D(w) D(k) =                           .
+                                                                                                   n-w
+
+Thus,
+
+                                                                                                                  -2
+                     ~1 D(k) D(w) D(w) D(k) - 1 
+                                                ~1 = -~2 k - w                                              =~2 [vn ] =  2 v-2 .
+                                                       1                                                      1         1   n
+                                                         n-w                                                    n-w
+
+
+Next,
+                                                                                                            n
+                                                     (k)        (w)       (w)               n-k
+                                                 D         (D         D           ) =                                    l,
+                                                                                           n-w
+                                                                                                        l=w+1
+
+                                                                                                n
+                                                                          l=k+1                                  l
+                                                      D(k) (D(k) D(k) ) =       .
+                                                                           n-k
+
+
+
+
+                                                                      Appendix-20
+So
+                                                                                                    k                      n
+       ~1 D   (k)        (w)       (w)      ~1 D    (k)        (k)       (k)      ~1    n-k                     ~   w - k l=k+1 l
+                    (D         D         ) -              (D         D         ) =                          l + 1         
+                                                                                       n-w                          n-w    n-k
+                                                                                                 l=w+1
+                                                                k                                       n
+                                                 n-k                                         w - k l=k+1 l
+                                          = 1                              l+       n - k1                 d W2 (v ),
+                                                 n-w                                         n-w    n-k
+                                                           l=w+1
+
+
+­ where W2 is another wiener process of degree v .
+
+
+
+Thus
+                                           V (k + [v- 2
+                                                    n ]) - V (k ) d -|v | + 2W (|v |).
+
+By the continuous mapping theorem:
+
+                                            2  ^
+                                            n (k - k ) d arg max(-|v | + 2W (|v |)).
+                                                                                v
+                                                                                                                                    (A10)
+
+
+
+A-9      Proof of Theorem 5 [Distribution of Kink Detection]
+
+
+Assume there is only one 1th-order discontinuity such that the data generating process is:
+
+                                                    yi = d1
+                                                          i 1 + i ,
+
+                                                                 0                     if xi  z
+                                                    d1
+                                                     i =
+                                                                 (xi - z )            if xi > z.
+
+Let k > 0 be an integer such that
+                                                               x(k)  z < x(k+1) .
+
+
+Define
+                                             (j )          0                              if xi  x(j )
+                                            Di      =
+                                                           (xi - x(j ) )/j                if xi > x(j ) ,
+
+                           n
+­ where j =                i=j +1 (x(i)    - x(j ) )2
+
+
+
+Consider the correlation matrix D(j ) Y
+
+
+
+
+                                                                     Appendix-21
+                       n
+          (j )                   (j )                                            (j )
+      D          Y =         Di         (xi - z ) · 1(xi > z )1 + Di
+                       i=1
+                       
+                             1          n                                                 1         n
+                       
+                             j          i=k+1 (x(i)    - x(k) )(x(i) - x(j ) ) +          j         i=j +1 (x(i)    - x(j ) )   i         if j  k
+                  =
+                             1          n                                                 1         n
+                       
+                             j          i=j +1 (x(i)   - x(k) )(x(i) - x(j ) ) +          j         i=j +1 (x(i)    - x(j ) )   i        if j > k.
+
+
+                                  ^ = arg maxj V (j ).
+Define V (j ) = (D(j ) Y )2 , and k
+
+
+
+
+V (j ) - V (k ) = (D(j ) Y )2 - (D(k) Y )2
+                                   n                                              n
+                           1                                     2        1                                     2         h1 ( , 1 )              if j  k
+                   =                      (x(i) - x(j ) )   i        -                   (x(i) - x(k) )     i       +
+                           j                                              k                                               h2 ( , 1 )              if j > k,
+                                 i=j +1                                         i=k+1
+
+
+
+­ where
+
+
+
+
+                             n                                              2                  n                                             2
+            12                                                                   12
+h1 ( , 1 ) = 2                     (x(i) - x(k) )(x(i) - x(j ) )                - 2                   (x(i) - x(k) )(x(i) - x(k) )
+            j                                                                    k
+                        i=k+1                                                                 i=k+1
+
+                                                                              (h11 )
+                             n                                    n                                                                 n
+               1
+             +2 2                  (x(i) - x(j ) )      i                (x(i) - x(k) )(x(i) - x(j ) ) - 21                             (x(i) - x(k) )   i    .
+               j          i=j +1                                i=k+1                                                       i=k+1
+
+                                                                                        h12
+
+
+
+
+                                                                          2
+                             n                                                                  n                                             2
+                  2
+                  1                                          12
+h2 ( , 1 ) =                  (x(i) - x(k) )(x(i) - x(j ) ) - 2                                       (x(i) - x(k) )(x(i) - x(k) )
+                  2
+                  j     i=j +1
+                                                             k
+                                                                                              i=k+1
+
+                                                                                h21
+                             n                                    n                                                                 n
+                  1
+             +2                    (x(i) - x(j ) )      i                (x(i) - x(k) )(x(i) - x(j ) ) - 21                             (x(i) - x(k) )   i    .
+                  2
+                  j       i=j +1                                i=j +1                                                      i=k+1
+
+                                                                                        h22
+
+
+
+
+                                                                      Appendix-22
+First consider the common terms in V (j ) - V (k ) when j  k and j > k . We show that it is of
+order Op (x(k) - x(j ) ). This quantity will be shown of order smaller than h11 , h12 , h21 and h22 .
+
+
+
+       n                                             n
+ 1                                 2           1                                    2
+           (x(i) - x(j ) )     i       -                   (x(i) - x(k) )       i
+ j                                             k
+     i=j +1                                        i=k+1
+           n                                         n                                        n                                  n
+  1                                1                                                    1                             1
+=              (x(i) - x(j ) ) i -                         (x(i) - x(k) )   i                     (x(i) - x(j ) ) i +                    (x(i) - x(k) )   i
+  j                                k                                                    j                             k
+        i=j +1                                     i=k+1                                    i=j +1                              i=k+1
+
+
+
+
+                   n                                         n                                         max(j,k)
+           1                                         1                                        1
+                          (x(i) - x(j ) ) i =                    (x(i) - x(j ) ) i +                                (x(i) - x(j ) )       i
+           j                                         j                                        j
+                 i=j +1                                    i=k+1                                 i=min(j +1,k+1)
+                                                             n                                            n
+                                                     1                                         k - j
+                                               =                   (x(i) - x(j ) ) i +                       (x(i)     - x(j ) )     i
+                                                     k                                         k j
+                                                           i=k+1                                      i=k+1
+                                                              max(j,k)
+                                                 1
+                                               +                                (x(i) - x(j ) ) i .
+                                                 j
+                                                         i=min(j +1,k+1)
+
+
+
+
+                                                                                                                   1        max(j,k)
+Then by the irrepresentable condition, j  k as long as 1 = O(1/ n), thus                                           j        i=min(j +1,k+1) (x(i) -
+x(j ) ) i = o(1) and
+
+
+
+                                           n                                                          n
+                       k - j                                               2k - j
+                                                                                 2
+                                               (x(i) - x(j ) ) i =                                        (x(i) - x(j ) )   i
+                       k j                                               k j (k + j )
+                                       i=k+1                                                         i=k+1
+
+                                                                     = Op ((x(j ) - x(k) )).
+
+
+
+
+                                                                   Appendix-23
+This is due to
+                               n                                n
+           2
+           k   -   2
+                   j   =            (x(i) - x(k) ) -  2
+                                                                       (x(i) - x(j ) )2
+                            i=k+1                             i=j +1
+                               n                                                            max(j,k)
+                       =            (x(i) - x(k) )2 - (x(i) - x(j ) )2 -                                    (x(i) - x(j ) )2
+                            i=k+1                                                        i=min(j +1,k+1)
+                                                  n                                             max(j,k)
+                       = (x(j ) - x(k) )                  (2x(i) - x(j ) - x(k) ) -                              (x(i) - x(j ) )2 .
+                                                 i=k+1                                      i=min(j +1,k+1)
+
+
+
+
+As a result
+                                             n                                       n
+                                    1                                        1
+                                                 (x(i) - x(j ) ) i -                      (x(i) - x(k) )     i
+                                    j                                        k
+                                         i=j +1                                   i=k+1
+                                                                n
+                                         (x(k) - x(j ) )
+                                   =                                    i   + O((x(k) - x(j ) )) .
+                                              k
+                                                              i=j +1
+
+                                   = Op (x(k) - x(j ) )
+
+
+
+Together with
+
+
+                                     n                                        n
+                            1                                   1
+                                            (x(i) - x(j ) ) i +                     (x(i) - x(k) )      i   = Op (1)
+                            j                                   k
+                                   i=j +1                                   i=k+1
+
+
+
+We have
+
+
+                        n                                               n
+                 1                                    2        1                                    2
+                               (x(i) - x(j ) )    i       -                   (x(i) - x(k) )    i       = Op (x(k) - x(j ) )
+                 j                                             k
+                      i=j +1                                        i=k+1
+
+
+
+Next, we focus on h11 , h12 , h21 and h22 . Lmma 2 highlights the connection among these four
+quantities, that is
+
+
+
+                 h21 ( , 1 ) = h11 ( , 1 ) + O(1),                     and        h22 ( , 1 ) = h12 ( , 1 ) + op (1)
+
+
+
+
+                                                              Appendix-24
+As a result, we can combine the case of k < j and k > j and only consider h11 and h12 :
+
+
+
+
+                            n                                            2
+              12
+                                                                               2 2
+       h11   = 2                    (x(i) - x(k) )(x(i) - x(j ) )            - 1 k
+              j
+                        i=k+1
+                                                                                                           
+                                n                                            2
+                 2
+                 1
+             =                       (x(i) - x(k) )(x(i) - x(j ) )               - 4   2 2   2 
+                                                                                   k - k j - k
+                 2
+                 j       i=k+1
+                                                                                                           
+                                n                                            2
+                 2
+                 1
+             =                       (x(i) - x(k) )(x(i) - x(j ) )               - 4   2 2   2 
+                                                                                   k - k j - k
+                 2
+                 j       i=k+1
+                               2                n                                     n
+                              1
+             = (x(k) - x(j ) ) 2                        (x(i) - x(k) )                    (x(i) - x(k) )(2x(i) - x(j ) - x(k) )
+                              j
+                                              i=k+1                                  i=k+1
+                        n
+             -2
+              k                 (x(i) - x(k) ) + (x(i) - x(j ) )
+                     i=k+1
+                                      2         n                                     n
+                                      1
+             = (x(k) - x(j ) )                          (x(i) - x(k) )                    (x(i) - x(k) )(x(i) - x(j ) )
+                                      2
+                                      j       i=k+1                                  i=k+1
+                         n
+             -   2
+                 k              (x(i) - x(k) ) + (x(k) - x(j ) )
+                     i=k+1
+                                                                                                     
+                                                    n                            2
+                                    12
+             = (x(k) -      x(j ) )2 2                   (x(i) - x(k) )              - 2
+                                                                                       k (n - k )
+                                                                                                  .
+                                    j
+                                               i=k+1
+
+
+
+
+Notice that this quantity is of order O (n - k )(x(k) - x(j ) )2 1
+                                                                 2 . Next for h ,
+                                                                               12
+
+
+
+
+                                                              Appendix-25
+                      n                                   n                                                          n
+           1
+   h12   =2 2                (x(i) - x(j ) )   i                (x(i) - z )(x(i) - x(j ) ) - 21                               (x(i) - x(k) )   i
+           j
+                     i=k+1                            i=k+1                                                         i=k+1
+                        n         n
+              1
+         =2                             (x(l) - z )(x(l) - x(j ) )(x(i) - x(j ) ) - (x(l) - x(j ) )2 (x(i) - x(k) )                            i
+              2
+              j      i=k+1      l=k+1
+                                          n           n
+              1
+         =2     (x(k) - x(j ) )                               (x(l) - x(i) )(x(l) - x(j ) )             i
+              2
+              j                        i=k+1       l=k+1
+                                         n           n
+              1
+         =2     (x(k) - x(j ) )                               (x(l) - x(i) )(x(l) - x(k) )              i
+              2
+              j                        i=k+1       l=k+1
+                                          n           n
+              1
+         +2     (x(k) - x(j ) )2                              (x(l) - x(i) )          i        .
+              2
+              j                         i=k+1       l=k+1
+
+
+
+
+We show next that for any 1 =                  n ,        x(k) - x(j ) = O(- 1
+                                               n-k                         n ). From h11 and h12 above
+
+
+
+
+                                                                                                                                  
+                                                                             n                         2
+                                                 2
+              V (j ) - V (k ) = (x(k) - x(j ) )2 2
+                                                 1 
+                                                                                  (x(i) - x(k) )            - 2
+                                                                                                              k (n - k )
+                                                                                                                         
+                                                j
+                                                                        i=k+1
+                                                                         n           n
+                                       1
+                                 +2      (x(k) - x(j ) )                                     (x(l) - x(i) )(x(l) - x(k) )            i
+                                       2
+                                       j                            i=k+1          l=k+1
+                                                                       n              n
+                                       1
+                                 +2      (x(k) - x(j ) )2                                     (x(l) - x(i) )    i         .
+                                       2
+                                       j                                i=k+1       l=k+1
+
+
+And when V (j ) > V (k ), we have
+                                                                                                                    
+                                                                                         n                      2
+                                                      2
+                                                      k                   1
+                         |x(k) - x(j ) |n                       -                             (x(i) - x(k) )        
+                                                    n-k                  n-k
+                                                                                    i=k+1
+                                               n                         n
+                                   1                       1
+                           2                                                     (x(l) - x(i) )(x(l) - x(k) )         i
+                                  n-k                     n-k
+                                              i=k+1                 l=k+1
+                                                                    n                         n
+                                                     1                            1
+                          + 2|x(k) - x(j ) |                                                       (x(l) - x(i) )     i       .
+                                                    n-k                          n-k
+                                                                 i=k+1                    l=k+1
+
+
+
+                2          1          n                             2
+Notice that     k
+               n-k   >    n-k         i=k+1 (x(i)   - x(k) )            by Cauchy-Schwarz. Thus
+
+
+
+
+                                                                Appendix-26
+                                                          n                      n
+                               C1      2                           1
+         |x(k) - x(j ) |                                                                 (x(l) - x(i) )(x(l) - x(k) )       i           .
+                             n + O(1) n - k                       n-k
+                                                     i=k+1               l=k+1
+
+
+
+Thus x(k) - x(j ) = O(- 1                          -1
+                      n ). Now let x(k) - x(j ) = vn , we have
+
+
+
+
+                                                                                                   
+                                                      n                              2
+                             v2              1                                                2
+                                                                                              k
+    V (j ) - V (k ) =                                         (x(i) - x(k) )             -         
+                        2
+                        k /(n   - k)        n-k                                              n-k
+                                                   i=k+1
+                                                                                                                                                (A11)
+                                                     n                   n
+                         v        2                             1
+                    + 2                                                          (x(l) - x(i) )(x(l) - x(k) )           i           .
+                     k /(n - k ) n - k                         n-k
+                                                  i=k+1               l=k+1
+
+
+
+We can further expand the second term in equation A11 as
+
+                         n         n
+               2
+                                        (x(l) - x(i) )(x(l) - x(k) )         i
+              n-k
+                        i=k+1 l=k+1
+                             n   n
+                   1
+              =                          (x(l) - x(i) )(x(l) - x(k) ) i + (x(i) - x(l) )(x(i) - x(k) )                  l       .
+                  n-k
+                          i=k+1 l=k+1
+
+
+
+This is in the form of V -statistic. Define il = (x(l) - x(i) )(x(l) - x(k) ) i + (x(i) - x(l) )(x(i) - x(k) ) l .
+Then by hoeffding decomposition, since
+
+
+
+
+                                    E(il |i) = El (x(l) - x(k) )(x(l) - x(i) )                    i.
+
+
+
+
+we have the variance
+
+
+
+
+                   1                                                                                               2
+        var                        il    = var (E(il |i)) = E El (x(l) - x(k) )(x(l) - x(i) )
+               (n - k )3/2    il
+                                                                                                                                    2
+                                         = 2 E(x(l) - x(k) )2           E(x(l) - x(k) )2 - E(x(l) - x(k) )                                  .
+
+
+
+On the other hand, the first term in equation A11
+
+
+                                                     Appendix-27
+                                                                        
+                             n                          2
+                 1                                                  2   p                                                      2
+                                  (x(i) - x(k) )            -       k     - E(x(i) - x(k) )2 - E(x(i) - x(k) )                       .
+                n-k                                             n-k
+                          i=k+1
+
+
+
+
+Thus
+                                                                  2                                         Z
+                                      n (x(k) - x(k
+                                                  ^) ) d arg max(v C + vZ ) = -                               ,
+                                                                               v                           2C
+
+
+­ and
+
+
+                                                                                                        
+                                                  Z                                    1                
+                                             -      N0,
+                                                                                                        .
+                                                 2C                                (E(x(l) -x(k) ))2    
+                                                                        2 1-
+                                                                                   (E(x(l) -x(k) )2 )
+
+
+Notice that we will not be able to perform the same algebra trick for general k -th order discontinuity
+as
+
+
+
+
+                n                                                   2
+     2
+     1                                 K                        K         2 2
+                        (x(i) - x(k) ) (x(i) - x(j ) )                  - 1 k
+     2
+     j      i=k+1
+                                                                                                           
+                         n                                                 2
+         2
+         1
+     =   2
+                             (x(i) - x(k) )K (x(i) - x(j ) )K                  - 4   2 2   2 
+                                                                                 k - k j - k
+         j
+                     i=k+1
+
+                       2                 n       K -1
+                      1
+     = (x(k) - x(j ) ) 2                            (x(i) - x(j ) )a (x(i) - x(k) )2K -a-1
+                      j
+                                       i=k+1 a=0
+            n
+     ·              (x(i) - x(k) )K (x(i) - x(j ) )K + (x(i) - x(k) )2K
+         i=k+1
+                    n     K -1                                                             n
+     -2
+      k                          (x(i) - x(j ) )a (x(i) - x(k) )K -a-1                          (x(i) - x(k) )K + (x(i) - x(j ) )K       .
+                i=k+1 a=0                                                               i=k+1
+
+
+
+
+                                                                    Appendix-28
+A-10         Lemma 2 [Kink Detection Algebra 1]
+
+                                             
+Lemma 2. For any 1 of order greater than O(1/ n)
+
+                                                   n                                        2
+                                   12
+                                                                                                  2 2
+                      h21 ( , 1 ) = 2                  (x(i) - x(k) )(x(i) - x(j ) )            - 1 k + O(1)
+                                   j
+                                               i=k+1
+
+                          n                             n                                                      n
+                  1
+h22 ( , 1 ) = 2               (x(i) -x(j ) )   i               (x(i) -x(k) )(x(i) -x(j ) ) -21                      (x(i) -x(k) )   i   +op (1).
+                  2
+                  j    i=k+1                           i=k+1                                              i=k+1
+
+
+
+Proof. Notice that the first equation is equivalent as showing
+
+
+
+                                               2
+          n                                                           n                                        2
+ 2
+ 1                                            12
+               (x(i) - x(k) )(x(i) - x(j ) ) = 2                           (x(i) - x(k) )(x(i) - x(j ) )           + O(1) when k < j.
+ 2
+ j      i=j +1
+                                              j
+                                                                i=k+1
+
+
+
+
+                                                                                                                               2
+         n                                     2        n                                     j
+2
+1                                                   12
+              (x(i) - x(k) )(x(i) - x(j ) )        = 2      (x(i) - x(k) )(x(i) - x(j ) ) +       (x(i) - x(k) )(x(i) - x(j ) )
+2
+j                                                   j i=j +1
+     i=k+1                                                                                  i=k+1
+                                                                                         2
+                                                     2  n
+                                                    1
+                                                   = 2      (x(i) - x(k) )(x(i) - x(j ) )
+                                                    j i=j +1
+                                                                  j                                        2
+                                                    12
+                                                   + 2                    (x(i) - x(k) )(x(i) - x(j ) )
+                                                    j
+                                                               i=k+1
+                                                                                                          
+                                                       2          n                                                  j
+                                                       1
+                                                   +                      (x(i) - x(k) )(x(i) - x(j ) )                  (x(i) - x(k) )(x(i) - x(j ) ) .
+                                                       2
+                                                       j       i=j +1                                              i=k+1
+
+
+
+                                                                                                          j
+Then by the irrepresentable condition, j  k as 1 = O(1/ n), thus                                          i=k+1 (x(i)      - x(j ) )(x(i) -
+x(k) ) = O(1) thus the last three terms in the above equation are of order O(1). To show the second
+equation with respect to h22 , notice that it is equivalent as showing
+
+
+
+
+                                                            Appendix-29
+                         n                              n
+                1
+                           (x(i) - x(j ) ) i           (x(i) - x(k) )(x(i) - x(j ) )
+                2
+                j   i=j +1                       i=k+1
+                          n                           n
+                    1
+                =             ( x (i) - x     )
+                                          (j ) i           (x(i) - x(k) )(x(i) - x(j ) )         + op (1).
+                    2
+                    j i=j +1                        i=j +1
+
+
+
+
+and since
+
+
+
+                                 n                              n
+                     1
+                                (x(i) - x(j ) ) i           (x(i) - x(k) )(x(i) - x(j ) )
+                     2
+                     j   i=j +1                       i=k+1
+                               n                           n
+                         1
+                     -             ( x (i) - x     )
+                                               (j ) i           (x(i) - x(k) )(x(i) - x(j ) )
+                         2
+                         j i=j +1                        i=j +1
+                                     n                              j
+                          1
+                     =                   (x(i) - x(j ) )   i            (x(i) - x(k) )(x(i) - x(j ) ) .
+                          2
+                          j       i=j +1                        i=k+1
+
+
+
+                                                                                            1     j
+Then, by the irrepresentable condition, j  k as 1 = O(1/ n), thus                           j     i=k+1 (x(i) - x(j ) )(x(i) -
+x(k) ) = o(1) and thus
+
+
+                             n                              j
+                 1
+                                  (x(i) - x(j ) )   i           (x(i) - x(k) )(x(i) - x(j ) ) = op (1).
+                 2
+                 j       i=j +1                         i=k+1
+
+
+
+
+                                                        Appendix-30
+
