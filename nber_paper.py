@@ -15,7 +15,7 @@ plt.xkcd()
 # ignore warning
 warnings.filterwarnings('ignore')
 
-def bar_plot(df, label, title, column, x_caption=0, y_caption=0):
+def bar_plot(df, label, title, column):
     fig, ax = plt.subplots(figsize=(15, 5))
     bar_width = 0.35
     opacity = 0.9
@@ -33,16 +33,16 @@ def bar_plot(df, label, title, column, x_caption=0, y_caption=0):
     plt.xticks(df.index)
     plt.yticks()
     
-    caption_a = lambda df, column: ' \n'.join([f'{df.index[x]}: {df[column][x]}' for x in range(len(df))])
-    plt.text(x_caption, y_caption, caption_a(df, column))
+    caption = lambda df, column: ' \n'.join([f'{df.index[x]}: {df[column][x]}' for x in range(len(df))])
+    plt.xlabel(caption(df, column), loc='left')
     vals = ax.get_yticks()
     ax.legend()
     plt.show()
     
 def citation(df):
-    df = df[['total_cites', 'cited_by']]
+    df = df[['cites', 'cited_by']]
     fig, ax = plt.subplots(figsize=(15, 5))
-    plt.scatter(x='total_cites', y='cited_by', data=df, c='black')
+    plt.scatter(x='cites', y='cited_by', data=df, c='black')
     plt.title('Citations in NBER (no causality implied)')
     plt.xlabel('Total cites per paper')
     plt.ylabel('Total cited per paper')
@@ -50,7 +50,7 @@ def citation(df):
     
 def citation_density(df):
     # log scale
-    df['log_total_cites'] = df.apply(lambda x: np.log(x['total_cites']), axis=1)
+    df['log_total_cites'] = df.apply(lambda x: np.log(x['cites']), axis=1)
     df['log_cited_by'] = df.apply(lambda x: np.log(x['cited_by']), axis=1)
     
     # visualize
@@ -64,8 +64,8 @@ def citation_density(df):
     ax.axvline(statistics.median(df['log_cited_by']), color='blue')
     
     # exponentiate median values
-    total_cites = int(np.exp(statistics.median(df['log_total_cites'])))
-    cited_by = int(np.exp(statistics.median(df['log_cited_by'])))
+    total_cites = np.exp(statistics.median(df['log_total_cites']))
+    cited_by = np.exp(statistics.median(df['log_cited_by']))
 
     caption = f"Vertical lines show median citations: \n \tTotal cites: {total_cites} \n \tTotal cited by: {cited_by}"
     plt.title('Distributions of citations in NBER (log scale)')
@@ -73,13 +73,13 @@ def citation_density(df):
     
 def collaboration(df):
     # transform data
-    df = df[df['citation_date'].isna() == False]
-    df = df[['citation_date', 'citation_author']]
+    df = df[df['citation_publication_date'].isna() == False]
+    df = df[['citation_publication_date', 'citation_author']]
     df['citation_author'] = df.apply(lambda x: re.sub('[^A-Za-z0-9,\' ]+', '', x['citation_author']), axis=1)
     df['citation_author'] = df.apply(lambda x: x['citation_author'].split('\''), axis=1)
     df['citation_author'] = df.apply(lambda x: [x for x in x['citation_author'] if x != '' and x != ', '], axis=1)
     df['total_author'] = df.apply(lambda x: len(x['citation_author']), axis=1)
-    df['year'] = df.apply(lambda x: int(x['citation_date'][:4]), axis=1)
+    df['year'] = df.apply(lambda x: int(x['citation_publication_date'][:4]), axis=1)
     df = df.groupby('year')['total_author'].agg('median')
     df = df.to_frame().reset_index()
     df = df.rename(columns={'total_author': 'median_total_author'})
@@ -98,16 +98,16 @@ def collaboration(df):
     plt.show
     
 def count_by_year(df):
-    df = df[df['citation_date'].isna() == False]
-    count = df[['id', 'citation_date']]
-    count['citation_date'] = count.apply(lambda x: int(x['citation_date'][:4]), axis=1)
-    count = count.groupby('citation_date').size().to_frame().reset_index()
-    count = count.rename(columns={0: 'count', 'citation_date': 'year'})
+    df = df[df['citation_publication_date'].isna() == False]
+    count = df[['id', 'citation_publication_date']]
+    count['citation_publication_date'] = count.apply(lambda x: int(x['citation_publication_date'][:4]), axis=1)
+    count = count.groupby('citation_publication_date').size().to_frame().reset_index()
+    count = count.rename(columns={0: 'count', 'citation_publication_date': 'year'})
     
     return count
     
 def get_data(file_name):
-    df = pd.read_csv(file_name, sep='|')
+    df = pd.read_csv(file_name)
     df = df[~df['id'].isna() == True]
     df['id'] = df['id'].astype(int)
     
@@ -127,10 +127,10 @@ def published_paper(df, title, x_interval=1, y_interval=1):
     
 def section_trends(df, column, title, keyword, x_interval, y_interval):
     # transform data
-    df = df[df['citation_date'].isna() == False]
-    df = df[['citation_date', column]]
+    df = df[df['citation_publication_date'].isna() == False]
+    df = df[['citation_publication_date', column]]
     df[column] = df[column].fillna('N/A')
-    df.loc[:, 'year'] = df.apply(lambda x: int(x['citation_date'][:4]), axis=1)
+    df.loc[:, 'year'] = df.apply(lambda x: int(x['citation_publication_date'][:4]), axis=1)
     min_year = min(df['year'])
     min_year = int(str(min_year).replace(str(min_year)[-1], '0'))
     max_year = max(df['year'])
