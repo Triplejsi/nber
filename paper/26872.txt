@@ -1,0 +1,2059 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+      FRED-QD: A QUARTERLY DATABASE FOR MACROECONOMIC RESEARCH
+
+                                      Michael McCracken
+                                          Serena Ng
+
+                                      Working Paper 26872
+                              http://www.nber.org/papers/w26872
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                    March 2020
+
+
+
+
+Financial support to the second author is provided by the National Science Foundation (SES
+1558623). We thank Aaron Amburgey and Joe McGillicuddy for excellent research assistance. A
+special thanks to Yvetta Fortova for being the FRED insider who operationalized this project. The
+views expressed here are those of the individual authors and do not necessarily reflect official
+positions of the Federal Reserve Bank of St. Louis, the Federal Reserve System, the Board of
+Governors, or the National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Michael McCracken and Serena Ng. All rights reserved. Short sections of text, not to
+exceed two paragraphs, may be quoted without explicit permission provided that full credit,
+including © notice, is given to the source.
+FRED-QD: A Quarterly Database for Macroeconomic Research
+Michael McCracken and Serena Ng
+NBER Working Paper No. 26872
+March 2020
+JEL No. C30,C34,E01
+
+                                          ABSTRACT
+
+In this paper we present and describe a large quarterly frequency, macroeconomic database. The
+data provided are closely modeled to that used in Stock and Watson (2012a). As in our previous
+work on FRED-MD, our goal is simply to provide a publicly available source of macroeconomic
+"big data" that is updated in real time using the FRED database. We show that factors extracted
+from this data set exhibit similar behavior to those extracted from the original Stock and Watson
+data set. The dominant factors are shown to be insensitive to outliers, but outliers do affect the
+relative influence of the series as indicated by leverage scores. We then investigate the role unit
+root tests play in the choice of transformation codes with an emphasis on identifying instances in
+which the unit root-based codes differ from those already used in the literature. Finally, we show
+that factors extracted from our data set are useful for forecasting a range of macroeconomic series
+and that the choice of transformation codes can contribute substantially to the accuracy of these
+forecasts.
+
+
+Michael McCracken
+Federal Reserve Bank of Saint Louis
+PO Box 442
+Saint Louis MO 63166
+michael.w.mccracken@stls.frb.org
+
+Serena Ng
+Department of Economics
+Columbia University
+420 West 118th Street
+New York, NY 10027
+and NBER
+Serena.Ng@columbia.edu
+1    Introduction
+
+In our previous work, McCracken and Ng (2015), we describe and investigate a monthly
+frequency database of macroeconomic variables called FRED-MD. At some level, FRED-
+MD is not particularly innovative. It is, after all, just a collection of N = 128 standard
+U.S. macroeconomic time series, dating back to 1959:01, that have primarily been taken
+from FRED, maintained by the Federal Reserve Bank of St. Louis, and organized into
+a .csv file. That description, however, misses the point. Our main goal was to facilitate
+easy access to a standardized example of a data-rich environment that can be used for
+academic research. By automating this data set, and maintaining a website that provides
+monthly frequency vintages, those who are interested in conducting research on big data
+can focus on the statistical problems associated with big data rather than having to put the
+data set together themselves. This frees the practitioner from dealing with issues related
+to, for example, updating the data set when new data is released, managing series that
+become discontinued, and splicing series from different sources. More prosaically, FRED-
+MD facilitates comparison of methodologies developed for a common purpose.
+    FRED-MD has been successful. It has been used as a foil for applying big data meth-
+ods including random subspace methods (Boot and Nibberin, 2019), sufficient dimension
+reduction (Barbarino and Bura, 2017), dynamic factor models (Stock and Watson, 2016),
+large Bayesian VARs (Giannone, Lenza, and Primiceri, 2018), various lasso-type regres-
+sions (Smeekes and Wijler, 2018), functional principal components, (Hu and Park, 2017),
+complete subset regression (Kotchoni, Lerous, and Stevanovich, 2019), and random forests
+(Medeiros, Vasconcelos, Veiga, and Zilberman, 2019). In addition, these various meth-
+ods have been used to study a wide variety of economic and financial topics including
+bond risk premia (Bauer and Hamilton, 2017), the presence of real and financial tail risk
+(Nicolò and Lucchetta, 2016), liquidity shocks (Ellington, Florackis, and Milas, 2017), re-
+cession forecasting (Davig and Hall, 2019), identification of uncertainty shocks (Angelini,
+Bacchiocchi, Caggiano, and Fanelli, 2019), and identification of monetary policy shocks
+(Miranda-Agrippino and Ricco, 2017). Finally, and perhaps most rewarding, is that it
+is described as the inspiration to the development of a Canadian version of FRED-MD
+(Fortin-Gagnon, Leroux, Stevanovic, and Surprenant, 2018).
+    While useful, FRED-MD has a glaring weakness. It does not include quarterly frequency
+data and thus does not provide information on Gross Domestic Product, Consumption,
+Investment, Government spending, and other macroeconomic series that come from the
+
+
+
+                                             1
+National Income and Product Accounts (NIPA). This is unfortunate because there are
+plenty of examples in the literature in which a quarterly frequency, data-rich environment is
+used for economic analysis. Examples include Stock and Watson (2012a,b), Schumacher and
+Breitung (2008), Gefang, Koop, and Poon (2019), Rossi and Sekhposyan (2014), Gonçalves,
+Perron, and Djogbenou (2017), Carrasco and Rossi (2016), Koopman and Mesters (2017),
+and Koop (2013).
+      In this paper we extend our previous work to a quarterly frequency data set we call
+FRED-QD. The data set is currently operational and provided at the same website in
+which FRED-MD is maintained. As we did with FRED-MD, FRED-QD is benchmarked
+to previous work by Stock and Watson (S&W; 2012a). There, the authors organized a
+collection of N = 200 quarterly frequency macroeconomic series dating back to 1959:Q1 that
+they then used to analyze the dynamics of the Great Recession. Our quarterly frequency
+version of their data set contains nearly all the series they used but, in addition, includes 48
+more series with an emphasis on including series related to Non-Household Balance Sheets.
+In total, the data set consists of N = 248 quarterly frequency series dating back to 1959:Q1.1
+While many of the series are actually quarterly series, some are higher-frequency series that
+have been aggregated up to the quarterly frequency - typically as quarterly averages of
+monthly series.
+      It's worth noting that we provide the data in levels - without transforming them in any
+way. As such, some are stationary in levels while others likely need to be transformed by
+taking logs, differencing, or both to reasonably be considered stationary. For each series
+we provide benchmark transformation codes. If the series was in the S&W data set we
+provide their transformation codes. For the additional series, many are taken from FRED-
+MD and we therefore provide those benchmark transformation codes. One reason to do this
+is to facilitate replication of the factor analysis provided in S&W as well as other results
+that may have used a similar data set. Even so, given the well-documented changes in
+volatility and persistence of macroeconomic series described in Campbell (2007) and Stock
+and Watson (2007), it may be a good idea to reconsider the default transformation codes.
+  1
+    FRED-QD does not contain ten series that are in the original S&W data set. Using the S&W numbering
+system these are #88 (Construction contracts), #130 (Index of sensitive materials prices), #131 (Spot mar-
+ket price index of commodities), #165 & #166 (measures of credit spreads & excess bond premia developed
+in Gilchrist and Zakrajsek, 2012), #95 & #132 (ISM index of supplier deliveries and ISM commodity price
+index), #152 & #164 (3-month Eurodollar deposit rate and its spread with a 3-month T-bill), and #187
+(Dow Jones industrials index). In all but two cases, these are series not available in FRED. Three month
+Eurodollar deposit rates are in FRED but are not updated on a regular basis because the source (i.e., the
+OECD) does not update them regularly. The last of these, #187, has been replaced with the S&P 500
+industrials index.
+
+
+
+                                                    2
+After providing more details on the data, we investigate this possibility through the lens of
+unit root tests. While it is often the case that the unit root tests align with the original
+transformation codes, the tests are not uniformly supportive.
+        We then investigate whether factors extracted from FRED-QD are useful for forecasting
+macroeconomic aggregates. In particular we focus on whether the unit root-implied trans-
+formation codes matter for factor-based forecasting.2 Among the series that we forecast we
+find that for real and financial series, factors estimated using the unit root-based transfor-
+mation codes can provide additional predictive content but are more often dominated by
+those using the original transformation codes. In contrast, we find that when forecasting
+nominal price series, forecast accuracy is typically better when using factors estimated using
+the unit root-based codes. This result coincides with evidence provided by Medeiros et al.
+(2019) and Coulombe et al. (2019), who find that treating price inflation as I(0) leads to
+better forecasts of inflation than treating it as I(1) - which is precisely what the benchmark
+transformation codes recommend.
+        The remainder of the paper proceeds as follows. Section 2 provides a more detailed
+description of the series in FRED-QD, as well as choices that were made when putting
+them together. Section 3 presents a brief analysis of the behavior of factors extracted from
+our data set with an emphasis on their relationship with factors extracted from the original
+S&W data set. Section 4 constructs statistical leverage scores as a means of identifying
+which series and data points have the greatest influence on the factors. Section 5 provides
+a detailed investigation of the degree to which unit root tests agree with the benchmark
+transformation codes. Section 6 investigates the degree to which factors are useful for fore-
+casting, with particular attention to whether the unit root determined transformation codes
+improve the accuracy of the forecasts relative to the original codes. Section 7 concludes. A
+detailed list of the series is provided in the appendix.
+
+
+2        FRED-QD
+
+As with FRED-MD, the goal of FRED-QD is to provide a readily accessible, easy-to-use
+macroeconomic database that can form the basis of research in big data. To do so, we make
+the data set publicly available at the same website as FRED-MD so that anyone can have
+    2
+    Throughout we focus on factors that are I (0). In contrast, Choi and Jeong (2018) provide theoretical
+and empirical results comparing the forecast accuracy of factors when one has the opportunity to construct
+them so that they are either I (0) or I (1). In the context of autoregressive models, Diebold and Kilian (2000)
+provide simulation evidence on a similar issue.
+
+
+
+
+                                                      3
+access.3 Importantly, a new vintage of the data set is created on the last business day of each
+month. This means that at the end of each month, (i) the most recent data releases have
+been added, (ii) revisions to the series in previous quarters have been taken on board, and
+(iii) institutional changes to existing series, periodically made by the statistical agencies,
+have been appropriately accounted for (e.g., a substitute series is found for a discontinued
+series).
+      Based on feedback we received for the FRED-MD project, the most recent vintage is
+always given a hotlink denoted "current." This allows the user to include that link within
+their code and thus always have access to the most recent vintage without having to go to
+the website manually and download the file. Previous vintages of the data set are retained
+on the website. By retaining the older vintages we facilitate replication of other research
+that has used FRED-QD. For example, if a researcher develops a new statistical method
+for working with big data, and wants to compare their results with that from an existing
+paper, one can go back and find the exact vintage of FRED-QD used in that paper so that
+differences in results can be attributed to the method rather than the data set.
+      On the website, we also provide a "Changes to FRED-QD" file that keeps a running tally
+of modifications that have occurred across the history of FRED-QD. For example, when
+creating the September 2018 vintage of FRED-QD, three Non-Household Balance Sheet se-
+ries were discontinued and replaced with comparable series. This event, and the subsequent
+changes in mnemonics, was documented in the Changes file. It's worth noting that changes
+can also arise due to issues not associated with statistical agencies. For example, legal issues
+regarding FRED's ability to post a given series, or to do so only with a substantial delay,
+sometimes arise. Examples of such are provided in the Changes to FRED-MD file, and one
+can expect similar issues to ultimately arise in FRED-QD.
+      With these issues in mind, FRED-QD consists of 248 quarterly series. A full list of
+the data is given in the Appendix. FRED-QD seeks to keep roughly the same coverage
+as the S&W data set while allowing the experts at FRED to handle data revisions and
+definitional changes. The series are classified into 14 groups: NIPA; Industrial Production;
+Employment and Unemployment; Housing; Inventories, Orders, and Sales; Prices; Earnings
+and Productivity; Interest Rates; Money and Credit; Household Balance Sheets; Exchange
+Rates; Other; Stock Markets; and Non-Household Balance Sheets. These groups are similar
+to, but not the same as, those used in S&W. The original groups included (i) Housing Starts,
+(ii) Housing Prices, and (iii) Stock Prices, Wealth, & Household Balance Sheets, which we
+  3
+      https://research.stlouisfed.org/econ/mccracken/fred-databases/
+
+
+
+                                                     4
+have rearranged to form the Housing, Household Balance Sheets, and Stock Markets groups.
+In addition, Non-Household Balance Sheets is a completely new group.
+      Of the 248 series, 70 series were not trivially accessed from FRED and needed some
+kind of massaging prior to being comparable to the corresponding series in S&W. A large
+portion of those that needed massaging were simply a matter of making nominal series real
+using a deflator. For each of these series this procedure is explained in the data appendix.
+For the remaining modified series, a summary of the changes is provided in Table 1. For
+clarity, all series that required some form of modification are tagged with an "x" to indicate
+that the variable has been adjusted and thus differs from the series at source.
+      When producing each vintage of the data set, an additional quarterly observation is
+added only after the first calendar month of the current quarter, which typically means
+once the first NIPA data, associated with the previous calendar quarter, is released. For
+example, the January, February, and March 2019 vintages of FRED-QD report quarterly
+data associated with 2018:Q4 but no data associated with 2019:Q1. The first vintage that
+contains any 2019:Q1 data is the April 2019 vintage. Within a calendar quarter, the existing
+quarterly values can be revised due to monthly frequency revisions of quarterly series like
+GDP or monthly frequency series like Retail Sales.
+      Due to data availability and the timing of data releases, FRED-QD is not a balanced
+panel. As we noted above, we introduce a new calendar quarter to the panel one month
+into the following quarter. In this vintage, any series that is released with more than a
+one-month lag is treated as missing (e.g., series associated with the Productivity and Costs
+release by the BLS). In the following vintage, any series that is released with more than a
+two-month lag is treated as missing (e.g., series associated with the Financial Accounts of
+the United States (Z.1) data release by the Federal Reserve Board). In the final vintage
+for that calendar quarter, all series have typically been released and there are no missing
+values.4 As an example, the vintages for July, August, and September 2019 were missing 41,
+18, and 0 observations associated with 2019:Q2, respectively. Another, less-regular reason
+for missing observations arises during government shutdowns. For example, U.S. statistical
+agencies were closed from December 22, 2018 through January 25, 2019. Because this led to
+delays in the release of many series, the January 2019 vintage of FRED-QD, which typically
+would be missing 40 or so observations associated with 2018:Q4 data, is instead missing 87
+observations.
+  4
+    The S&P PE ratio and dividend yield are taken from Shiller's website. These series are updated less
+consistently than the other series in the dataset. In some idiosyncratic cases, these may be missing for a
+longer sequence of vintages.
+
+
+                                                    5
+    All but thirty-eight series are available starting in 1959:Q1. There are a variety of reasons
+for series to have missing observations at the beginning of the sample: (1) Some series, like
+Housing Permits, simply didn't exist in 1959:Q1 and only became available in 1960:Q1.
+(2) Similarly, the Michigan Survey of Consumer Sentiment is missing two observation at
+the beginning of the sample because the survey was not conducted on a regular basis until
+1959:Q4. (3) For other series like the Trade-weighted Exchange Rate, the series is available
+in FRED only through 1973:Q1, and we have not found other documented sources with
+which to splice the series. (4) Finally, FRED primarily holds NAICS data (though some
+older SIC data exist and are used whenever possible) from the Census Manufacturers Survey,
+and hence a few Value of Manufacturer's Orders components like Nondefense Capital Goods
+and especially Consumer Goods have a limited history.
+    In many applications of big data, it is expected that the series are stationary. Since
+it is clear that not all of the series in FRED-QD are stationary in levels, we also provide
+benchmark transformation codes that are intended to transform the series so that they are
+stationary. In each instance, a decision is made to treat the series in levels or log-levels,
+and then, based on whether that series is considered I (0), I (1), or I (2), the variable is
+differenced to the appropriate degree. For a given series x, these codes take the following
+forms: (1) no transformation; (2) xt ; (3) 2 xt ; (4) log (xt ); (5)  log(xt ); (6) 2 log(xt );
+and (7) (xt /xt-1 - 1.0). For most of the series, these codes are the original transformations
+used by S&W. For series that we've added, many are monthly series taken from FRED-MD
+that we have aggregated to a quarterly frequency. For these series we use the benchmark
+transformation codes reported in FRED-MD. Finally, we also provide an indicator that
+identifies those series in FRED-QD that were used by S&W to estimate factors.
+
+
+3    Factor Estimates
+
+In this section we provide an analysis of principal component analysis (PCA)-based factors
+extracted from FRED-QD. Principal components remain a simple way of transforming the
+information content in a large number of series into a smaller number of manageable series.
+Once the components have been extracted they have been used for many purposes, including
+recession dating (Stock and Watson, 2016), forecasting (Boivin and Ng, 2005), measuring
+uncertainty (Jurado, Ludvigson, and Ng, 2015), and evaluating monetary policy (Bernanke
+and Boivin, 2003). Under certain assumptions, principal components provide consistent
+estimates of common factors and we will use the two terms interchangeably. We are mainly
+interested in differences in the data through the lens of PCA rather than the method itself.
+
+                                               6
+      Another motivation for analyzing the factors is that we have purposefully benchmarked
+FRED-QD to the large data set of quarterly frequency series used by S&W. In that paper,
+the authors extract PCA-based factors and use them to disentangle the causes of the Great
+Recession. Hence, as a means of verifying that we have adequately captured the information
+in their data set, we also provide a direct comparison of factors extracted from FRED-QD
+to those extracted from the original data set used by S&W.5 To do so, we use the September
+2019 vintage of FRED-QD, but only those observations and series that were used to estimate
+factors in the original data set. Keeping in mind that FRED-QD does not have 10 of the
+series in the original data set, but provides a substitute for one of them, this ultimately
+gives us T = 211 observations ranging from 1959:Q1 to 2011:Q3 and N = 125 or 132 series
+when using FRED-QD or the original data set, respectively.
+      Because FRED-QD has missing values and outliers that we treat as missing,6 we estimate
+the factors by PCA adapted to allow for missing values. Our approach to doing so is closely
+related to the EM algorithm given in Stock and Watson (2002). Each series is demeaned and
+normalized to unit variance using the sample means and standard deviations respectively.
+If the time t = 1, ..., T observation for series i = 1, ..., N is missing, we initialize it to the
+unconditional sample mean based on the non-missing values (which is zero since the data are
+demeaned and standardized) so that the panel is re-balanced. Based on this panel, and for
+a given number of factors r, a T × r matrix of factors F = (f1 , . . . , fT ) and a N × r matrix
+of loadings  = (1 , . . . , N ) are estimated using the normalization that  /N = Ir . We
+then update the missing values for each series from zero to ^ f ^
+                                                              i t . This is multiplied by the
+standard deviation of the series and the mean is re-added. The resulting value is treated
+as an observation for series i at time t, and the mean and variance of the complete sample
+are re-calculated. The process of demeaning, standardizing, and estimating the factors and
+loadings is repeated using the updated panel. The iteration stops when the factor estimates
+do not change.7
+      We then select the number of significant factors r. We use the ICp criteria developed in
+Bai and Ng (2002), which are generalizations of Mallow's Cp criteria for large dimensional
+panels. The number of factors is chosen to minimize the sum of squared residuals while
+                                                                              N +T
+keeping the model parsimonious. For this analysis, we use the penalty         NT     log(min(N, T )),
+which is shown by Bai and Ng (2002) to have good finite sample properties. This criterion
+  5
+    The data are currently posted on Mark Watson's website. https://www.princeton.edu/~mwatson/publi.html
+  6
+    See Section 4 for further discussion.
+  7
+    The dominant factors are almost identical when the missing values are imputed using the method in Bai
+and Ng (2019b).
+
+
+
+                                                  7
+is referred to as ICp2 . For both the original data set and the subset of FRED-QD used for
+this comparison, ICp2 selects r = 4 factors.
+      In Figure 1 we plot the four factors based on each data set. The NBER recession
+dates are shaded in grey. Visually, each of the four factors is very similar across the entire
+sample.8 This is particularly true for the first factor for which the two estimates are nearly
+identical and have a correlation exceeding 0.99. The remaining three correlations are only
+marginally lower, with values of 0.988, 0.968, and 0.980 for the second through fourth
+factors, respectively.
+      While the figure gives a visual characterization of the similarities of the factors, it is
+instructive to provide a more quantitative comparison. We do this by identifying which
+series are best explained by the factors. To do so, we regress the i-th series in the data set
+on a set of the r factors. For k = 1, . . . , r, this yields coefficients of determination Ri (k )2
+for each series i. Because the factors are orthogonal and organized in decreasing order of
+their respective eigenvalues, the incremental explanatory power of factor k for series i is
+mRi 2 (k ) = R2 (k ) - R2 (k - 1), k = 2, . . . , r with mR2 (1) = R2 (1). The average importance
+              i         i                                  i        i
+                              1 N
+                     2
+of factor-k is mR (k ) = N i=1 mRi (k ). Table 2 lists mR2 (k ) and the ten series with
+                                           2
+
+              2 (k ) for factor k . The upper panel does so for the factors estimated using
+the highest mRi
+FRED-QD, while the lower panel does the same but with the original S&W data set. To
+simplify interpretation of the factors, we also include the group numbers for each of the ten
+series.
+      A quick look at Table 2 immediately reinforces the visual similarity from Figure 1.
+Regardless of which data set is used to estimate the factors, the total variation explained
+by all four factors is nearly the same (i.e., 0.41), and the mR2 (k ) values are nearly the same
+as well (i.e., 0.21, 0.09, 0.06, and 0.05 for factors k = 1, ..., 4). The similarity also carries
+                                              2 (k ) values. While the rank ordering of the
+over to the top ten series with the highest mRi
+series varies a bit, 10, 8, 9, and 9 of the top ten series coincide across the four factors,
+respectively. This is convenient because it implies that the interpretation of the factors
+remains unchanged when using FRED-QD rather than the original S&W data set. The
+first factor is a real activity indicator that weighs heavily on series from the employment,
+industrial production, and NIPA groups. The second factor is dominated by forward-looking
+series such as term interest rate spreads and inventories. The third factor has explanatory
+power concentrated in the prices group as well as housing sector prices. Finally, the fourth
+factor is extensively weighted on both the price group and exchange rates.
+  8
+      The factors have been multiplied by -1 where necessary to make the two estimates positively correlated.
+
+
+
+                                                      8
+   Figure 1 and Table 2 suggest that FRED-QD provides a reasonable replication of the
+original data set - at least through the lens of PCA-based factor analysis. Even so, it also
+contains additional series not in the original S&W data set, and thus it is reasonable to
+wonder if those series provide additional information. Using all of the series and observations
+in FRED-QD, ICp2 selects three additional factors bringing the total up to r = 7. These
+are plotted in Figure 2. The first two factors remain closely related to those constructed
+using the S&W data set with correlations of 0.99 and 0.96, respectively. Beyond that,
+the correlations drop off dramatically with the third and fourth factors only exhibiting
+correlations of roughly 0.70.
+   The similarities and differences are more readily seen in Table 3. There we report the
+marginal R2 values associated with the seven factors identified using the entirety of FRED-
+QD. As expected, the first two factors retain the same interpretation as those reported in
+Figure 1 and Table 2. The first is a real activity factor that correlates strongly with series
+in the Employment and Industrial Production groups, while the second remains a forward-
+looking factor that correlates heavily on interest rate term spreads as well as housing permits
+and starts. In contrast, while the third factor from the S&W data set was a mixture of
+consumer prices and housing prices, when estimated using FRED-QD, the third factor is a
+                                                    2 (3) values associated with the Prices
+pure consumer price index with all of the top ten mRi
+group. In contrast, when using the full FRED-QD data set, the fourth factor appears to
+be a second employment-oriented factor rather than a second prices-oriented factor, as we
+observed using the S&W data set.
+   The interpretation of factors four to seven are less clear. While most of these factors
+exhibit considerable correlation with series in the Earnings and Productivity group (i.e.,
+group 7), a variety of other groups are represented. The fifth factor also correlates with
+Employment and both the Household and Non-Household Balance Sheet groups, while the
+sixth factor correlates with several series in the Money and Credit group. Finally, the
+seventh factor appears to be a weaker version of the fifth factor insofar as it too correlates
+heavily with several series in the Household Balance Sheet group. It is useful to note that
+these smaller factors are discarded using the criterion in Bai and Ng (2019a) that guards
+against outliers, an issue to which we now turn.
+
+
+4 Outliers and High Leverage Observations
+
+As previously noted, we estimate the factors after first identifying any outliers. In this
+section we provide a brief investigation into the importance of these outliers and the related
+
+                                              9
+concept of high leverage observations. As in S&W, we define an outlier as an observation
+that deviates from the sample median by more than ten interquartile ranges. By this defini-
+tion, the S&W data set and the corresponding subset of FRED-QD each have seven outliers.
+These are identified in 1971:Q1 and 1997:Q1 for a consumer credit series, in 2008:Q4 for
+three producer price series, and in 2010:Q2 for federal employment and consumer loans.9
+The full FRED-QD data has 30 outliers, 17 of which are found between 2008:Q1 and
+2010:Q4 and are predominantly bank reserves variables. Two interest rate variables and
+a prices variable are also identified to be outliers in 1980:Q3/Q4, as well as oil price in
+1974:Q1 and six Non-Household Balance Sheets variables between 2017:Q4-2018:Q1. As
+exogeneity of these events is questionable, it is also debatable whether they should be re-
+moved. In fact, without the outlier adjustment, the ICp2 criterion identifies eight factors
+in the data instead of seven. Nonetheless, the first six factors estimated with and without
+outlier adjustments are almost perfectly correlated, suggesting that the effect of outliers on
+the largest factors is quite minimal.
+       The statistics literature makes a distinction between outliers and high leverage points.10
+In a regression context, a data point is said to have high leverage if its x values are far
+from the mean of its xi values. FRED-QD has 248 series and 242 quarters, and it seems
+likely that some series and some data points are more important than others. As discussed
+in Mahoney (2011), statistical leverage scores can be informative about the non-uniform
+structure of importance in the data. Consider a T × N data matrix X with singular
+value decomposition X = U V  and assumed to have a low rank component of rank r.
+                                                                           
+                                                         ~, 
+The factor estimates reported above can be expressed as (F  ~  ) = ( T Ur , N Vr Dr ). A
+different aspect of the eigenvectors will now be explored. Let u(t) be the t-th row of the
+T × r matrix of left singular vectors Ur , and v (i) be the i-th column of the r × N matrix of
+right singular vectors Vr . Define the normalized row and column leverage scores as
+
+                                        u(t) 2 2                      v (i) 2
+                                  pt = T               ,        pi = n        2
+                                                                                   .
+                                       t=1  u ( t )  2
+                                                     2               i=1   v (i) 2
+                                                                                 2
+
+       T              N       i
+As       t=1 pt   =   i=1 p       = 1, these probabilities also define an "importance sampling dis-
+tribution" for the rows and the columns of X , respectively. The row scores are simply
+the diagonal entries of the "hat" matrix sometimes used to detect influential observations
+   9
+     For the S&W data, these are REVOLSL, WPU0561, PPIDC, PPITM, CES9091000001, and CON-
+SUMER. For the subset of FRED-QD data, PPITM is replaced by WPSID61.
+  10
+     In a regression setting with predictors x, an observation is an outlier if the residual or its standardized
+variant is far from its mean. An influential point is one whose inclusion changes the estimates. See Chatterjee
+and Hadi (1986) and Rousseeuw and Zomeren (1990).
+
+
+                                                           10
+in regression settings. Here, it is used to evaluate the strength of each row of the top r
+left singular vectors, giving information about the relative importance of the time series
+data points. The column score evaluates the strength of each column of the top r right
+singular vectors and hence is informative about the relative importance of the data in the
+cross-section.
+    We compute the row leverage scores for the full and balanced FRED-QD data with and
+without outlier adjustment. The results are similar, and hence to conserve space, in Figure
+3 we plot the leverage scores for the full-sample of FRED-QD without outlier adjustment.
+If the information is uniformly dispersed over time, each of the T observations should have
+             1
+a score of   T.   In the FRED-QD data, six data points account for 20% of the mass in pt :
+2008:Q4, 2009:Q1, 1975:Q1, 1980:Q4, 1980:Q2, and 2009:Q2. These roughly coincide with
+the outliers detected by the method of interquartile range.
+                                                               1
+    Turning to the column leverage scores, each pi should be   N   if information in the series is
+evenly dispersed. This is apparently not the case, as the (unreported) histogram of pi is quite
+skewed. For the sub-panel of FRED-QD data corresponding to the S&W data set, the series
+with the top three scores are the US/Euro exchange rate (EXUSEU), WPSID61, and PPIDC
+regardless of whether an outlier adjustment is made. For the full FRED-QD panel, the
+series with the top scores are COMPRMS, EXUSEU, GS5 without outlier adjustment, and
+NWPIx, S&P 500, and real household networth (TNWBSHNOx) with outlier adjustment.
+Apparently, the variables added to the full panel do change the information content of the
+panel. Nonetheless, these variables are already known to play an important role in business
+cycle modeling. This analysis simply reinforces their importance.
+
+
+5    Transformation Codes
+
+As we noted earlier, the data set provides benchmark transformation codes that are designed
+to make each series stationary. After having made the decision that the series should be
+managed in levels or log-levels, the transformation codes are first and second differences
+based on whether the series is believed to be I (0), I (1), or I (2). In this section we revisit
+the benchmark transformation codes and do so through the lens of unit root tests. In
+particular, we apply unit root tests to each series in FRED-QD to see whether or not the
+unit root tests imply the benchmark transformation codes.
+    For each series we apply two variants of the Dickey-Fuller GLS tests as delineated in
+Elliott, Rothenberg, and Stock (1996). These two tests differ only in how the number
+of autoregressive lags are chosen. One uses the Schwarz's Information Criterion (SIC) to
+
+                                              11
+choose the appropriate number of lags, and the other uses a Modified Akaike Information
+Criteron (MAIC), developed in Ng and Perron (2001).11 In each case the maximum number
+of lags is based on the recommendation in Schwert (1989) and hence for a given sample size
+T , kmax = 12(T /100)1/4 .
+    We use the results of these tests to identify the appropriate transformation codes. For
+example, recall that for the DFGLS tests, the null hypothesis is that the series is I (1).
+Hence, if we fail to reject, the series is differenced and the test is repeated until we reject
+the null. Depending on when this algorithm rejects the null determines the transformation
+code. For each test, and at each stage of the algorithm, we consider nominally 5% tests of
+the respective null.
+    For brevity we do not report the results of all the unit root tests. Instead, in Figure
+4 we provide histograms of the implied transformation codes for all the series.12 In the
+top diagonal of the first panel is the histogram of the codes reported in FRED-QD. All
+series have transformation codes of either 1, 2, 5, or 6, and hence no series are considered
+stationary in log-levels (4) or second differences of levels (3). By far the bulk of the codes
+are 5s, and hence the series are considered stationary in log-first differences. These patterns
+change when we consider the unit root-based transformation codes. The largest changes
+occur when using the MAIC variant of the DFGLS test. Here we find that much of the mass
+associated with a code of 5 has shifted into a code of 6 leading to more than a doubling of the
+number of series that require double differencing in log-levels. That said, some mass from
+the 5s has settled into the 4s, suggesting that some of the series may be I (0) in log-levels
+rather than log first differences. There is also a modest shift in mass from the 1s and 2s into
+3s and hence the tests indicated some of the series are stationary in the second difference
+of the levels. In contrast, the SIC-based DFGLS test implies more modest deviations from
+the original transformation codes. There remains almost no mass on the 3s and 4s. The
+largest deviation from the benchmark codes comes from a shift of mass from the 6s into the
+5s and hence the SIC-based test indicates that some of the series have been overdifferenced.
+    The histograms convey the fact that the unit root tests can imply transformation codes
+that don't align with the benchmark codes. Nevertheless, they do not convey where the
+changes are coming from. To address this issue, in Table 4 we report the median transfor-
+   11
+      In unreported results we chose lag lengths based on the the Sequential t-test (Seq.t), as described in Ng
+and Perron (1995). The results were very similar to those for the MAIC and hence we do not report them
+for brevity.
+   12
+      We omit nonborrowed reserves from these figures because it is the only series with a transformation code
+of 7. This code exists because nonborrowed reserves, which should be positive, turned negative during the
+financial crisis. This precludes the use of transformation code 5.
+
+
+
+                                                      12
+mation by group. For the MAIC-based tests, much of the shift toward log second differences
+occurs in the NIPA, Industrial Production, and Earnings and Productivity groups. In con-
+trast, for the SIC-based tests, the biggest change occurs for Prices in which case the test
+recommends treating Prices as log first differences instead of log-second differences. Both
+versions of the DFGLS tests disagree with the benchmark codes for Housing, of which
+several of the series are considered stationary in log-levels and hence do not need to be
+differenced.
+   It's clear that the unit root tests recommend changes in some of the transformations.
+Even so, it's worth keeping in mind that many of the unit root-implied codes continue to
+coincide with the benchmark codes. It therefore need not be the case that factors based
+on the benchmark codes deviate significantly from factors based on the unit root codes.
+In Figure 5 we plot the first four factors based on the benchmark codes along with the
+corresponding factors constructed after using the unit root test determined codes. For the
+1st factor, the SIC- and benchmark-implied factors largely coincide and exhibit a correlation
+of 0.95. In contrast, the MAIC-based variant deviates substantially from that constructed
+using the benchmark codes, with which they have a modest correlation of 0.56. For the
+remaining factors, substantial differences exist among the unit root-implied factors and
+those based on the benchmark codes.
+   In Table 5, more detailed evidence on the differences in the factors can be gleaned from
+the marginal R2 values for the factors plotted in Figure 5. Rather than go through these
+in detail we make only a few notable observations. One noticeable distinction among the
+factors is that while the MAIC-based factors remain heavily concentrated in the employment
+and industrial production groups, the mR2 (1) values are substantially lower than those
+associated with the benchmark and SIC-based codes. This likely follows from the propensity
+of the MAIC-based unit root tests to treat many NIPA and employment series as I (2) rather
+than I (1), which, apparently, leads to a loss of information due to overdifferencing. Another
+is the relatively clear interpretability of the SIC-based factors. The first factor is a clear
+employment factor, while the second is a pure consumer prices factor. The third is arguably
+an unemployment factor, and the fourth is heavily correlated with producer prices with an
+emphasis on energy and, specifically, oil prices.
+
+
+6 Predictability of Factor-based Models
+
+In this section we investigate the usefulness of factors for predicting macroeconomic aggre-
+gates. The structure of the forecasting exercise is motivated by a similar forecasting exercise
+
+                                              13
+conducted by Stock and Watson (2012b). Specifically, we construct 1- and 4-quarter-ahead
+forecasts of Real GDP (log-level), Industrial Production (log-level), the Unemployment rate
+(level), and the Federal Funds Rate (level), as well as the CPI, PCE, GDP deflator, and
+PPI price indices (each in log-level). These variables were chosen based on the results of
+the unit root tests in the previous section, with an eye toward emphasizing the role that
+transformation codes have on the predictive content of factors. For each permutation of the
+eight dependent variables Y and two horizons h, we have three goals: (1) document that the
+FRED-QD factors have predictive content above-and-beyond that contained in a baseline
+autoregressive model, (2) document whether the choice of transformation codes can have
+a material effect on the predictive content of factors extracted from FRED-QD, and (3)
+document those factors that exhibit the most predictive content for the target variables.
+     In each case, the models used for forecasting take the direct multistep form
+                                        p-1
+                                        
+                                               j yt-h-j +  (h) ft-h + t
+                         (h)                    (h)                                 (h)
+                        yt     = h +                                                                         (1)
+                                        j =0
+
+where                                                             
+                                          Yt       if Yt is I (0) 
+                        (h)
+                       yt     =       Yt - Yt-h    if Yt is I (1)  .                                         (2)
+                                                                  
+                                 Yt - Yt-h - hYt-h if Yt is I (2)
+                                                                            (1)
+For brevity, when h = 1 we drop the superscript and define yt                     as yt . At each forecast origin
+                                                                                          (h)
+the model is estimated by OLS, and the h-step-ahead forecast of yt+h is then constructed
+as
+                                                 p-1
+                                                 
+                               y
+                                (h)
+                               ^t,h = ^ h,t +           ^(h) yt-j + ^(h) ft .                                (3)
+                                                         j,t         t
+                                                 j =0
+
+Forecasts of Yt+h are then computed in accordance with the order of integration of Y :
+                                                (h)                                
+                                               y
+                                               ^t,h                 if Yt is I (0) 
+                        ^t,h =                        (h)
+                        Y                Yt + y
+                                              ^t,h                  if Yt is I (1)  .                        (4)
+                                                              (h)
+                                                                                   
+                                      Yt + hYt +            y
+                                                            ^t,h    if Yt is I (2)
+
+     Following Stock and Watson (2012b), we fix the number of autoregressive lags p at 4
+and only consider a single lag of the factor(s). Since it is not obvious which of the 7 factors
+should be used to forecast any particular target variable, and since those factors could vary
+by horizon, we consider all 27 - 1 = 127 possible choices of ft as a potential predictor.
+Hence, in some cases, f is a scalar consisting of just one of the 7 possible factors, while in
+other models f is a vector consisting of up to all 7 factors.
+
+
+                                                       14
+    All models are estimated using a rolling window of 106 (109) observations when h = 1
+(4). The first forecast origin is R = 1985:Q1 + h, and the last forecast origin is T =
+2018:Q4 - h, for a total of P = 134 (128) forecasts. At each forecast origin we estimate
+the factors two different ways. For the first, we use the benchmark transformation codes
+provided in FRED-QD. For the second, at each forecast origin we perform unit root tests
+on all series in FRED-QD using the past 106 (109) observations when h = 1 (h = 4). Based
+on the outcome of these tests, we select transformation codes using the same algorithms
+described in the previous subsection. For brevity, we only consider the SIC-based DFGLS
+unit root test in this forecasting exercise. Using the MAIC-based unit root test leads
+to different results. Our goal is not to provide the "correct" set of results, but rather
+to demonstrate that sticking to previously established transformation codes may lead to
+inferior results.13
+    It's important to keep in mind that by taking a rolling window approach to forecasting,
+we have potentially time-varying transformation codes and this has multiple effects on our
+forecasting exercise. Obviously, different transformation codes lead to distinct estimated
+factors as shown in Figure 5. In addition, given our direct multi-step forecasting environ-
+ment, different transformation codes also lead to time varying definitions of y (h) . For this
+reason we measure accuracy of the forecasts relative to Y rather than y (h) . In particu-
+lar, we evaluate accuracy of the forecasts under quadratic loss using mean squared errors
+     
+P -1 T t=R (Yt+h - Yt,h ) .
+                   ^ 2
+    For each target variable Y and horizon h, there is a benchmark AR(4) model that
+is estimated using the original (OLD) transformation codes. In addition, there are 127
+models that augment the benchmark AR(4), with at least one factor formed using the OLD
+transformation codes. The same is done using transformation codes based on the unit-root
+testing algorithm (NEW). This leads to 128 more models, including an AR(4) based on the
+NEW codes and 127 models that augment this AR(4) with at least one of the seven factors.
+    For each of the 254 models that include at least one factor, we conduct a one-sided
+test of the null that the factors do not contribute finite-sample predictive content relative
+to the benchmark AR(4). The null is stated in the context of the test of unconditional
+finite-sample predictive ability advocated by Giacomini and White (2006). However, in
+contrast to their recommended testing procedure, we follow Coroneo and Fabrizio (2018)
+and apply a Fixed-b asymptotic approximation to the test statistic. Specifically, for each
+  13
+     In part we focus on the SIC-based factors because of our intution on what some transformations "should"
+be. For example, MAIC-based tests recommend treating real GDP as I (2) in log-levels. This does not strike
+us as reasonable.
+
+
+                                                    15
+model j = 1, ..., 254 that includes at least one factor, the test statistic takes the form
+       T
+P -1/2         u2
+              (^         -u ^2t+h,j )/^ j where  ^j2 is an estimate of the long-run variance of
+         t=R t+h,AR                                                                    
+^2
+ut+h,AR - ^
+          u 2
+            t+h,j . This is estimated    using the Bartlett kernel and bandwidth  1 . 3 P  + 1 as
+advocated in Lazarus, Lewis, Stock, and Watson (2018). Critical values for the asymptotic
+distribution are approximated using the formula provided in Table 1 of Kiefer and Vogelsang
+(2005; p. 1146).
+       While this testing procedure allows us to ascertain whether the factors exhibit finite-
+sample predictive content beyond that in the benchmark AR(4), there is an obvious multiple-
+testing problem. To mitigate the potential for multiple testing, we provide complementary
+evidence on accuracy using the model confidence set procedure advocated by Hansen, Lunde,
+and Nason (2011). This allows us to identify the subset of all 256 models that are statistically
+as accurate as the single most accurate model. Note that this information is related to, but
+not the same as, the previous test comparing each model to the benchmark. For example,
+it could be the case that the benchmark is the best model, and hence factors do not provide
+additional predictive content. Even so, many of the factor-based models may be contained
+in the model confidence set because they are approximately as accurate as the benchmark.
+With this difference of interpretation in mind, we use the TR,M  maxi,j M |ti,j | statis-
+tic when implementing the model confidence set procedure. The distribution of this test
+statistic is approximated using a circular block bootstrap with block length l = 12 using
+software distributed by Sheppard (2018).To help identify the most accurate models, we use
+a restrictive significance level of 25% - that is associated with the model confidence set
+M75 .14
+       Rather than report all of the testing results, we focus on a concise subset that provides
+evidence on our three forecasting goals. For each permutation of target variable Y and
+horizon h, we report the root mean squared error (RMSE) for the benchmark AR(4), along
+with the relative RMSEs associated with the ten most accurate models. An asterisk denotes
+whether or not the models were more accurate than the AR(4) at the 5% level using the
+Fixed-b critical values. In addition, we report the number of OLD and NEW models that
+outperform the benchmark AR(4). Finally, we report the number of models contained in
+the model confidence set. Since we want to identify the importance of the transformation
+codes, we also specify the number of models in the model confidence set that use the NEW
+factors based on the unit-root driven transformation codes.
+  14
+     In unreported work, we also considered a weaker 10% level of significance. For several of the variables,
+nearly all of the models were included in the model confidence set despite, what appeared to be, substantial
+differences in MSEs.
+
+
+                                                     16
+   Tables 6 and 7 provide the results. In the first table we focus on the real and financial
+target variables, while in the second we focus on the price series. In Table 6 we find
+numerous evidence that the factors can provide additional predictive content beyond that
+of the benchmark AR(4). For all four target variables and at both forecast horizons, the
+number of factor-based models that significantly outperform the benchmark range from as
+low as 3 models when forecasting the federal funds rate at the one-quarter horizon, to as
+high 142 models when forecasting the unemployment rate at the four-quarter horizon. To
+be fair, many of those that outperform the benchmark only do so to a modest degree. The
+largest gains occur for the unemployment rate at the four-quarter horizon where accuracy is
+improved by a substantial 25%. For the other target variables and/or horizons, the largest
+gains range from 17% to as low as 3%.
+   One obvious feature of Table 6 is the dominance of the factors constructed using the OLD
+transformation codes. Across all target variables and horizons, exactly 16 out of a possible 80
+top ten most accurate models are based on factors estimated using the NEW transformation
+codes. Seven of these instances occur when forecasting GDP growth, another seven occur
+when forecasting the federal funds rate, and the remaining two occur when forecasting the
+unemployment rate, and in all cases these occur at the four-quarter horizon. In addition,
+for all but one permutation of target variable and horizon, there are more models based on
+the OLD transformation codes that outperform the AR(4) benchmark.
+   Among those factor-based models that perform in the top ten, it isn't obvious that
+one particular factor is dominant and should always be used when forecasting. Even so, it
+is true that at least one of the first two factors (i.e., 1 or 2) occur in all but two top ten
+factor-based models. While that might suggest that those factors associated with the largest
+eigenvalues provide the most predictive content, one should not conclude the contributions
+are monotone. There are many instances, like that when forecasting industrial production
+at either horizon, where the 2nd , 6th , and 7th factors are included, but the 1st , 3rd , 4th , and
+5th are not. It's also worth noting that the number of factors necessary to improve accuracy
+relative to the benchmark AR(4) varies across series and, to a lesser extent, horizon. When
+forecasting the federal funds rate, maximal gains are achieved when including only two
+factors, but when forecasting the unemployment rate, the best models include five factors.
+In fact, there are instances in which including all seven factors in the model lead to forecasts
+of the unemployment rate and GDP growth that outperform those based on the benchmark
+AR(4) model.
+   Moving to Table 7, that associated with predicting the four price series, we again find
+
+
+                                                17
+substantial evidence that the factors can provide marginal predictive content beyond the
+benchmark AR(4). In some cases, like when forecasting the GDP-deflator at the four-
+quarter horizon, the number of factor-based models that have marginal predictive content
+is as low as 42, but in other cases, like when forecasting PPI at the same horizon, the
+number is as high as 191. Relative to the benefits of using factor-based models observed
+in Table 6, the top gains are typically smaller. When forecasting PPI at the four-quarter
+horizon, the gains are as large as 23% but are less than 10% for all other permutations of
+target variable and horizon.
+   But in contrast to the results in Table 6, when forecasting prices, factor-based models
+using the NEW transformation codes generally dominate those that use the OLD codes.
+Among the 80 possible top ten models, only 19 are based on models that use the OLD
+transformation codes. Interestingly, none of these instances occur when forecasting PPI,
+which is dominated by factors estimated using the NEW transformation codes. In addition,
+relative to Table 6 there tends to be more models in the confidence set that use the NEW
+transformation codes. Similarly, relative to Table 6 a larger number of factor models that
+use the NEW transformation codes outperform the benchmark AR(4) ­ and do so especially
+at the longer forecast horizon.
+   In terms of which factors are most useful for forecasting, there is a bit more heterogeneity
+when forecasting prices. In Table 6, nearly every top ten model had at least one of the first
+two factors based on either the OLD or NEW transformation codes. While it is the case
+that a majority of the top ten models in Table 7 contain one of the first two factors, some
+of the best models include neither of the first two factors and, instead, include the 4th or
+5th factor ­ this is particularly true when forecasting PPI for either forecasting horizon.
+Nevertheless, it remains true that many of the top 10 models contain more than just one
+or two factors and, in fact, several include as many as five or six factors.
+
+
+7 Conclusion
+
+As was the case for FRED-MD, the purpose of introducing FRED-QD is to provide easy
+access to a large set of macroeconomic data that can be used to conduct research using "big-
+data" methods. The primary difference between the two data sets is simply that FRED-QD
+provides quarterly frequency data and, as such, permits the inclusion of lower frequency
+series like those from the NIPA releases. Regardless of this difference, like FRED-MD, the
+data set has been, and will continue to be, updated by the data specialists at FRED on
+a regular basis to account for newly released data, data revisions, and other complicating
+
+                                              18
+issues that sporadically arise with data collection. We (again!) sincerely thank them for
+their support in this work.
+
+
+
+
+                                           19
+                                      References
+
+Angelini, G.; Bacchiocchi, E.; Caggiano G. and Fanelli L. "Uncertainty Across Volatility
+   Regimes." Journal of Applied Econometrics, 2019, 34, pp. 437-455.
+
+Bai, J. and Ng, S. "Determining the Number of Factors in Approximate Factor Models."
+    Econometrica, 2002, 70, pp. 191-221.
+
+Bai, J. and Ng, S. "Rank-Regularized Estimation of Approximate Factor Models." Journal
+    of Econometrics, 2019a, 212, pp. 78-96.
+
+Bai, J. and Ng, S. "Matrix Completion, Counterfactuals, and Factor Analysis of Missing
+    Data." 2019b, arXiv.org, 1910.06677.
+
+Barbarino, A. and Bura, E. "A Unified Framework for Dimension Reduction in Forecasting."
+   2017, FEDS Working Paper, 2017-004.
+
+Bauer, M.D. and Hamilton J.D. "Robust Bond Risk Premia." Review of Financial Studies,
+   2017, 31, pp. 399-448.
+
+Bernanke, B.S. and Boivin, J. "Monetary Policy in a Data-Rich Environment." Journal of
+    Monetary Economics, 2003, 50, pp. 525-546.
+
+Boivin, J. and Ng, S. "Understanding and Comparing Factor-Based Forecasts." International
+    Journal of Central Banking, 2005, 1, pp. 117-151.
+
+Boot, T. and Nibbering, D. "Forecasting Using Random Subspace Methods." Journal of
+   Econometrics, 2019, 209, pp. 391-406.
+
+Campbell, S.D. "Macroeconomic Volatility, Predictability, and Uncertainity in the Great
+   Moderation: Evidence From the Survey of Professionsl Forecasters. " Journal of Busi-
+   ness and Economic Statistics, 2007, 25, pp. 191-200.
+
+Carrasco, M. and Rossi B. "In-Sample Inference and Forecasting in Misspecified Factor
+    Models." Journal of Business and Economic Statistics, 2016, 34, pp. 313-338.
+
+Chatterjee, S. and Hadi, A. "Influential Observations, Leverage Points, and Outliers in
+   Linear Regression." Statistical Science, 1986, 1, pp. 379-393.
+
+Choi, I. and Jeong, H. "Differencing versus Non-Differencing in Factor-Based Forecasting."
+   2018, Sogang University Working Paper.
+
+Coroneo, L. & Fabrizio, I. "Comparing Predictive Accuracy in Small Samples Using Fixed-
+   Smoothing Asymptotics." 2018 SSRN Electronic Journal.
+
+Coulombe, P.G.; Leroux, C.; Stevanoic, D. and Surprenant, S. "How is Machine Learning
+   Useful for Macroeconomic Forecasting?" 2019, CIRANO Working Paper.
+
+Davig, T. and Hall, A.S. "Recession Forecasting Using Bayesian Classification." Interna-
+   tional Journal of Forecasting, 2019, 35, pp. 848-867.
+
+
+
+                                           20
+Diebold, F.X. and Kilian, L. "Unit Root Tests are Useful for Selecting Forecasting Models."
+    Journal of Business and Economic Statistics, 2000, 18, pp. 265-273.
+
+Ellington, M.; Florackis, C. and Costas, M. "Liquidity Shocks and Real GDP Growth:
+     Evidence from a Bayesian Time-Varying Parameter VAR." Journal of International
+     Money and Finance, 2017, 72, pp. 93-117.
+
+Elliot, G.; Rothenberg, T.J. and Stock, J.H. "Efficient Tests for an Autoregressive Unit
+     Root." Econometrica, 1996, 64, pp. 813-836.
+
+Fortin-Gagnon, O.; Leroux, M.; Stevanovic, D. and Surprenant, S. "A Large Canadian
+    Database for Macroeconomic Analysis." CIRANO Working Paper, 2018.
+
+Gefang, D.; Koop, G. and Poon, A. "Variational Bayesian Inference in Large Vector Au-
+    toregressions with Hierarchical Shrinkage." CAMA Working Papers, 2019-08.
+
+Giacomini, R. and White, H. "Tests of Conditional Predictive Ability." Econometrica, 2006,
+    74, pp. 1545-1578.
+
+Giannone, D.; Lenza, M. and Primiceri, G.E. "Economic Predictions with Big Data: The
+   Illusion of Sparsity." FRB of New York Staff Reports, 2018, 847.
+
+Gilchrist, S. and Zakrajsek, E. "Credit Spreads and Business Cycle Fluctuations." American
+    Economic Review, 2012, 102, pp. 1692-1720.
+
+Gonçalves, S.; Perron, B. and Djogbenou, A. "Bootstrap Prediction Intervals for Factor
+   Models." Journal of Business and Economic Statistics, 2017, 35, pp. 53-69.
+
+Hansen, P.R.; Asger, L. and Nason, J.M. "The Model Confidence Set." Econometrica, 2011,
+   79, pp. 453-497.
+
+Hu, B. and Park, J.Y. "Econometric Analysis of Functional Dynamics in the Presence of
+    Persistence." Working Paper, 2017.
+
+Jurado, K.; Ludvigson, S.C. and Ng, S. "Measuring Uncertainty." American Economic Re-
+    view, 2015, 105, pp. 1177-1216.
+
+Kiefer, N.M. and Vogelsang, T.J. "A New Asymptotic Theory for Heteroskedasticity-Autocorrelation
+    Robust Tests." Econometric Theory, 2005, 21, pp. 1130-1164.
+
+Koop, G. "Forecasting with Medium and Large Bayesian VARs." Journal of Applied Econo-
+   metrics, 2013, 28, pp. 177-203.
+
+Koopman, S.J. and Mesters G. "Empirical Bayes Methods for Dynamic Factor Models."
+   The Review of Economics and Statistics, 2017, 99, pp. 486-498.
+
+Kotchoni, R.; Leroux, M. and Stevanovic, D. "Macroeconomic Forecast Accuracy in a Data-
+   Rich Environment." Journal of Applied Econometrics, 2019.
+
+Lazarus, E.; Lewis, D.J.; Stock, J.H. and Watson, M.W. "HAR Inference: Recommenda-
+    tions for Practice." Journal of Business and Economic Statistics, 2018, 36, pp. 541-559.
+
+
+                                            21
+Mahoney, M.W. "Randomized Algorithms for Matrices and Data." Foundations and Trends
+   in Machine Learning, 2011, 3, pp. 123-224.
+
+McCracken, M. and Ng, S. "FRED-MD: A Monthly Database for Macroeconomic Research."
+   Journal of Business and Economic Statistics, 2015, 34, pp. 574-589.
+
+Medeiros, M.C.; Vasconcelos, G.; Veiga, A. and Zilberman, E. "Forecasting Inflation in
+   a Data-Rich Environment: Benefits of Machine Learning Methods." Central Bank of
+   Chile Working Paper, 2019.
+
+Miranda-Agrippino, S. and Ricco G. "The Transmission of Monetary Policy Shocks." CFM
+   Discussion Papers 1711, 2017.
+
+Ng, S. and Perron, P. "Unit Root Tests in ARMA Models with Data Dependent Methods for
+    the Selection of the Truncation Lag." Journal of the American Statistical Association,
+    1995, 90, pp. 268-281.
+
+Ng, S. and Perron, P. "Lag Length Selection and the Construction of Unit Root Tests with
+    Good Size and Power." Econometrica, 2001, 69, pp. 1519-1554.
+
+Nicolò, G.D. & Lucchetta, M. "Forecasting Tail Risks." Journal of Applied Econometrics,
+    2016, 32, pp. 159-170.
+
+Rousseeuw, P. and van Zomeren, B. "Unmasking Multivariate Outliers and Leverage Points."
+   Journal of the American Statistical Association, 1990, 85, pp. 633-639.
+
+Schumacher, C. and Brietung, J. "Real-Time Forecasting of German GDP Based on a Large
+    Factor Model with Monthly and Quarterly Data." International Journal of Forecasting,
+    2008, 24, pp. 386-398.
+
+Schwert, G.W. "Tests for Unit Roots: A Monte Carlo Investigation." Journal of Business
+   and Economic Statistics, 2008, 7, pp. 147-159.
+
+Sheppard, Kevin. https://www.kevinsheppard.com/code/matlab/mfe-toolbox/; documented
+   in "MFE MATLAB Function Reference Financial Econometrics," §8.2.2, "Model Confi-
+   dence Set mcs," https://www.kevinsheppard.com/files/code/matlab/mfe-toolbox-documentation.pdf,
+   2018.
+
+Smeekes, S. and Wijler, E. "Macroeconomic Forecasting Using Penalized Regression Meth-
+   ods." International Journal of Forecasting, 2018, 34, pp. 408-430.
+
+Stock, J.H. "VAR, Error Correction and Pretest Forecasts at Long Horizons." Oxford Bul-
+    letin of Economics and Statistics, 1996, 58, pp. 685-701.
+
+Stock, J.H. and Watson, M. "Why Has U.S. Inflation Become Harder to Forecast." Journal
+    of Money, Credit and Banking, 2007, 39, pp. 3-33.
+
+Stock, J.H. and Watson, M. "Disentangling the Channels of the 2007-2009 Recession."
+    Brookings Papers on Economic Activity, 2012a, Spring, pp. 81-156.
+
+Stock, J.H. and Watson, M. "Generalized Shrinkage Methods for Forecasting Using Many
+
+
+                                           22
+    Predictors." Journal of Business and Economic Statistics, 2012b, 30, pp. 481-493.
+
+Stock, J.H. and Watson, M.W. "Dynamic Factor Models, Factor-Augmented Vector Au-
+    toregressions, and Structural Vector Autoregressions in Macroeconomics." Handbook of
+    Macroeconomics, 2016, 2, pp. 415-526.
+
+
+
+
+                                           23
+                           Figures and Tables
+
+                    Table 1: Series adjusted by FRED-QD
+
+Number   Variable                                Adjustment
+60       Unemployment Rate (< 27 weeks)          (UNEMPLOY - UEMP27OV)/CLF16OV
+61       Unemployment Rate (> 27 weeks)          UEMP27OV/CLF16OV
+80       Help-Wanted Index                       splice LMJVTTUVUSM647S with Barnichon series
+88       Real Manu. and Trade                    (i) adjust M0602BUSM144NNBR for inflation using PCEPI
+                                                 (ii) seasonal adjust with ARIMA X12
+                                                 (iii) splice with NAICS series CMRMTSPL
+89       Retail/Food Sales                       splice SIC series RETAIL with NAICS series RSAFS
+90       New orders (durables)                   splice SIC series AMDMNO and NAICS series DGORDER
+92       Unfilled orders (durables)              splice SIC series AMDMUO and NAICS series AMDMUO
+93       New orders (nondefense)                 splice SIC series ANDENO and NAICS series ANDENO
+130      Crude Oil                               splice OILPRICE with MCOILWTICO
+153      30yr Mortage to 10yr Treasury           MRTG - GS10
+154      6mth Tbill - 3mth Tbill                 TB6M - TB3M
+155      1yr Treasury - 3mth Tbill               GS1 - TB3M
+156      10yr Treasury - 3mth Tbill              GS10 - TB3M
+157      3mth Commercial - 3mth Tbill            CPF3M - TB3M
+172      Household/Nonprof Liab to Income        TLBSHNO/PI
+174      Household/Nonprof Networth to Income    TNWBSHNO/PI
+178      S&P 100 Volatility: VXO                 splice Bloom series with VXOCLS
+184      Switzerland/U.S. FX                     filled back to 1959 from Banking/Monetary statistics
+185      Japan/U.S. FX                           filled back to 1959 from Banking/Monetary statistics
+186      U.K./U.S. FX                            filled back to 1959 from Banking/Monetary statistics
+187      Cdn/U.S. FX                             filled back to 1959 from Banking/Monetary statistics
+188      Consumer Sentiment                      splice UMSCENT1 with UMSCENT
+220      Help Wanted to unemployed               HWI/UNEMPLOY
+221      Initial Claims                          splice monthly series M08297USM548NNBR with weekly ICSA
+222      Business Inventories                    splice SIC series and NAICS series BUSINV
+223      Inventory to sales                      splice SIC series and NAICS series ISRATIO
+224      Consumer credit to P.I.                 NONREVSL/PI
+235      Business Liabilities to Income          TLBSNNCB/BDI
+238      Business Net Worth to Income            TNWMVBSNNCB/BDI
+240      NonCorp Busi. Liabilites to Income      TLBSNNB/BDI
+243      NonCorp Busi. Net Worth to Income       TNWBSNNB/BDI
+244      Business Income                         (CNCF - FCTAX)/IPDPS
+
+
+
+
+                                      24
+                                Figure 1: FRED-QD and S&W Factor Estimates
+
+
+                                                           Factor 1 Estimates
+             1
+
+             0
+
+             -1
+                     NBER Recession
+                     FRED-QD
+             -2      S&W
+
+
+
+             1960      1965           1970   1975   1980        1985       1990   1995   2000   2005   2010
+
+                                                           Factor 2 Estimates
+
+             1
+
+            0.5
+
+             0
+
+           -0.5
+
+             1960      1965           1970   1975   1980        1985       1990   1995   2000   2005   2010
+
+                                                           Factor 3 Estimates
+            0.5
+
+             0
+
+           -0.5
+
+             -1
+             1960      1965           1970   1975   1980        1985       1990   1995   2000   2005   2010
+
+                                                           Factor 4 Estimates
+
+
+             0
+
+
+             -1
+
+
+             -2
+              1960     1965           1970   1975   1980        1985       1990   1995   2000   2005   2010
+
+
+
+
+Note: This figure shows the estimates of factors 1-4 for both the S&W and FRED-QD data sets. For estimation of
+factors in the FRED-QD data set, only series and observations that correspond to those in the S&W data set are
+used.
+
+
+
+
+                                                               25
+                            Table 2: Factor Estimates from FRED-QD and S&W: Total Variation Explained, 0.413
+                                                                        FRED-QD
+                                                        Total variation explained by factors: 0.413
+      mR2(1)                    0.211    G#     mR2(2)           0.091 G# mR2(3)                  0.063         G#     mR2(4)                     0.048    G#
+      LNS14000025               0.784    3      OPHMFG           0.643 7        COMPRMS           0.608         7      EXUSEU                     0.680    11
+      DMANEMP                   0.760    3      TCU              0.496 2        USSTHPI           0.329         4      TWEXMMTH                   0.412    11
+      LNS13023621               0.746    3      CUMFNS           0.427 2        COMPRNFB          0.319         7      PPIIDC                     0.286    6
+      USTPU                     0.726    3      PERMIT           0.414 4        WPSID61           0.311         6      WPSFD49502                 0.284    6
+      IPBUSEQ                   0.683    2      BUSLOANSx        0.368 9        ULCMFG            0.306         7      DGOERG3Q086SBEA            0.271    6
+      USPBS                     0.662    3      GS10TB3Mx        0.356 8        RCPHBS            0.305         7      EXUSUKx                    0.229    11
+      LNS14000026               0.649    3      HOUSTS           0.332 4        ACOGNOx           0.294         5      WPSID61                    0.224    6
+      PNFIx                     0.642    1      USEPUINDXM       0.309 12       SPCS20RSA         0.275         4      WPU0561                    0.223    6
+      USTRADE                   0.640    3      PRFIx            0.304 1        WPU0561           0.267         6      EXCAUSx                    0.208    11
+      Y033RC1Q027SBEAx          0.609    1      CPF3MTB3Mx       0.301 8        PPIIDC            0.239         6      EXSZUSx                    0.154    11
+
+
+
+
+26
+                                                                           S&W
+                                                        Total variation explained by factors: 0.417
+      mR2(1)                    0.215    G#     mR2(2)           0.097 G# mR2(3)                  0.059         G#     mR2(4)                     0.046    G#
+      LNS14000025               0.772    3      OPHMFG           0.526 7        COMPRMS           0.487         7      EXUSEU                     0.561    11
+      DMANEMP                   0.750    3      TCU              0.485 2        WPSID61           0.358         6      DGOERG3Q086SBEA            0.233    6
+      LNS13023621               0.741    3      PERMIT           0.417 4        COMPRNFB          0.322         7      PPIIDC                     0.223    6
+      USTPU                     0.714    3      CUMFNS           0.414 2        USSTHPI           0.312         4      WPSFD49502                 0.216    6
+      IPBUSEQ                   0.665    2      BUSLOANSx        0.365 9        WPU0561           0.309         6      TWEXMMTH                   0.203    11
+      USPBS                     0.644    3      GS10TB3Mx        0.363 8        RCPHBS            0.305         7      EXCAUSx                    0.195    11
+      LNS14000026               0.638    3      USEPUINDXM       0.331 12       PPIIDC            0.284         6      EXUSUKx                    0.193    11
+      PNFIx                     0.630    1      HOUSTS           0.328 4        SPCS20RSA         0.247         4      WPU0561                    0.181    6
+      USTRADE                   0.628    3      NAPM             0.324          ULCMFG            0.218         7      TNWBSHNOx                  0.165    10
+      Y033RC1Q027SBEAx          0.622    1      INVCQRMTSPL 0.321 5             WPSFD49502 0.210                6      WPSID61                    0.154    6
+      Note: This table lists the 10 series that load most heavily on all four factors along with the R2 in a regression of the series on the factor. For example,
+     factor 1 of FRED-QD explains 0.784 of the variation in LNS14000025. The first factor of FRED-QD has an mR2 of 0.211. This is the fraction of the
+     variation in 125 series explained by the first factor. Results for the S&W data set are also listed.
+                        Figure 2: FRED-QD Factor Estimates
+
+
+                     Factor 1 Estimate                           Factor 2 Estimate
+          1                                           1
+
+          0
+                                                      0
+         -1
+                      NBER Recession
+         -2           Factor Estimate
+                                                     -1
+               1965 1975 1985 1995 2005 2015               1965 1975 1985 1995 2005 2015
+
+                     Factor 3 Estimate                           Factor 4 Estimate
+          1
+                                                    0.5
+          0
+                                                      0
+         -1
+                                                    -0.5
+         -2
+               1965 1975 1985 1995 2005 2015               1965 1975 1985 1995 2005 2015
+
+                     Factor 5 Estimate                           Factor 6 Estimate
+        0.5
+                                                      1
+
+          0                                         0.5
+                                                      0
+        -0.5                                        -0.5
+               1965 1975 1985 1995 2005 2015               1965 1975 1985 1995 2005 2015
+
+                     Factor 7 Estimate
+        0.5
+
+
+          0
+
+
+        -0.5
+
+               1965 1975 1985 1995 2005 2015
+
+
+
+
+Note: This figure plots the PCA-based factors estimated using the full FRED-QD data set
+based on the benchmark transformation codes.
+
+
+
+
+                                               27
+                                 Table 3: Factors Estimated from FRED-QD: Total Variation Explained, 0.497
+     mR2 (1)             0.199    G#   mR2 (2)            0.083   G#   mR2 (3)            0.073   G#   mR2 (4)         0.047   G#
+     USPRIV              0.838    3    AAAFFM             0.506   8    CUSR0000SA0L2      0.753   6    IMFSLx          0.394   9
+     USGOOD              0.820    3    T5YFFM             0.475   8    CUSR0000SAC        0.737   6    CES9093000001   0.341   3
+     OUTMS               0.814    1    PERMIT             0.462   4    DGDSRG3Q086SBEA    0.734   6    CES9092000001   0.306   3
+     PAYEMS              0.811    3    BUSINVx            0.432   5    PCECTPI            0.718   6    USGOVT          0.237   3
+     IPMANSICS           0.797    2    HOUST              0.421   4    CPITRNSL           0.703   6    GFDEBTNx        0.237   14
+     INDPRO              0.784    2    PERMITS            0.407   4    DNDGRG3Q086SBEA    0.693   6    REVOLSLx        0.225   9
+     MANEMP              0.776    3    TCU                0.394   2    CUSR0000SA0L5      0.676   6    COMPRMS         0.211   7
+     HOANBS              0.774    3    S&P div yield      0.393   13   CPIAUCSL           0.669   6    USFIRE          0.203   3
+     UNRATE              0.768    3    GS10TB3Mx          0.380   8    WPSID61            0.642   6    USSERV          0.203   3
+     DMANEMP             0.765    3    CPF3MTB3Mx         0.360   8    CPIULFSL           0.635   6    EXUSEU          0.194   11
+
+
+
+
+28
+     mR2 (5)             0.037    G#   mR2 (6)            0.030   G#   mR2 (7)            0.027   G#
+     OPHMFG              0.359    7    CONSPIx            0.274   10   USEPUINDXM         0.257   12
+     NWPIx               0.295    10   ULCNFB             0.228   7    TNWBSHNOx          0.208   10
+     AWHMAN              0.293    3    ULCBS              0.227   7    TABSHNOx           0.202   10
+     HWIx                0.290    3    CONSUMERx          0.220   9    TARESAx            0.192   10
+     OPHPBS              0.284    7    EXUSEU             0.208   11   TFAABSHNOx         0.192   10
+     OPHNFB              0.247    7    NONREVSLx          0.194   9    S&P 500            0.183   13
+     UNLPNBS             0.223    7    AHETPIx            0.187   7    S&P: indust        0.182   13
+     UNRATELTx           0.221    3    TOTALSLx           0.164   9    NASDAQCOM          0.171   13
+     ULCMFG              0.214    7    TB3SMFFM           0.149   8    GS10TB3Mx          0.155   8
+     TLBSNNCBBDIx        0.200    14   B020RE1Q156NBEA    0.143   1    TB6M3Mx            0.135   8
+     See Table 2 note.
+                                        Figure 3: FRED-QD Leverage Scores
+
+
+
+                       NBER Recession
+                       Leverage Score
+                       Outliers
+
+
+            0.06
+
+
+
+
+            0.04
+
+
+
+
+            0.02
+
+
+
+
+              0
+                      1965               1975         1985             1995            2005            2015
+
+
+
+
+Note: This figure plots the statistical leverage score, pt , of each quarter. Blue circles represent quarters where at least
+one series' value was an outlier and are sized relative to how many outliers were detected.
+
+
+
+
+                                                             29
+Table 4: FRED-QD Median Transformation Codes by Group
+
+Group   Group Name                       OLD   SIC   MAIC
+1       NIPA                             5     5     6
+2       Industrial Production            5     5     6
+3       Employment and Unemployment      5     5     5
+4       Housing                          5     4.5   4.5
+5       Inventories, Orders, and Sales   5     5     6
+6       Prices                           6     5     6
+7       Earnings and Productivity        5     5     6
+8       Interest Rates                   1.5   1     2
+9       Money and Credit                 5     5     5
+10      Household Balance Sheets         5     5     5
+11      Exchange Rates                   5     5     5
+12      Other                            1.5   1     1
+13      Stock Markets                    5     5     5
+14      Non-Household Balance Sheets     5     5     5
+                  All                    5     5     5
+
+
+
+
+                             30
+    Figure 4: FRED-QD Transformation Code Frequency by Group
+
+
+                              OLD                                           SIC
+                200                                       200
+
+
+                150                                       150
+    Frequency
+
+
+
+
+                                              Frequency
+                100                                       100
+
+
+                50                                        50
+
+
+                 0                                         0
+                      1   2   3   4   5   6                     1   2   3         4   5   6
+                              Code                                      Code
+
+
+
+                              MAIC
+                200
+
+
+                150
+    Frequency
+
+
+
+
+                100
+
+
+                50
+
+
+                 0
+                      1   2   3   4   5   6
+                              Code
+
+
+
+
+Note: Each subpanel provides a histogram of frequencies of transformation codes. "OLD"
+refers to the benchmark codes provided in FRED-QD. "SIC" and "MAIC" refer to codes
+implied by the associated DFGLS unit root test.
+
+
+
+
+                                              31
+         Figure 5: FRED-QD Factor Estimates by Method of Series Transformation
+
+
+                                                  Factor 1 Estimates
+             1
+
+             0
+
+             -1
+                    NBER Recession   SIC
+             -2     OLD              MAIC
+
+                    1965             1975       1985               1995      2005          2015
+
+                                                  Factor 2 Estimates
+             1
+
+            0.5
+
+             0
+
+           -0.5
+
+             -1
+                    1965             1975       1985               1995      2005          2015
+
+                                                  Factor 3 Estimates
+             2
+
+             1
+
+             0
+
+             -1
+                    1965             1975       1985               1995      2005          2015
+
+                                                  Factor 4 Estimates
+
+
+            0.5
+
+             0
+
+           -0.5
+
+                    1965             1975       1985               1995      2005          2015
+
+
+
+
+Note: This figures plots the first four PCA-based factors corresponding to the benchmark (OLD) codes and those
+implied by the unit root tests (SIC and MAIC).
+
+
+
+
+                                                       32
+                                 Table 5: FRED-QD Factor Estimates by Method of Series Transformation
+                                                                             Old
+                                                            Total   Variation Explained, 0.4025
+      mR2 (1)            0.199    G#   mR2 (2)           0.083      G#      mR2 (3)               0.073   G#   mR2 (4)           0.047   G#
+      USPRIV             0.838    3    AAAFFM            0.506      8       CUSR0000SA0L2         0.753   6    IMFSLx            0.394   9
+      USGOOD             0.820    3    T5YFFM            0.475      8       CUSR0000SAC           0.737   6    CES9093000001     0.341   3
+      OUTMS              0.814    1    PERMIT            0.462      4       DGDSRG3Q086SBEA       0.734   6    CES9092000001     0.306   3
+      PAYEMS             0.811    3    BUSINVx           0.432      5       PCECTPI               0.718   6    USGOVT            0.237   3
+      IPMANSICS          0.797    2    HOUST             0.421      4       CPITRNSL              0.703   6    GFDEBTNx          0.237   14
+      INDPRO             0.784    2    PERMITS           0.407      4       DNDGRG3Q086SBEA       0.693   6    REVOLSLx          0.225   9
+      MANEMP             0.776    3    TCU               0.394      2       CUSR0000SA0L5         0.676   6    COMPRMS           0.211   7
+      HOANBS             0.774    3    S&P div yield     0.393      13      CPIAUCSL              0.669   6    USFIRE            0.203   3
+      UNRATE             0.768    3    GS10TB3Mx         0.380      8       WPSID61               0.642   6    USSERV            0.203   3
+      DMANEMP            0.765    3    CPF3MTB3Mx        0.360      8       CPIULFSL              0.635   6    EXUSEU            0.194   11
+
+                                                                             SIC
+                                                            Total   Variation Explained, 0.4411
+      mR2 (1)            0.169    G#   mR2 (2)           0.147      G#      mR2 (3)               0.074   G#   mR2 (4)           0.051   G#
+      PAYEMS             0.844    3    PCECTPI           0.858      6       UNRATE                0.523   3    DGOERG3Q086SBEA   0.376   6
+      USPRIV             0.835    3    CPIAUCSL          0.846      6       LNS14000025           0.506   3    WPU0561           0.341   6
+      USGOOD             0.781    3    CUSR0000SA0L5     0.828      6       LNS14000026           0.466   3    OILPRICEx         0.324   6
+
+
+
+
+33
+      USTPU              0.758    3    CPIULFSL          0.797      6       SPCS20RSA             0.462   4    ACOGNOx           0.281   5
+      SRVPRD             0.728    3    PCEPILFE          0.794      6       LNS14000012           0.462   3    WPSID62           0.264   6
+      MANEMP             0.723    3    IPDBS             0.790      6       ISRATIOx              0.383   5    PPIACO            0.258   6
+      DMANEMP            0.718    3    CPILFESL          0.787      6       UNRATELTx             0.350   3    B020RE1Q156NBEA   0.256   1
+      HOAMS              0.716    3    CUSR0000SAS       0.756      6       UNRATESTx             0.348   3    PPIIDC            0.255   6
+      HOANBS             0.704    3    DSERRG3Q086SBEA   0.746      6       HWIURATIOx            0.341   3    B021RE1Q156NBEA   0.244   1
+      USWTRADE           0.683    3    CUSR0000SA0L2     0.742      6       CLAIMSx               0.313   3    AWHMAN            0.243   3
+
+                                                                           MAIC
+                                                            Total   Variation Explained, 0.3327
+      mR2 (1)            0.127    G#   mR2 (2)           0.091      G#      mR2 (3)               0.066   G#   mR2 (4)           0.047   G#
+      OUTMS              0.854    1    SRVPRD            0.481      3       CUSR0000SAC           0.476   6    CPF3MTB3Mx        0.364   8
+      TCU                0.783    2    USPBS             0.412      3       CPITRNSL              0.468   6    S&P 500           0.275   13
+      USPRIV             0.781    3    PPIACO            0.399      6       UMCSENTx              0.446   12   DRIWCIL           0.273   9
+      USGOOD             0.774    3    WPSID61           0.396      6       WPSFD49207            0.435   6    TFAABSHNOx        0.269   10
+      IPMANSICS          0.751    2    INVCQRMTSPL       0.390      5       USSTHPI               0.423   4    AAAFFM            0.264   8
+      INDPRO             0.730    2    HOUST             0.368      4       WPSFD49502            0.421   6    TARESAx           0.262   10
+      PAYEMS             0.727    3    PPIIDC            0.366      6       CPIULFSL              0.408   6    S&P: indust       0.262   13
+      CUMFNS             0.723    2    USTRADE           0.361      3       PPIIDC                0.399   6    BAA               0.255   8
+      MANEMP             0.722    3    CUSR0000SAC       0.342      6       EXUSEU                0.388   11   NWPIx             0.242   10
+      DMANEMP            0.690    3    WPSFD49502        0.341      6       PPIACO                0.361   6    TNWBSHNOx         0.239   10
+     See Table 2 note.
+           Table 6: FRED-QD Factor-based Forecasts of Real and Financial Series
+                                                          Horizon = 1
+             GDPC1                         INDPRO                           UNRATE                       FEDFUNDS
+ AR(4) RMSE = 0.0053804           AR(4) RMSE = 0.0088442         AR(4) RMSE = 0.19716             AR(4) RMSE = 0.40622
+         Top 10 Models                   Top 10 Models                   Top 10 Models                  Top 10 Models
+ Factors        Codes Ratio       Factors Codes Ratio            Factors        Codes Ratio       Factors Codes Ratio
+ 1,2,5,7        Old    0.94*      2,6,7      Old    0.86*        1,2,3,5,6      Old    0.83*      2,6        Old     0.97*
+ 1,2,5          Old    0.94*      1,2,7      Old    0.87*        1,2,5,6        Old    0.83*      2          Old     0.98*
+ 1,2,3,4,5,6,7 Old     0.94*      2,5,6,7    Old    0.87*        1,2,3,6        Old    0.83*      2,4        Old     0.98*
+ 1,2,3,4,5,7    Old    0.95*      2,7        Old    0.87*        1,2,5,6,7      Old    0.83*      2,4,6      Old     0.99
+ 2,5,6          Old    0.95*      2,6        Old    0.87*        1,2,3,4,5,6    Old    0.84*      6          Old     1.00
+ 1,2            Old    0.95*      1,2        Old    0.87*        1,2,6          Old    0.84*      2,6,7      Old     1.00
+ 1,2,7          Old    0.95*      1,2,6,7    Old    0.88*        1,2,3,5,6,7    Old    0.84*      2,5,6      Old     1.00
+ 1,2,5,6,7      Old    0.95*      1,2,6      Old    0.89*        1,2,3,6,7      Old    0.84*                 Old     1.00
+ 1,2,3,4,5,6    Old    0.95*      2,5,6      Old    0.89*        1,2,3,4,6      Old    0.84*      2,3        Old     1.00
+ 1,2,3,4,5      Old    0.95*      2          Old    0.89*        1,2,4,5,6      Old    0.84*      2,3,6      Old     1.00
+ # in MCS = 256                   # in MCS = 55                  # in MCS = 66                    # in MCS = 123
+ # New in MCS = 128               # New in MCS = 9               # New in MCS = 13                # New in MCS = 45
+ # Old  AR(4) = 57                # Old  AR(4) = 66              # Old  AR(4) = 96                # Old  AR(4) = 3
+ # New  AR(4) = 3                 # New  AR(4) = 29              # New  AR(4) = 42                # New  AR(4) = 0
+
+                                                          Horizon = 4
+            GDPC1                          INDPRO                           UNRATE                       FEDFUNDS
+ AR(4) RMSE = 0.016498            AR(4) RMSE = 0.037483          AR(4) RMSE = 0.85051             AR(4) RMSE = 1.4129
+         Top 10 Models                   Top 10 Models                   Top 10 Models                  Top 10 Models
+ Factors        Codes Ratio       Factors Codes Ratio            Factors        Codes Ratio       Factors Codes Ratio
+ 1,2            New    0.86*      2,6,7      Old    0.88*        2,3,4,6,7      Old    0.75*      1,2        New     0.92*
+ 1,2,6          New    0.87*      2,7        Old    0.89*        1,2,3,4,5,7    New    0.75*      1,2,7      New     0.94*
+ 1,2,5          New    0.88*      2,6        Old    0.90*        2,3,4,6        Old    0.75*      1,2,5      New     0.95*
+ 2              New    0.88*      2          Old    0.90*        2,3,6,7        Old    0.75*      2          New     0.96
+ 2,6            New    0.89*      2,4,7      Old    0.90*        2,3,4,5,6,7    Old    0.76*      1,2,5,7    New     0.97*
+ 1,2,5,6        New    0.89*      2,5,7      Old    0.91*        2,3,6          Old    0.76*      2,7        New     0.99*
+ 2,3,4,5,6      Old    0.89*      2,4,6,7    Old    0.91*        1,2,3,4,5,6,7 Old     0.76*      6          Old     0.99*
+ 1,2,3,4,5      Old    0.89*      2,5,6,7    Old    0.91*        1,2,3,4,5,6    Old    0.76*      2,5        New     1.00
+ 2,3,4,6        Old    0.90*      2,5        Old    0.91*        1,2,3,4,6,7    New    0.76*      2,4,6      Old     1.00
+ 1,2,4          New    0.90*      2,4        Old    0.92*        1,2,3,4,5      Old    0.76*                 Old     1.00
+ # in MCS = 135                   # in MCS = 98                  # in MCS = 124                   # in MCS = 17
+ # New in MCS = 51                # New in MCS = 27              # New in MCS = 60                # New in MCS = 11
+ # Old  AR(4) = 62                # Old  AR(4) = 64              # Old  AR(4) = 78                # Old  AR(4) = 1
+ # New  AR(4) = 34                # New  AR(4) = 0               # New  AR(4) = 64                # New  AR(4) = 6
+ Notes to Table 6 and 7: This table lists the 10 forecasting models with the lowest RMSE for four series at the 1-quarter
+and 4-quarter horizons. The combination of factors, use of old or new codes, and ratio of RMSE with the benchmark model
+(AR(4) w/ old codes) are given. Asterisks denote if the model is significantly better than the baseline at the 5% level using
+Fixed-b critical values. The # of total/New models in the MCS and the # of Old/New models significantly better than the
+baseline model are also listed for each dependent variable and horizon.
+
+
+
+
+                                                     34
+                Table 7: FRED-QD Factor-based Forecasts of Price Series
+                                                 Horizon = 1
+         CPIAUCSL                     PCECTPI                   GDPCTPI                    PPIACO
+AR(4) RMSE = 0.0051166       AR(4) RMSE = 0.0036182      AR(4) RMSE = 0.0019032    AR(4) RMSE = 0.020314
+       Top 10 Models                Top 10 Models              Top 10 Models             Top 10 Models
+Factors      Codes Ratio     Factors     Codes Ratio     Factors Codes Ratio       Factors Codes Ratio
+1,4,7        New     0.97*   1,7         New     0.97*   1         New    0.95*    4         New     0.91*
+1,7          New     0.97*   1,2,7       New     0.97*   1,4       New    0.95*    4,5,6     New     0.91*
+3,4,5,6,7    Old     0.97*   2,5,6,7     Old     0.98*   1,3       Old    0.95*    1,4       New     0.91*
+1,3,7        New     0.97*   2,6,7       Old     0.98*   1,3,4     New    0.96*    4,5       New     0.91*
+3,4,6,7      Old     0.97*   1,2,6,7     New     0.98*   1,2       Old    0.96*    4,5,7     New     0.91*
+1,3,4,7      New     0.98*   2,4,6,7     Old     0.98*   1,2,3     Old    0.96*    4,6       New     0.91*
+3,4,5,6      Old     0.98*   2,4,6       Old     0.98*   1,4,7     New    0.97*    1,4,5,6   New     0.91*
+1,6,7        New     0.98*   2,6         Old     0.98*   1,5       New    0.97*    1,4,6     New     0.91*
+1,4,6,7      New     0.98*   1,2,3,7     New     0.98*   1,2,4     New    0.97*    4,5,6,7   New     0.91*
+3,4,6        Old     0.98*   2,5,6       Old     0.98*   1,4,6     New    0.97*    1,4,5     New     0.91*
+# in MCS = 214               # in MCS = 193              # in MCS = 64             # in MCS = 256
+# New in MCS = 105           # New in MCS = 88           # New in MCS = 33         # New in MCS = 128
+# Old  AR(4) = 34            # Old  AR(4) = 34           # Old  AR(4) = 38         # Old  AR(4) = 16
+# New  AR(4) = 23            # New  AR(4) = 19           # New  AR(4) = 35         # New  AR(4) = 128
+
+                                                 Horizon = 4
+         CPIAUCSL                     PCECTPI                    GDPCTPI                   PPIACO
+AR(4) RMSE = 0.015208        AR(4) RMSE = 0.011441       AR(4) RMSE = 0.006606     AR(4) RMSE = 0.068741
+       Top 10 Models                Top 10 Models               Top 10 Models            Top 10 Models
+Factors      Codes Ratio     Factors     Codes Ratio     Factors Codes Ratio       Factors Codes Ratio
+1,2,3,4      New     0.90*   1,2,3,4,7 New       0.96*   1,2,7      Old    0.94*   2,5,7     New     0.77*
+1,2,3,5      New     0.91*   2,5         Old     0.96*   1,2,3,7    Old    0.95*   2,5       New     0.77*
+1,2,3,4,5    New     0.91*   1,2,3,4     New     0.96*   1,5        New    0.95*   2,4,5,7   New     0.77*
+1,2,3,5,7    New     0.91*   1,2,3,7     New     0.97*   1,5,6      New    0.95*   4,5,7     New     0.77*
+1,2,3,4,7    New     0.92*   1,2,3       New     0.97*   1,5,7      New    0.96*   2,4,5     New     0.77*
+1,2,3        New     0.92*   5           Old     0.97*   1,5,6,7    New    0.96*   5,7       New     0.77*
+1,2,3,4,5,7 New      0.92*   4,5         New     0.97*   1,2,5,7    Old    0.96*   5         New     0.77*
+2,3,4,5,7    New     0.92*   2,4,5       Old     0.98*   1          New    0.96*   2,5,6     New     0.77*
+1,2,3,7      New     0.93*   1,2,3,5,7 New       0.98*   1,6        New    0.96*   4,5       New     0.77*
+2,3,5,7      New     0.93*   2,3,4       New     0.98*   1,6,7      New    0.96*   2,5,6,7   New     0.77*
+# in MCS = 103               # in MCS = 72               # in MCS = 155            # in MCS = 256
+# New in MCS = 71            # New in MCS = 54           # New in MCS = 85         # New in MCS = 128
+# Old  AR(4) = 26            # Old  AR(4) = 11           # Old  AR(4) = 19         # Old  AR(4) = 63
+# New  AR(4) = 84            # New  AR(4) = 36           # New  AR(4) = 23         # New  AR(4) = 128
+
+
+
+
+                                                35
+Appendix
+
+FRED-QD is a quarterly frequency companion to FRED-MD. It is designed to emulate the dataset
+used in "Disentangling the Channels of the 2007-2009 Recession" by Stock and Watson (2012, NBER
+WP No. 18094) but also contains several additional series. The columns denote the following: (i)
+id denotes the series number, (ii) sw id denotes the series number in SW (2012), (iii) tcode
+denotes one of the following data transformations for a series x: (1) no transformation; (2) xt ;
+(3) 2 xt ; (4) log (xt ); (5)  log(xt ); (6) 2 log(xt ). (7) (xt /xt-1 - 1.0), (iv) sw factors denotes
+whether a series was used in SW (2012) when constructing factors (i.e. 1 is yes and 0 is no), (v)
+fred mnemonic denotes the mnemonic we use for the dataset, (vi) sw mnemonic denotes the
+mnemonic used in SW (2012), and (vii) description gives a brief definition of the series. The
+series are loosely grouped based on SW (2012).
+
+
+Details on construction of the data will be forthcoming, but a few general comments are in order.
+First, if the FRED mnemonic does not end in "x" then the series comes directly from the FRED
+database (e.g. PCECC96; real PCE). Otherwise, the series is a modified variant of a series from
+FRED (e.g. PCDGx; nominal PCE durables is manually deflated using the PCE price index).
+The exception to this rule is the S&P data, which is taken from public sources. Lastly, monthly
+frequency series are aggregated to a quarterly frequency using averages.
+
+
+
+
+                                                 36
+                                                                 Group 1: NIPA
+                             sw
+          id   sw id tcode factors fred mnemonic        sw mnemonic    description
+     1     1     1     5      0    GDPC1                GDP            Real Gross Domestic Product, 3 Decimal (Billions of Chained 2012 Dollars)
+     2     2     2     5      0    PCECC96              Consumption    Real Personal Consumption Expenditures (Billions of Chained 2012 Dollars)
+     3     3     3     5      1    PCDGx                Cons:Dur       Real personal consumption expenditures: Durable goods (Billions of Chained
+                                                                       2012 Dollars), deflated using PCE
+     4    4     4     5       1    PCESVx           Cons:Svc           Real Personal Consumption Expenditures: Services (Billions of 2012 Dollars),
+                                                                       deflated using PCE
+     5    5     5     5       1    PCNDx            Cons:NonDur        Real Personal Consumption Expenditures: Nondurable Goods (Billions of 2012
+                                                                       Dollars), deflated using PCE
+     6    6     6     5       0    GPDIC1           Investment         Real Gross Private Domestic Investment, 3 decimal (Billions of Chained 2012
+                                                                       Dollars)
+     7    7     7     5       0    FPIx             FixedInv           Real private fixed investment (Billions of Chained 2012 Dollars), deflated
+                                                                       using PCE
+     8    8     8     5       1    Y033RC1Q027SBEAx Inv:Equip&Software Real Gross Private Domestic Investment: Fixed Investment: Nonresidential:
+                                                                       Equipment (Billions of Chained 2012 Dollars), deflated using PCE
+     9    9     9     5       1    PNFIx            FixInv:NonRes      Real private fixed investment: Nonresidential (Billions of Chained 2012
+                                                                       Dollars), deflated using PCE
+     10   10    10    5       1    PRFIx            FixedInv:Res       Real private fixed investment: Residential (Billions of Chained 2012 Dollars),
+
+
+
+
+37
+                                                                       deflated using PCE
+     11   11    11    1       1    A014RE1Q156NBEA Inv:Inventories     Shares of gross domestic product: Gross private domestic investment: Change
+                                                                       in private inventories (Percent)
+     12   12    12    5       0    GCEC1            Gov.Spending       Real Government Consumption Expenditures & Gross Investment (Billions of
+                                                                       Chained 2012 Dollars)
+     13   13    13    1       1    A823RL1Q225SBEA  Gov:Fed            Real Government Consumption Expenditures and Gross Investment: Federal
+                                                                       (Percent Change from Preceding Period)
+     14   14    14    5       1    FGRECPTx         Real Gov Receipts  Real Federal Government Current Receipts (Billions of Chained 2012 Dollars),
+                                                                       deflated using PCE
+     15   15    15    5       1    SLCEx            Gov:State&Local    Real government state and local consumption expenditures (Billions of
+                                                                       Chained 2012 Dollars), deflated using PCE
+     16   16    16    5       1    EXPGSC1          Exports            Real Exports of Goods & Services, 3 Decimal (Billions of Chained 2012
+                                                                       Dollars)
+     17   17    17    5       1    IMPGSC1          Imports            Real Imports of Goods & Services, 3 Decimal (Billions of Chained 2012
+                                                                       Dollars)
+     18 18      18    5       0    DPIC96           Disp-Income        Real Disposable Personal Income (Billions of Chained 2012 Dollars)
+     19 19      19    5       0    OUTNFB           Ouput:NFB          Nonfarm Business Sector: Real Output (Index 2012=100)
+     20 20      20    5       0    OUTBS            Output:Bus         Business Sector: Real Output (Index 2012=100)
+     21 21      21    5       0    OUTMS            Output:Manuf       Manufacturing Sector: Real Output (Index 2012=100)
+     22 190    n.a.   2       0    B020RE1Q156NBEA                     Shares of gross domestic product: Exports of goods and services (Percent)
+     23 191    n.a.   2       0    B021RE1Q156NBEA                     Shares of gross domestic product: Imports of goods and services (Percent)
+                                                      Group 2: Industrial Production
+                            sw
+           id sw id tcode factors fred mnemonic   sw mnemonic               description
+     1     22  22     5      0    INDPRO          IP:Total index            Industrial Production Index (Index 2012=100)
+     2    23   23     5      0    IPFINAL         IP:Final products         Industrial Production: Final Products (Market Group) (Index 2012=100)
+     3    24   24     5      0    IPCONGD         IP:Consumer goods         Industrial Production: Consumer Goods (Index 2012=100)
+     4    25   25     5      0    IPMAT           IP:Materials              Industrial Production: Materials (Index 2012=100)
+     5    26   26     5      1    IPDMAT          IP:Dur gds materials      Industrial Production: Durable Materials (Index 2012=100)
+     6    27   27     5      1    IPNMAT          IP:Nondur gds materials   Industrial Production: Nondurable Materials (Index 2012=100)
+     7    28   28     5      1    IPDCONGD        IP:Dur Cons. Goods        Industrial Production: Durable Consumer Goods (Index 2012=100)
+     8    29   29     5      1    IPB51110SQ      IP:Auto                   Industrial Production: Durable Goods: Automotive products (Index 2012=100)
+     9    30   30     5      1    IPNCONGD        IP:NonDur Cons God        Industrial Production: Nondurable Consumer Goods (Index 2012=100)
+     10   31   31     5      1    IPBUSEQ         IP:Bus Equip              Industrial Production: Business Equipment (Index 2012=100)
+     11   32   32     5      1    IPB51220SQ      IP:Energy Prds            Industrial Production: Consumer energy products (Index 2012=100)
+     12   33   33     1      1    TCU             Capu Tot                  Capacity Utilization: Total Industry (Percent of Capacity)
+     13   34   34     1      1    CUMFNS          Capu Man.                 Capacity Utilization: Manufacturing (SIC) (Percent of Capacity)
+     14   194 n.a.    5      0    IPMANSICS                                 Industrial Production: Manufacturing (SIC) (Index 2012=100)
+     15   195 n.a.    5      0    IPB51222S                                 Industrial Production: Residential Utilities (Index 2012=100)
+     16   196 n.a.    5      0    IPFUELS                                   Industrial Production: Fuels (Index 2012=100)
+
+
+
+
+38
+                                                 Group 3: Employment and Unemployment
+                           sw
+          id sw id tcode factors fred mnemonic   sw mnemonic           description
+     1    35  35     5      0    PAYEMS          Emp:Nonfarm           All Employees: Total nonfarm (Thousands of Persons)
+     2    36  36     5      0    USPRIV          Emp:Private           All Employees: Total Private Industries (Thousands of Persons)
+     3    37  37     5      0    MANEMP          Emp:mfg               All Employees: Manufacturing (Thousands of Persons)
+     4    38  38     5      0    SRVPRD          Emp:Services          All Employees: Service-Providing Industries (Thousands of Persons)
+     5    39  39     5      0    USGOOD          Emp:Goods             All Employees: Goods-Producing Industries (Thousands of Persons)
+     6    40  40     5      1    DMANEMP         Emp:DurGoods          All Employees: Durable goods (Thousands of Persons)
+     7    41  41     5      0    NDMANEMP        Emp:Nondur Goods      All Employees: Nondurable goods (Thousands of Persons)
+     8    42  42     5      1    USCONS          Emp:Const             All Employees: Construction (Thousands of Persons)
+     9    43  43     5      1    USEHS           Emp:Edu&Health        All Employees: Education & Health Services (Thousands of Persons)
+     10   44  44     5      1    USFIRE          Emp:Finance           All Employees: Financial Activities (Thousands of Persons)
+     11   45  45     5      1    USINFO          Emp:Infor             All Employees: Information Services (Thousands of Persons)
+     12   46  46     5      1    USPBS           Emp:Bus Serv          All Employees: Professional & Business Services (Thousands of Persons)
+     13   47  47     5      1    USLAH           Emp:Leisure           All Employees: Leisure & Hospitality (Thousands of Persons)
+     14   48  48     5      1    USSERV          Emp:OtherSvcs         All Employees: Other Services (Thousands of Persons)
+     15   49  49     5      1    USMINE          Emp:Mining/NatRes     All Employees: Mining and logging (Thousands of Persons)
+     16   50  50     5      1    USTPU           Emp:Trade&Trans       All Employees: Trade, Transportation & Utilities (Thousands of Persons)
+     17   51  51     5      0    USGOVT          Emp:Gov               All Employees: Government (Thousands of Persons)
+
+
+
+
+39
+     18   52  52     5      1    USTRADE         Emp:Retail            All Employees: Retail Trade (Thousands of Persons)
+     19   53  53     5      1    USWTRADE        Emp:Wholesal          All Employees: Wholesale Trade (Thousands of Persons)
+     20   54  54     5      1    CES9091000001   Emp:Gov(Fed)          All Employees: Government: Federal (Thousands of Persons)
+     21   55  55     5      1    CES9092000001   Emp:Gov (State)       All Employees: Government: State Government (Thousands of Persons)
+     22   56  56     5      1    CES9093000001   Emp:Gov (Local)       All Employees: Government: Local Government (Thousands of Persons)
+     23   57  57     5      0    CE16OV          Emp:Total (HHSurve)   Civilian Employment (Thousands of Persons)
+     24   58  58     2      0    CIVPART         LF Part Rate          Civilian Labor Force Participation Rate (Percent)
+     25   59  59     2      0    UNRATE          Unemp Rate            Civilian Unemployment Rate (Percent)
+     26   60  60     2      0    UNRATESTx       Urate_ST              Unemployment Rate less than 27 weeks (Percent)
+     27   61  61     2      0    UNRATELTx       Urate_LT              Unemployment Rate for more than 27 weeks (Percent)
+     28   62  62     2      1    LNS14000012     Urate:Age16-19        Unemployment Rate - 16 to 19 years (Percent)
+     29   63  63     2      1    LNS14000025     Urate:Age>20 Men      Unemployment Rate - 20 years and over, Men (Percent)
+     30   64  64     2      1    LNS14000026     Urate:Age>20 Women    Unemployment Rate - 20 years and over, Women (Percent)
+     31   65  65     5      1    UEMPLT5         U:Dur<5wks            Number of Civilians Unemployed - Less Than 5 Weeks (Thousands of Persons)
+     32   66  66     5      1    UEMP5TO14       U:Dur5-14wks          Number of Civilians Unemployed for 5 to 14 Weeks (Thousands of Persons)
+     33   67  67     5      1    UEMP15T26       U:dur>15-26wks        Number of Civilians Unemployed for 15 to 26 Weeks (Thousands of Persons)
+     34   68  68     5      1    UEMP27OV        U:Dur>27wks           Number of Civilians Unemployed for 27 Weeks and Over (Thousands of Persons)
+     35   69  69     5      1    LNS13023621     U:Job losers          Unemployment Level - Job Losers (Thousands of Persons)
+     36   70  70     5      1    LNS13023557     U:LF Reenty           Unemployment Level - Reentrants to Labor Force (Thousands of Persons)
+     37   71  71     5      1    LNS13023705     U:Job Leavers         Unemployment Level - Job Leavers (Thousands of Persons)
+     38   72  72     5      1    LNS13023569     U:New Entrants        Unemployment Level - New Entrants (Thousands of Persons)
+                                            Group 3: Employment and Unemployment, continued
+                              sw
+          id    sw id tcode factors fred mnemonic sw mnemonic      description
+     39   73     73     5      1    LNS12032194   Emp:SlackWk      Employment Level - Part-Time for Economic Reasons, All Industries (Thousands of
+                                                                   Persons)
+     40   74     74    5       0    HOABS           EmpHrs:Bus Sec Business Sector: Hours of All Persons (Index 2012=100)
+     41   75     75    5       0    HOAMS           EmpHrs:mfg     Manufacturing Sector: Hours of All Persons (Index 2012=100)
+     42   76     76    5       0    HOANBS          EmpHrs:nfb     Nonfarm Business Sector: Hours of All Persons (Index 2012=100)
+     43   77     77    1       1    AWHMAN          AWH Man        Average Weekly Hours of Production and Nonsupervisory Employees: Manufacturing
+                                                                   (Hours)
+     44   78     78    2       1    AWHNONAG        AWH Privat     Average Weekly Hours Of Production And Nonsupervisory Employees: Total private
+                                                                   (Hours)
+     45   79     79    2       1    AWOTMAN         AWH Overtime Average Weekly Overtime Hours of Production and Nonsupervisory Employees:
+                                                                   Manufacturing (Hours)
+     46   80     80    1       0    HWIx            HelpWnted      Help-Wanted Index
+     47   197   n.a.   2       0    UEMPMEAN                       Average (Mean) Duration of Unemployment (Weeks)
+     48   198   n.a.   2       0    CES0600000007                  Average Weekly Hours of Production and Nonsupervisory Employees: Goods-Producing
+     49   220   n.a.   2       0    HWIURATIOx                     Ratio of Help Wanted/No. Unemployed
+     50   221   n.a.   5       0    CLAIMSx                        Initial Claims
+
+
+
+
+40
+                                                             Group 4: Housing
+                             sw
+         id    sw id tcode factors fred mnemonic sw mnemonic       description
+     1   81     81     5      0    HOUST         Hstarts           Housing Starts: Total: New Privately Owned Housing Units Started (Thousands of
+                                                                   Units)
+     2    82    82    5       0    HOUST5F       Hstarts >5units   Privately Owned Housing Starts: 5-Unit Structures or More (Thousands of Units)
+     3    83    83    5       1    PERMIT        Hpermits          New Private Housing Units Authorized by Building Permits (Thousands of Units)
+     4    84    84    5       1    HOUSTMW       Hstarts:MW        Housing Starts in Midwest Census Region (Thousands of Units)
+     5    85    85    5       1    HOUSTNE       Hstarts:NE        Housing Starts in Northeast Census Region (Thousands of Units)
+     6    86    86    5       1    HOUSTS        Hstarts:S         Housing Starts in South Census Region (Thousands of Units)
+     7    87    87    5       1    HOUSTW        Hstarts:W         Housing Starts in West Census Region (Thousands of Units)
+     8   179   190    5       1    USSTHPI       Real Hprice:OFHEO All-Transactions House Price Index for the United States (Index 1980 Q1=100)
+     9   180   191    5       1    SPCS10RSA     Real CS_10        S&P/Case-Shiller 10-City Composite Home Price Index (Index January 2000 =
+                                                                   100)
+     10 181    192    5       1    SPCS20RSA     Real CS_20        S&P/Case-Shiller 20-City Composite Home Price Index (Index January 2000 =
+                                                                   100)
+     11 227    n.a.   5       0    PERMITNE                        New Private Housing Units Authorized by Building Permits in the Northeast
+                                                                   Census Region (Thousands, SAAR)
+     12 228    n.a.   5       0    PERMITMW                        New Private Housing Units Authorized by Building Permits in the Midwest
+                                                                   Census Region (Thousands, SAAR)
+
+
+
+
+41
+     13 229    n.a.   5       0    PERMITS                         New Private Housing Units Authorized by Building Permits in the South Census
+                                                                   Region (Thousands, SAAR)
+     14 230    n.a.   5       0    PERMITW                         New Private Housing Units Authorized by Building Permits in the West Census
+                                                                   Region (Thousands, SAAR)
+                                                    Group 5: Inventories, Orders, and Sales
+                            sw
+         id   sw id tcode factors fred mnemonic    sw mnemonic       description
+     1   88    89     5      0    CMRMTSPLx        MT Sales          Real Manufacturing and Trade Industries Sales (Millions of Chained 2012
+                                                                     Dollars)
+     2   89    90    5       1    RSAFSx      Ret. Sale              Real Retail and Food Services Sales (Millions of Chained 2012 Dollars), deflated
+                                                                     by Core PCE
+     3   90    91    5       1    AMDMNOx     Orders (DurMfg)        Real Manufacturers' New Orders: Durable Goods (Millions of 2012 Dollars),
+                                                                     deflated by Core PCE
+     4   91    92    5       1    ACOGNOx     Orders(ConsGoods/Mat.) Real Value of Manufacturers' New Orders for Consumer Goods Industries
+                                                                     (Millions of 2012 Dollars), deflated by Core PCE
+     5   92    93    5       1    AMDMUOx     UnfOrders(DurGds)      Real Value of Manufacturers' Unfilled Orders for Durable Goods Industries
+                                                                     (Millions of 2012 Dollars), deflated by Core PCE
+     6   93    94    5       1    ANDENOx     Orders(NonDefCap)      Real Value of Manufacturers' New Orders for Capital Goods: Nondefense
+                                                                     Capital Goods Industries (Millions of 2012 Dollars), deflated by Core PCE
+     7 94      96    5       1    INVCQRMTSPL MT Invent              Real Manufacturing and Trade Inventories (Millions of 2012 Dollars)
+     8 222    n.a.   5       0    BUSINVx                            Total Business Inventories (Millions of Dollars)
+     9 223    n.a.   2       0    ISRATIOx                           Total Business: Inventories to Sales Ratio
+
+
+
+
+42
+                                                               Group 6: Prices
+                             sw
+         id    sw id tcode factors fred mnemonic        sw mnemonic       description
+     1   95     97     6      0    PCECTPI              PCED              Personal Consumption Expenditures: Chain-type Price Index (Index
+                                                                          2012=100)
+     2   96     98    6       0    PCEPILFE        PCED_LFE               Personal Consumption Expenditures Excluding Food and Energy
+                                                                          (Chain-Type Price Index) (Index 2012=100)
+     3   97    99     6       0    GDPCTPI         GDP Defl               Gross Domestic Product: Chain-type Price Index (Index 2012=100)
+     4   98    100    6       1    GPDICTPI        GPDI Defl              Gross Private Domestic Investment: Chain-type Price Index (Index
+                                                                          2012=100)
+     5    99   101    6       1    IPDBS           BusSec Defl            Business Sector: Implicit Price Deflator (Index 2012=100)
+     6   100   102    6       0    DGDSRG3Q086SBEA PCED_Goods             Personal consumption expenditures: Goods (chain-type price index)
+     7   101   103    6       0    DDURRG3Q086SBEA PCED_DurGoods          Personal consumption expenditures: Durable goods (chain-type price
+                                                                          index)
+     8   102   104    6       0    DSERRG3Q086SBEA PCED_Serv              Personal consumption expenditures: Services (chain-type price index)
+     9   103   105    6       0    DNDGRG3Q086SBEA PCED_NDurGoods         Personal consumption expenditures: Nondurable goods (chain-type price
+                                                                          index)
+     10 104    106    6       0    DHCERG3Q086SBEA PCED_HouseholdServ.    Personal consumption expenditures: Services: Household consumption
+                                                                          expenditures (chain-type price index)
+     11 105    107    6       1    DMOTRG3Q086SBEA PCED_MotorVec          Personal consumption expenditures: Durable goods: Motor vehicles and
+
+
+
+
+43
+                                                                          parts (chain-type price index)
+     12 106    108    6       1    DFDHRG3Q086SBEA PCED_DurHousehold      Personal consumption expenditures: Durable goods: Furnishings and
+                                                                          durable household equipment (chain-type price index)
+     13 107    109    6       1    DREQRG3Q086SBEA PCED_Recreation        Personal consumption expenditures: Durable goods: Recreational goods
+                                                                          and vehicles (chain-type price index)
+     14 108    110    6       1    DODGRG3Q086SBEA PCED_OthDurGds         Personal consumption expenditures: Durable goods: Other durable goods
+                                                                          (chain-type price index)
+     15 109    111    6       1    DFXARG3Q086SBEA PCED_Food_Bev          Personal consumption expenditures: Nondurable goods: Food and
+                                                                          beverages purchased for off-premises consumption (chain-type price
+                                                                          index)
+     16 110    112    6       1    DCLORG3Q086SBEA PCED_Clothing          Personal consumption expenditures: Nondurable goods: Clothing and
+                                                                          footwear (chain-type price index)
+     17 111    113    6       1    DGOERG3Q086SBEA PCED_Gas_Enrgy         Personal consumption expenditures: Nondurable goods: Gasoline and
+                                                                          other energy goods (chain-type price index)
+     18 112    114    6       1    DONGRG3Q086SBEA PCED_OthNDurGds        Personal consumption expenditures: Nondurable goods: Other
+                                                                          nondurable goods (chain-type price index)
+     19 113    115    6       1    DHUTRG3Q086SBEA PCED_Housing-Utilities Personal consumption expenditures: Services: Housing and utilities
+                                                                          (chain-type price index)
+     20 114    116    6       1    DHLCRG3Q086SBEA PCED_HealthCare        Personal consumption expenditures: Services: Health care (chain-type
+                                                                          price index)
+     21 115    117    6       1    DTRSRG3Q086SBEA PCED_TransSvg          Personal consumption expenditures: Transportation services (chain-type
+                                                                          price index)
+                                                   Group 6: Prices, continued
+                          sw
+         id sw id tcode factors fred mnemonic   sw mnemonic           description
+     22 116 118     6      1    DRCARG3Q086SBEA PCED_RecServices      Personal consumption expenditures: Recreation services (chain-type
+                                                                      price index)
+     23 117   119    6    1    DFSARG3Q086SBEA   PCED_FoodServ_Acc. Personal consumption expenditures: Services: Food services and
+                                                                      accommodations (chain-type price index)
+     24 118   120    6    1    DIFSRG3Q086SBEA   PCED_FIRE            Personal consumption expenditures: Financial services and insurance
+                                                                      (chain-type price index)
+     25 119   121    6    1    DOTSRG3Q086SBEA   PCED_OtherServices   Personal consumption expenditures: Other services (chain-type price
+                                                                      index)
+     26 120   122    6    0    CPIAUCSL          CPI                  Consumer Price Index for All Urban Consumers: All Items (Index
+                                                                      1982-84=100)
+     27 121   123    6    0    CPILFESL          CPI_LFE              Consumer Price Index for All Urban Consumers: All Items Less Food &
+                                                                      Energy (Index 1982-84=100)
+     28 122   124    6    0    WPSFD49207        PPI:FinGds           Producer Price Index by Commodity for Finished Goods (Index 1982=100)
+     29 123   125    6    0    PPIACO            PPI                  Producer Price Index for All Commodities (Index 1982=100)
+     30 124   126    6    1    WPSFD49502        PPI:FinConsGds       Producer Price Index by Commodity for Finished Consumer Goods (Index
+                                                                      1982=100)
+     31 125   127    6    1    WPSFD4111         PPI:FinConsGds(Food) Producer Price Index by Commodity for Finished Consumer Foods (Index
+
+
+
+
+44
+                                                                      1982=100)
+     32 126   128    6    1    PPIIDC            PPI:IndCom           Producer Price Index by Commodity Industrial Commodities (Index
+                                                                      1982=100)
+     33 127   129    6    1    WPSID61           PPI:IntMat           Producer Price Index by Commodity Intermediate Materials: Supplies &
+                                                                      Components (Index 1982=100)
+     34 128   133    5    1    WPU0531           Real Price:NatGas    Producer Price Index by Commodity for Fuels and Related Products and
+                                                                      Power: Natural Gas (Index 1982=100)
+     35 129   134    5    1    WPU0561           Real Price:Oil       Producer Price Index by Commodity for Fuels and Related Products and
+                                                                      Power: Crude Petroleum (Domestic Production) (Index 1982=100)
+     36 130   135    5    0    OILPRICEx         Real Crudeoil Price  Real Crude Oil Prices: West Texas Intermediate (WTI) - Cushing,
+                                                                      Oklahoma (2012 Dollars per Barrel), deflated by Core PCE
+     37 205   n.a.   6    0    WPSID62                                Producer Price Index: Crude Materials for Further Processing (Index
+                                                                      1982=100)
+     38 206   n.a.   6    0    PPICMM                                 Producer Price Index: Commodities: Metals and metal products: Primary
+                                                                      nonferrous metals (Index 1982=100)
+     39 207   n.a.   6    0    CPIAPPSL                               Consumer Price Index for All Urban Consumers: Apparel (Index
+                                                                      1982-84=100)
+     40 208   n.a.   6    0    CPITRNSL                               Consumer Price Index for All Urban Consumers: Transportation (Index
+                                                                      1982-84=100)
+     41 209   n.a.   6    0    CPIMEDSL                               Consumer Price Index for All Urban Consumers: Medical Care (Index
+                                                                      1982-84=100)
+     42 210   n.a.   6    0    CUSR0000SAC                            Consumer Price Index for All Urban Consumers: Commodities (Index
+                                                                      1982-84=100)
+                                                Group 6: Prices, continued
+                          sw
+         id sw id tcode factors fred mnemonic sw mnemonic description
+     43 211 n.a.    6      0    CUSR0000SAD               Consumer Price Index for All Urban Consumers: Durables (Index
+                                                          1982-84=100)
+     44 212   n.a.   6     0    CUSR0000SAS               Consumer Price Index for All Urban Consumers: Services (Index
+                                                          1982-84=100)
+     45 213   n.a.   6     0    CPIULFSL                  Consumer Price Index for All Urban Consumers: All Items Less Food
+                                                          (Index 1982-84=100)
+     46 214   n.a.   6     0    CUSR0000SA0L2             Consumer Price Index for All Urban Consumers: All items less shelter
+                                                          (Index 1982-84=100)
+     47 215   n.a.   6     0    CUSR0000SA0L5             Consumer Price Index for All Urban Consumers: All items less medical
+                                                          care (Index 1982-84=100)
+     48 233   n.a.   6     0    CUSR0000SEHC              CPI for All Urban Consumers: Owners' equivalent rent of residences
+                                                          (Index Dec 1982=100)
+
+
+
+
+45
+                                                    Group 7: Earnings and Productivity
+                            sw
+           id sw id tcode factors fred mnemonic  sw mnemonic      description
+     1    131 136     5      0    AHETPIx        Real AHE:PrivInd Real Average Hourly Earnings of Production and Nonsupervisory Employees: Total
+                                                                  Private (2012 Dollars per Hour), deflated by Core PCE
+     2    132   137    5     0    CES2000000008x Real AHE:Const   Real Average Hourly Earnings of Production and Nonsupervisory Employees:
+                                                                  Construction (2012 Dollars per Hour), deflated by Core PCE
+     3    133   138    5     0    CES3000000008x Real AHE:MFG     Real Average Hourly Earnings of Production and Nonsupervisory Employees:
+                                                                  Manufacturing (2012 Dollars per Hour), deflated by Core PCE
+     4    134   139    5     1    COMPRMS        CPH:Mfg          Manufacturing Sector: Real Compensation Per Hour (Index 2012=100)
+     5    135   140    5     1    COMPRNFB       CPH:NFB          Nonfarm Business Sector: Real Compensation Per Hour (Index 2012=100)
+     6    136   141    5     1    RCPHBS         CPH:Bus          Business Sector: Real Compensation Per Hour (Index 2012=100)
+     7    137   142    5     1    OPHMFG         OPH:mfg          Manufacturing Sector: Real Output Per Hour of All Persons (Index 2012=100)
+     8    138   143    5     1    OPHNFB         OPH:nfb          Nonfarm Business Sector: Real Output Per Hour of All Persons (Index 2012=100)
+     9    139   144    5     0    OPHPBS         OPH:Bus          Business Sector: Real Output Per Hour of All Persons (Index 2012=100)
+     10   140   145    5     0    ULCBS          ULC:Bus          Business Sector: Unit Labor Cost (Index 2012=100)
+     11   141   146    5     1    ULCMFG         ULC:Mfg          Manufacturing Sector: Unit Labor Cost (Index 2012=100)
+     12   142   147    5     1    ULCNFB         ULC:NFB          Nonfarm Business Sector: Unit Labor Cost (Index 2012=100)
+     13   143   148    5     1    UNLPNBS        UNLPay:nfb       Nonfarm Business Sector: Unit Nonlabor Payments (Index 2012=100)
+     14   216   n.a.   6     0    CES0600000008                   Average Hourly Earnings of Production and Nonsupervisory Employees:
+
+
+
+
+46
+                                                                  Goods-Producing (Dollars per Hour)
+                                                        Group 8: Interest Rates
+                            sw
+           id sw id tcode factors fred mnemonic   sw mnemonic     description
+     1    144 149     2      1    FEDFUNDS        FedFunds        Effective Federal Funds Rate (Percent)
+     2    145 150     2      1    TB3MS           TB-3Mth         3-Month Treasury Bill: Secondary Market Rate (Percent)
+     3    146 151     2      0    TB6MS           TM-6MTH         6-Month Treasury Bill: Secondary Market Rate (Percent)
+     4    147 153     2      0    GS1             TB-1YR          1-Year Treasury Constant Maturity Rate (Percent)
+     5    148 154     2      0    GS10            TB-10YR         10-Year Treasury Constant Maturity Rate (Percent)
+     6    149 155     2      0    MORTGAGE30US    Mort-30Yr       30-Year Conventional Mortgage Rate© (Percent)
+     7    150 156     2      0    AAA             AAA Bond        Moody's Seasoned Aaa Corporate Bond Yield© (Percent)
+     8    151 157     2      0    BAA             BAA Bond        Moody's Seasoned Baa Corporate Bond Yield© (Percent)
+     9    152 158     1      1    BAA10YM         BAA_GS10        Moody's Seasoned Baa Corporate Bond Yield Relative to Yield on 10-Year Treasury
+                                                                  Constant Maturity (Percent)
+     10 153     159    1    1    MORTG10YRx       MRTG_GS10       30-Year Conventional Mortgage Rate Relative to 10-Year Treasury Constant Maturity
+                                                                  (Percent)
+     11 154     160    1    1    TB6M3Mx          tb6m_tb3m       6-Month Treasury Bill Minus 3-Month Treasury Bill, secondary market (Percent)
+     12 155     161    1    1    GS1TB3Mx         GS1_tb3m        1-Year Treasury Constant Maturity Minus 3-Month Treasury Bill, secondary market
+                                                                  (Percent)
+     13 156     162    1    1    GS10TB3Mx        GS10_tb3m       10-Year Treasury Constant Maturity Minus 3-Month Treasury Bill, secondary market
+                                                                  (Percent)
+
+
+
+
+47
+     14   157   163    1    1    CPF3MTB3Mx       CP_Tbill Spread 3-Month Commercial Paper Minus 3-Month Treasury Bill, secondary market (Percent)
+     15   201   n.a.   2    0    GS5                              5-Year Treasury Constant Maturity Rate
+     16   202   n.a.   1    0    TB3SMFFM                         3-Month Treasury Constant Maturity Minus Federal Funds Rate
+     17   203   n.a.   1    0    T5YFFM                           5-Year Treasury Constant Maturity Minus Federal Funds Rate
+     18   204   n.a.   1    0    AAAFFM                           Moody's Seasoned Aaa Corporate Bond Minus Federal Funds Rate
+     19   225   n.a.   2    0    CP3M                             3-Month AA Financial Commercial Paper Rate
+     20   226   n.a.   1    0    COMPAPFF                         3-Month Commercial Paper Minus Federal Funds Rate
+                                                  Group 9: Money and Credit
+                           sw
+          id sw id tcode factors fred mnemonic sw mnemonic        description
+     1   158 167     5      0    BOGMBASEREALx Real Mbase         Monetary Base (Millions of 1982-84 Dollars), deflated by CPI
+     2   159 168     5      0    IMFSLx        Real InsMMF        Real Institutional Money Funds (Billions of 2012 Dollars), deflated by Core PCE
+     3   160 169     5      0    M1REAL        Real m1            Real M1 Money Stock (Billions of 1982-84 Dollars), deflated by CPI
+     4   161 170     5      0    M2REAL        Real m2            Real M2 Money Stock (Billions of 1982-84 Dollars), deflated by CPI
+     5   162 171     5      0    MZMREAL       Real mzm           Real MZM Money Stock (Billions of 1982-84 Dollars), deflated by CPI
+     6   163 172     5      1    BUSLOANSx     Real C&Lloand      Real Commercial and Industrial Loans, All Commercial Banks (Billions of 2012
+                                                                  U.S. Dollars), deflated by Core PCE
+     7   164   173    5    1    CONSUMERx       Real ConsLoans    Real Consumer Loans at All Commercial Banks (Billions of 2012 U.S. Dollars),
+                                                                  deflated by Core PCE
+     8   165   174    5    1    NONREVSLx       Real NonRevCredit Total Real Nonrevolving Credit Owned and Securitized, Outstanding (Billions of 2012
+                                                                  Dollars), deflated by Core PCE
+     9   166   175    5    1    REALLNx         Real LoansRealEst Real Real Estate Loans, All Commercial Banks (Billions of 2012 U.S. Dollars),
+                                                                  deflated by Core PCE
+     10 167    176    5    1    REVOLSLx        Real RevolvCredit Total Real Revolving Credit Owned and Securitized, Outstanding (Billions of
+                                                                  2012 Dollars), deflated by Core PCE
+     11 168    177    5    0    TOTALSLx        Real ConsuCred    Total Consumer Credit Outstanding (Billions of 2012 Dollars), deflated by Core PCE
+     12 169    178    1    1    DRIWCIL         FRBSLO_Consumers FRB Senior Loans Officer Opions. Net Percentage of Domestic Respondents
+
+
+
+
+48
+                                                                  Reporting Increased Willingness to Make Consumer Installment Loans
+     13 199    n.a.   6    0    TOTRESNS                          Total Reserves of Depository Institutions (Billions of Dollars)
+     14 200    n.a.   7    0    NONBORRES                         Reserves Of Depository Institutions, Nonborrowed (Millions of Dollars)
+     15 217    n.a.   6    0    DTCOLNVHFNM                       Consumer Motor Vehicle Loans Outstanding Owned by Finance Companies
+                                                                  (Millions of Dollars)
+     16 218    n.a.   6    0    DTCTHFNM                          Total Consumer Loans and Leases Outstanding Owned and Securitized by
+                                                                  Finance Companies (Millions of Dollars)
+     17 219    n.a.   6    0    INVEST                            Securities in Bank Credit at All Commercial Banks (Billions of Dollars)
+                                                     Group 10: Household Balance Sheets
+                         sw
+        id sw id tcode factors fred mnemonic       sw mnemonic  description
+     1 170 179     5      0    TABSHNOx            Real HHW:TASAReal Total Assets of Households and Nonprofit Organizations (Billions of 2012
+                                                                Dollars), deflated by Core PCE
+     2 171     181    5      1    TLBSHNOx     Real HHW:LiabSA  Real Total Liabilities of Households and Nonprofit Organizations (Billions of 2012
+                                                                Dollars), deflated by Core PCE
+     3 172     182    5      0    LIABPIx      liab_PDISA       Liabilities of Households and Nonprofit Organizations Relative to Personal
+                                                                Disposable Income (Percent)
+     4 173     183    5      1    TNWBSHNOx    Real HHW:WSA     Real Net Worth of Households and Nonprofit Organizations (Billions of 2012
+                                                                Dollars), deflated by Core PCE
+     5 174     184    1      0    NWPIx        W_PDISA          Net Worth of Households and Nonprofit Organizations Relative to Disposable
+                                                                Personal Income (Percent)
+     6 175     185    5      1    TARESAx      Real HHW:TA_RESA Real Assets of Households and Nonprofit Organizations excluding Real Estate
+                                                                Assets (Billions of 2012 Dollars), deflated by Core PCE
+     7 176     186    5      1    HNOREMQ027Sx Real HHW:RESA    Real Real Estate Assets of Households and Nonprofit Organizations (Billions of
+                                                                2012 Dollars), deflated by Core PCE
+     8 177     188    5      1    TFAABSHNOx   Real HHW:FinSA   Real Total Financial Assets of Households and Nonprofit Organizations (Billions
+                                                                of 2012 Dollars), deflated by Core PCE
+     9 224     n.a.   2      0    CONSPIx                       Nonrevolving consumer credit to Personal Income
+
+
+
+
+49
+                                                          Group 11: Exchange Rates
+                               sw
+              id sw id tcode factors fred mnemonic   sw mnemonic      description
+       1     182 193     5      1    TWEXMMTH        Ex rate:major    Trade Weighted U.S. Dollar Index: Major Currencies (Index March 1973=100)
+       2     183 194     5      1    EXUSEU          Ex rate:Euro     U.S. / Euro Foreign Exchange Rate (U.S. Dollars to One Euro)
+       3     184 195     5      1    EXSZUSx         Ex rate:Switz    Switzerland / U.S. Foreign Exchange Rate
+       4     185 196     5      1    EXJPUSx         Ex rate:Japan    Japan / U.S. Foreign Exchange Rate
+       5     186 197     5      1    EXUSUKx         Ex rate:UK       U.S. / U.K. Foreign Exchange Rate
+       6     187 198     5      1    EXCAUSx         EX rate:Canada   Canada / U.S. Foreign Exchange Rate
+
+
+
+                                                               Group 12: Other
+                           sw
+          id sw id tcode factors fred mnemonic sw mnemonic        description
+       1 188 199     1      1    UMCSENTx      Cons. Expectations University of Michigan: Consumer Sentiment (Index 1st Quarter 1966=100)
+       2 189 200     2      1    USEPUINDXM PolicyUncertainty     Economic Policy Uncertainty Index for United States
+                                                               Group 13: Stock Markets
+                                            sw
+                           id sw id tcode factors fred mnemonic sw mnemonic        description
+                      1   178 189     1      1    VXOCLSx        VXO               CBOE S&P 100 Volatility Index: VXO
+                      2   231 n.a.    5      0    NIKKEI225                        Nikkei Stock Average
+                      3   232 n.a.    5      0    NASDAQCOM                        NASDAQ Composite (Index Feb 5, 1971=100)
+                      4   245 180     5      0    S&P 500                          S&P's Common Stock Price Index: Composite
+                      5   246 n.a.    5      0    S&P: indust                      S&P's Common Stock Price Index: Industrials
+                      6   247 n.a.    2      0    S&P: div yield                   S&P's Composite Common Stock: Dividend Yield
+                      7   248 n.a.    5      0    S&P PE ratio                     S&P's Composite Common Stock: Price-Earnings Ratio
+
+
+
+                                                      Group 14: Non-Household Balance Sheets
+                           sw
+          id sw id tcode factors fred mnemonic         sw mnemonic description
+     1   192 n.a.    2      0    GFDEGDQ188S                       Federal Debt: Total Public Debt as Percent of GDP (Percent)
+     2   193 n.a.    2      0    GFDEBTNx                          Real Federal Debt: Total Public Debt (Millions of 2012 Dollars), deflated by PCE
+     3   234 n.a.    5      0    TLBSNNCBx                         Real Nonfinancial Corporate Business Sector Liabilities (Billions of 2012 Dollars),
+                                                                   Deflated by Implicit Price Deflator for Business Sector IPDBS
+
+
+
+
+50
+     4   235   n.a.       1       0    TLBSNNCBBDIx                Nonfinancial Corporate Business Sector Liabilities to Disposable Business
+                                                                   Income (Percent)
+     5   236   n.a.       5       0    TTAABSNNCBx                 Real Nonfinancial Corporate Business Sector Assets (Billions of 2012 Dollars),
+                                                                   Deflated by Implicit Price Deflator for Business Sector IPDBS
+     6   237   n.a.       5       0    TNWMVBSNNCBx                Real Nonfinancial Corporate Business Sector Net Worth (Billions of 2012 Dollars),
+                                                                   Deflated by Implicit Price Deflator for Business Sector IPDBS
+     7   238   n.a.       2       0    TNWMVBSNNCBBDIx             Nonfinancial Corporate Business Sector Net Worth to Disposable Business Income
+                                                                   (Percent)
+     8   239   n.a.       5       0    TLBSNNBx                    Real Nonfinancial Noncorporate Business Sector Liabilities (Billions of 2012
+                                                                   Dollars), Deflated by Implicit Price Deflator for Business Sector IPDBS
+     9   240   n.a.       1       0    TLBSNNBBDIx                 Nonfinancial Noncorporate Business Sector Liabilities to Disposable Business
+                                                                   Income (Percent)
+     10 241    n.a.       5       0    TABSNNBx                    Real Nonfinancial Noncorporate Business Sector Assets (Billions of 2012 Dollars),
+                                                                   Deflated by Implicit Price Deflator for Business Sector IPDBS
+     11 242    n.a.       5       0    TNWBSNNBx                   Real Nonfinancial Noncorporate Business Sector Net Worth (Billions of 2012
+                                                                   Dollars), Deflated by Implicit Price Deflator for Business Sector IPDBS
+     12 243    n.a.       2       0    TNWBSNNBBDIx                Nonfinancial Noncorporate Business Sector Net Worth to Disposable Business
+                                                                   Income (Percent)
+     13 244    n.a.       5       0    CNCFx                       Real Disposable Business Income, Billions of 2012 Dollars (Corporate cash flow
+                                                                   with IVA minus taxes on corporate income, deflated by Implicit Price Deflator for
+                                                                   Business Sector IPDBS)
+

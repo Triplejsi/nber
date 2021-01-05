@@ -1,0 +1,3119 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+    FIPIT: A SIMPLE, FAST GLOBAL METHOD FOR SOLVING MODELS WITH TWO
+         ENDOGENOUS STATES & OCCASIONALLY BINDING CONSTRAINTS
+
+                                     Enrique G. Mendoza
+                                      Sergio Villalvazo
+
+                                      Working Paper 26310
+                              http://www.nber.org/papers/w26310
+
+
+                    NATIONAL BUREAU OF ECONOMIC RESEARCH
+                             1050 Massachusetts Avenue
+                               Cambridge, MA 02138
+                                  September 2019
+
+
+
+
+We thank Javier Bianchi, Pablo D'Erasmo, Bora Durdu, Vincenzo Quadrini and Urban Jermann
+for helpful comments and suggestions. The views expressed herein are those of the authors and
+do not necessarily reflect the views of the National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2019 by Enrique G. Mendoza and Sergio Villalvazo. All rights reserved. Short sections of text,
+not to exceed two paragraphs, may be quoted without explicit permission provided that full
+credit, including © notice, is given to the source.
+FiPIt: A Simple, Fast Global Method for Solving Models with Two Endogenous States &
+Occasionally Binding Constraints
+Enrique G. Mendoza and Sergio Villalvazo
+NBER Working Paper No. 26310
+September 2019
+JEL No. E17,E44,F34,F41
+
+                                           ABSTRACT
+
+We propose a simple and fast fixed-point iteration algorithm FiPIt to obtain the global, non-linear
+solution of macro models with two endogenous state variables and occasionally binding
+constraints. This method uses fixed-point iteration on Euler equations to avoid solving two
+simultaneous nonlinear equations (as with the time iteration method) or creating modified state
+variables requiring irregular interpolation (as with the endogenous grids method). In the small-
+open-economy RBC and Sudden Stops models provided as examples, FiPIt is used on the bonds
+and capital Euler equations to solve for the bonds decision rule and the capital pricing function. In
+a standard Matlab platform, FiPIt solves both models much faster than time iteration and various
+hybrid methods. The choice of functions that FiPIt iterates on using the Euler equations can vary
+across models, and there can be more that one arrangement for the same model.
+
+
+Enrique G. Mendoza
+Department of Economics
+University of Pennsylvania
+3718 Locust Walk
+Philadelphia, PA 19104
+and NBER
+egme@sas.upenn.edu
+
+Sergio Villalvazo
+Department of Economics
+University of Pennsylvania
+The Ronald O. Perelman Center
+for Political Science and Economics
+133 South 36th Street
+Philadelphia, PA 19104
+vsergio@sas.upenn.edu
+
+
+
+
+A data appendix is available at http://www.nber.org/data-appendix/w26310
+1 Introduction
+Important branches of the recent macroeconomics literature study quantitative solutions of models
+
+in which constraints are triggered endogenously (i.e. they are occasionally binding), as in studies
+
+of the zero-lower-bound on interest rates or nancial crises triggered by credit constraints. Because
+
+these models typically feature non-linear decision rules that lack analytic solutions and capture
+
+precautionary saving behavior, global solution methods (e.g.    time iteration or endogenous grids
+
+methods) are the preferable tool for solving them. Global methods are, however, less practical than
+
+perturbation methods, because of limitations that make them slow and dicult to implement with
+
+widely used software (e.g. Matlab). On the other hand, perturbation methods for solving models
+
+with occassionally binding constraints have caveats that limit the scope of the ndings that can
+
+be derived from using them (see Aruoba et al. [2006], Durdu et al. [2019]). In particular, in the
+
+OccBin toolbox developed by Guerrieri and Iacoviello [2015] the constraint becomes binding as an
+
+exogenous surprise or MIT shock. If the constraint does not bind at steady state, decision rules
+
+when the constraint is not binding match those of a model without the constraint and expectations
+
+that the constraint may bind in the future are irrelevant. OccBin decision rules also abstract from
+
+precautionary savings and disregard the risk eects of the occassionally binding constraint.       In
+
+contrast, these are important elements driving macro dynamics in global solutions and they play
+
+a central role in quantitative models examining the implications of nancial frictions (e.g. Bianchi
+
+and Mendoza [2018], Mendoza [2010]).
+
+   This paper proposes a simple and fast algorithm to obtain the global solution of models with two
+
+endogenous states and occasionally binding constraints. This algorithm is denoted as   FiPIt because
+it is based on the well-known xed-point iteration approach to solve systems of transcendental
+
+equations. It is easy to implement in a Matlab platform and is signicantly faster than the standard
+
+time iteration algorithm and several hybrid alternatives.   FiPIt 's solution strategy builds on the
+class of time iteration methods that originated in the work of Coleman [1990], who rst proposed
+
+a global solution method based on policy function iterations of the Euler equation.      Since then,
+
+various enrichments and modications of this approach have been developed, in particular the
+
+endogenous grids method proposed by Carroll [2006] (see Rendahl [2015] for a general discussion of
+
+these methods and an analysis of their convergence properties).   FiPIt   diers from these methods
+
+in that it applies the xed-point iteration method to solve a model's Euler equations. For instance,
+
+in the small-open-economy RBC and Sudden Stops models provided as examples in this paper, the
+
+
+
+
+                                                 1
+bonds (capital) Euler equation is used to solve directly for a new bonds decision rule (capital
+
+pricing function) without the need of a nonlinear solver. The capital decision rule is solved for in
+
+exact form using the models' optimality conditions.
+
+    The endogenous grids method also avoids using a nonlinear solver, but it does so by den-
+
+ing alternative state variables so that obtaining analytic solutions of Euler equations for control
+
+variables (e.g. consumption, investment) requires irregular interpolation of functions dened over
+
+endogenous grids of the original state space. This is innocuous in one-dimensional problems, but
+
+in two- and higher-dimensional problems it requires elaborate interpolation methods to tackle the
+
+non-rectangular nature of the endogenous grids. In particular, Ludwig and Schön [2018] developed
+
+a method using Delaunay interpolation, and showed that it is signicantly faster that standard time
+
+iteration.
+             1   Alternatively, Brumm and Grill [2014] proposed a a variant of the time iteration method
+
+that still uses a non-linear solver but gains speed and accuracy by updating grid nodes to track
+
+decision rule kinks using also Delaunay interpolation. In contrast,             FiPIt retains the original state
+variables so that standard multi-linear interpolation on regular grids can be used.
+
+    We apply the algorithm to solve the models examined by Mendoza [2010], which include RBC
+
+and Sudden Stops (SS) models of a small open economy. The SS model includes an occasionally
+
+binding credit constraint limiting intertemporal debt and working capital not to exceed a fraction
+
+of the market value of physical capital (i.e. pledgeable collateral). The results show that, relative
+
+to the time iteration method,        FiPIt   reduces execution time by factors of 18.1 for the RBC model
+
+and 2.5 for the SS model.
+                                2   Ludwig and Schön [2018] report reductions by factors of 2.7 to 4.1
+
+using endogenous grids with Delaunay interpolation v. standard time iteration, or 1.8 to 2.5 using
+
+their hybrid method v. standard time iteration, when solving a perfect-foresight model of human
+
+capital accumulation in a small open economy.
+                                                      3   We also found that   FiPIt continues to perform well
+for several parameter variations, despite the well-known drawback of xed-point iteration methods
+
+indicating that their convergence is not guaranteed. Execution times for six parameter variations
+
+   1 Adjacent  points in the endogenous grids do not generally match adjacent nodes in the matrix formed by the
+original grids. Ludwig and Schon tackled this problem using Delaunay interpolation. They also proposed a hybrid
+method that uses an exogenous grid for one of the endogenous states and an endogenous grid for the second.
+    2 We used Matlab version R2017a on a Windows 10 laptop with an Intel Core i7-6700HQ 2.60GHz chip, 4 physical
+cores and 16 GB of RAM. The state space for the RBC (SS) model has 80 (72) nodes on foreign assets and 30 on
+domestic capital. The RBC (SS) model solved in 100 (810) seconds, compared with 1,808 (1,986) using the time
+iteration method.
+    3 They report faster solution times for each individual scenario than with our algorithm but these are not compa-
+rable due to dierences in models and hardware. We solve a stochastic model with three shocks, capital accumulation
+and adjustment costs, and a credit constraint that depends on the model's two endogenous states and a market price.
+They solve a deterministic model in which human capital is an accumulable factor produced with an exponential
+technology and a no-borrowing constraint. We do not have details about the software and hardware they used.
+
+
+                                                          2
+of the SS model were smaller than using time iteration by factors of 2.0 to 6.0.
+
+   In addition to the Delaunay interpolation, a second drawback of the endogenous grids method
+
+relative to the   FiPIt method is that it still requires a root-nder in order to determine equilibrium
+solutions in points of the state space in which occasionally binding constraints bind (see Ludwig
+
+and Schön [2018]).    FiPIt requires a non-linear solver only if the solution of the allocations when the
+constraint binds cannot be separated from the solution of the multiplier of the constraint. The two
+
+are separable in models that feature several widely-used occasionally binding constraints, including
+
+standard no-borrowing constraints, maximum debt limits, and constraints on debt-to-income and
+
+loan-to-value ratios that depend on endogenous variables. Solving variations of the SS model using
+
+these constraints,   FiPIt reduced execution time relative to the time iteration method by a factor of
+13.0 for a loan-to-value-ratio constraint and 17.9 for a maximum debt limit.
+
+   There are applications in the literature that solve models using xed-point iteration algorithms
+
+with some features similar to the one we proposed here. Boz and Mendoza [2014] solved an open-
+
+economy model with an occasionally binding credit constraint and Bayesian learning.              Bianchi
+
+and Mendoza [2018] and Bianchi et al. [2016] solved models with collateral constraints iterating on
+
+pricing functions when evaluating collateral. Carroll [2011] described and implemented a xed-point
+
+iteration algorithm for solving the workhorse complete-markets RBC model of a closed economy.
+
+This paper diers signicantly from these studies in that we develop an algorithm that solves models
+
+with two endogenous states, and it does so easily and fast in a standard Matlab platform.     FiPIt can
+be used in variety of models with two endogenous states. The choice of functions that are iterated
+
+on using the Euler equations can vary across models, and there can be more that one arrangement
+
+for the same model.
+
+   The rest of the paper proceeds as follows.        The next Section describes the principles of the
+
+algorithm in the simple case of a model of savings with endowment income, and uses this example
+
+also to explain how    FiPIt diers from the time iteration and endogenous grids methods. Section 3
+describes the RBC and SS models and provides a step-by-step description of the complete algorithm.
+
+Section 4 examines quantitative results for both models, evaluates the robustness of the algorithm,
+
+and conducts performance comparisons with alternative algorithms, including the standard time
+
+iteration method.      Section 5 presents conclusions.   In addition, the Matlab codes are available
+
+online, together with an online Appendix that provides a user's guide to the codes.
+
+
+
+
+                                                    3
+2 A Fixed-Point Iteration Algorithm for a Simple Savings Model
+We describe the principles of the       FiPIt method using a savings model with stochastic endowment
+income and an exogenous interest rate. This model is a workhorse of various branches of the macro
+
+literature, including consumption and savings in partial equilibrium, heterogeneous agents models
+
+with incomplete markets, and international macro models of the small open economy.
+
+   A representative agent chooses consumption and savings plans so as to maximize a standard
+
+expected utility function:
+                                                     
+                                              E0           t u(ct ) .                                               (1)
+                                                    t=0
+
+subject to the budget or resource constraint:
+
+
+
+
+                                             ct = ezt y
+                                                      ¯ + bt - qbt+1 .                                              (2)
+
+
+
+
+and a debt limit:
+
+                                                   bt+1  -.                                                         (3)
+
+
+
+   In the utility function,      (0, 1)    is the subjective discount factor and          u(·)   is the period utility
+
+function, which can be any standard twice, continuously dierentiable and concave utility function,
+
+although the CRRA functional form is the one used most often:
+
+
+                                                                 -
+                                                              c1
+                                                               t
+                                                 u(ct ) =          ,
+                                                              1-
+
+where      is the relative risk aversion coecient. In the resource constraint,            e zt y
+                                                                                               ¯ is   stochastic income
+
+with mean     y
+              ¯   and shocks   zt   of exponential support      ezt , bt   are holdings of one-period, non-state-
+
+contingent discount bonds traded in a frictionless credit market. In a partial equilibrium model of
+
+savings or a model of a small open economy, the real interest rate                r   is exogenous, so the price of
+
+                                                    1
+bonds is also exogenous and given by         q     1+r . In a general equilibrium model of heterogeneous
+
+agents, the above optimization problem is solved by each individual agent facing idiosyncratic income
+
+uncertainty, and the interest rate is endogenously determined so as to clear the bond market. The
+
+FiPIt method can be used in all of these models, except that in the heterogeneous agents model we
+would also need to iterate on the interest rate until the bond market clears. We focus on the small
+
+open economy case to simplify the exposition.
+
+   If the utility function satises the Inada condition and income shocks follow a discrete Markov
+
+
+
+
+                                                          4
+process or a truncated continuous distribution, the debt limit follows from Aiyagari's Natural Debt
+
+Limit:    agent's never choose optimal plans that leave them exposed to the risk of non-positive
+
+consumption, and hence never borrow more than the annuity value of the lowest income realization.
+
+Alternatively, agents may face an ad-hoc debt limit tighter than the natural debt limit. Thus, the
+
+model includes an occasionally binding constraint, albeit of a simple form:                        bt+1  -.
+   The Euler equation for bond holdings is
+
+
+
+
+                                       uc (t) = (1 + r)Et [uc (t + 1)] + µt ,                                               (4)
+
+
+
+
+where    uc (t)   is the marginal utility of       ct   and   µt   is the multiplier on the debt limit. Note that using
+
+the resource constraint to substitute for consumption, the Euler equation can be expressed as:
+
+
+
+
+                             ¯ + bt - qbt+1 ) = (1 + r)Et [uc (ezt+1 y
+                     uc (ezt y                                       ¯ + bt+1 - qbt+2 )] + µt .                             (5)
+
+
+
+
+   A competitive equilibrium for this economy is dened by stochastic sequences                          [ct , bt+1 ]t=0    that
+
+satisfy equations (3) and (4) for all        t.    The economy has a well-dened limiting distribution of                  (b, y )
+(i.e. a stochastic steady state) only if           (1+ r) < 1 (see Ljungqvist and Sargent [2012], Ch.            18). This
+
+condition is also a general equilibrium outcome in heterogeneous agents models, because otherwise
+
+all agents would want an innite amount of bonds, which is inconsistent with market clearing in
+
+the market of risk-free bonds.
+
+   Since there are no ineciencies aecting the small open economy (other than the incompleteness
+
+of asset markets), the competitive equilibrium can be represented as the solution to the following
+
+dynamic programming problem:
+
+
+
+                                                         c1-
+                               V (b, z ) = max               +               (z , z )V b , z   ,                            (6)
+                                             c,b         1-
+                                                                        z
+
+
+subject to
+
+
+
+
+                                                    c = ez y
+                                                           ¯ + b - qb
+
+                                                        b  -
+
+
+The solution to the above Bellman equation is characterized by a decision rule                          b (b, z )   and the
+
+associated value function       V (b, z ),   and the decision rule together with the Markov process of the
+
+
+
+
+                                                                    5
+shocks induce a joint ergodic (unconditional) distribution of bonds and income                                      (b, z ).
+     Euler equation methods typically solve for                          b (b, z )   over a discrete state space of               (b, z )   pairs
+
+using the recursive equilibrium conditions that follow from the rst-order-conditions of the above
+
+Bellman equation:
+                                                                                                    -
+                                    c(b, z )-  R                 (z , z )       c(b (b, z ), z )                                               (7)
+                                                            z
+
+                                                  c(b, z ) = ez y
+                                                                ¯ + b - qb (b, z ).                                                            (8)
+
+
+
+The recursive equilibrium of the model is then dened as the pair of decision rules                                            c(b, z ), b (b, z )
+that satisfy these two conditions.
+
+     The     FiPIt   method poses a conjecture of the decision rule                       ^
+                                                                                          bj (b, z )   in iteration      j,   and generates
+
+its associated consumption function as                                 ¯ + b - q^
+                                                       cj (b, z ) = ez y        bj (b, z ).            Then, it combines the above
+
+rst-order conditions to obtain this equation:
+
+
+                                                                                                             1
+                                                                                                            -
+                                                                                                    -
+                              cj +1 (b, z ) =      R           (z , z )       cj (^
+                                                                                  bj (b, z ), z )                                              (9)
+                                                        z
+
+
+In the right-hand-side of this Euler equation, we need the value of                                     ct+1 ,   which is obtained by
+
+evaluating the consumption function at the t+1-values of the state variables:                                    cj (^
+                                                                                                                     bj (b, z ), z )).      Since
+
+^
+bj (b, z )   is dened only on the nodes of the grid of bonds, this consumption function is interpolated
+
+over its rst argument in order to determine                       cj (^
+                                                                      bj (b, z ), z )   (i.e. the value of         ct+1   implied by the
+
+conjectured consumption function).                   Once this is done, the Euler equation solves directly for a
+
+new consumption function             cj +1 (b, z )   without a non-linear solver.                   Using the resource constraint,
+
+this new consumption function yields a new decision rule for bonds                                     bj +1 (b, z ),   which is re-set to
+
+bj +1 (b, z ) = -     if   bj +1 (b, z )  -.       Then the decision rule conjecture is updated to                            ^
+                                                                                                                              bj +1 (b, z )   as a
+
+convex combination of          ^
+                               bj (b, z )   and   bj +1 (b, z ): ^
+                                                                 bj +1 (b, z ) = (1 - )^
+                                                                                       bj (b, z ) + bj +1 (b, z ).               The process
+
+is repeated until      bj +1 (b, z ) = ^
+                                       bj (b, z )   for all   (b, z ),   up to a convergence criterion.
+
+     Three points raised by Judd [1998] about xed-point iteration algorithms like this one are worth
+
+recalling.      First, using colocation methods instead of solving for a nite state space, the xed-
+
+point iteration method can be represented in a form analogous to the Parameterized Expectations
+
+method, because the latter is a xed-point iteration method that uses simulation and regression to
+
+construct conditional expectations. Second, using                         0 <  < 1 ( > 1)            to set the decision rule of the
+
+next iteration is useful to address possible instability (slow convergence) of the algorithm. Third,
+
+a nite state space may be preferable to colocation methods to dene the decision rules depending
+
+
+
+                                                                     6
+on whether we expect decision rules to be smooth or to have strong curvature. The latter can be
+
+particularly important in models with occasionally binding constraints that depend on endogenous
+
+variables, such as credit constraints that depend on collateral prices and yield U-shaped decision
+
+rules because of the Fisherian debt-deation mechanism (see Bianchi and Mendoza [2018]). This
+
+will be the case in the SS model solved in the next Section.
+
+   Fixed-point iteration diers from the time iteration method because the latter applies the con-
+
+jectured decision rule     ^
+                           bj (b, z ) only to substitute for the term bt+2      in the right-hand-side of the Euler
+
+equation (5), and then uses a non-linear solver to solve the resulting non-linear equation for the op-
+
+timal choice of   bt+1   as a function of   (zt , bt ).   Hence, we can think of the xed-point iteration method
+
+as a proxy time iteration method that substitutes for the                bt+1   in the right-hand-side of the Euler
+
+equation with a proxy that is dened to be the conjectured decision rule, instead of treating that
+
+bt+1   term as endogenous. Fixed-point iteration is also dierent from the endogenous grids method,
+
+because it does not redene the endogenous state variable and instead solves the problem over the
+
+original rectilinear grids   (b, z ).   Still, xed-point iteration retains the main computational advantage
+
+of the endogenous grids method, which is that the Euler equation is reduced to an equation with
+
+an analytic solution for the decision rule, avoiding the need to use non-linear solvers.
+
+   By not proceeding as the time iteration or endogenous grids methods, however, the xed-point
+
+iteration method seems to solve the incorrect Euler equation. Yet, as we document later in the
+
+paper, the solutions satisfy the same equilibrium conditions and are negligibly dierent from those
+
+obtained using standard time iteration. This is because the algorithm is simply an application of
+
+the standard xed-point iteration approach to solve transcendental equations.
+
+
+
+
+3 The FiPIt Method for Two-Dimensional Models
+This Section provides a detailed description of the steps that the                FiPIt   method follows to solve a
+
+model with two endogenous states and an occasionally binding constraint. The model pertains to a
+
+small open economy with two endogenous states, capital (k ) and net foreign assets (b), and a credit
+
+constraint. If the constraint never binds, the algorithm solves a standard RBC model of a small
+
+open economy, and if it binds it solves a model with endogenous nancial crises or Sudden Stops.
+
+
+
+
+                                                              7
+3.1 Model structure and equilibrium conditions
+The model is the same as in Mendoza [2010], except that the preferences with endogenous dis-
+
+counting are replaced with standard time-separable expected utility with exogenous discounting at
+
+rate   .   The economy is inhabited by a representative rm-household with preferences dened over
+
+stochastic sequences of consumption          ct   and labor supply        Lt ,   for   t = 0, ..., ,   given by:
+
+
+                                                                      Lt 1-
+                                                             t (ct   -  )
+                                             E0                                                                            (10)
+                                                                     1-
+                                                    t=0
+
+
+      The agent chooses sequences of consumption, labor, investment, and holdings of real, one-period
+
+international bonds,    bt+1   (the agent borrows when               bt+1 < 0),    so as to maximize the above utility
+
+function subject to the following budget and collateral constraints:
+
+
+
+                                a (kt+1 - kt )2                                                              b
+ct (1+  )+ kt+1 - (1 -  )kt +                   = At F (kt , Lt , vt ) - pt vt - (Rt - 1)(wt Lt + pt vt ) - qt bt+1 + bt ,
+                                2      kt
+                                                                                                                           (11)
+
+                                     b
+                                    qt bt+1 - Rt (wt Lt + pt vt )  -qt kt+1 .                                              (12)
+
+
+
+      The right-hand-side of the budget constraint is the sum of net prots from production and the
+
+resources generated by trading assets abroad. Net prots are equal to gross production minus the
+
+cost of imported inputs minus the servicing of foreign working capital loans for labor and imported
+
+inputs.    Gross output is represented by a constant-returns-to-scale technology,                          At F (kt , Lt , vt ) =
+exp(   A )Ak  L v  , that requires capital,        kt ,   labor and imported inputs,            vt ,   to produce a tradable
+       t    t t t
+
+good sold at a world-determined price (normalized to unity without loss of generality).                                TFP is
+
+subject to a random shock
+                                 A with exponential support around a mean of                     A.    Working capital loans
+                                 t
+
+pay for a fraction      of the cost of imported inputs and labor in advance of sales. These loans are
+
+obtained from foreign lenders at the beginning of each period and repaid at the end. Lenders charge
+
+the world gross real interest rate      Rt = R exp(          R ) on these loans, where         R is an interest rate shock
+                                                             t                                 t
+
+around a mean value      R.    Imported inputs are purchased at an exogenous relative price in terms of
+
+the world's numeraire    pt = p exp(     P ), where       p is the mean price and          P is a shock to the world price
+                                         t                                                 t
+
+of imported inputs (i.e., a terms-of-trade shock). The shocks
+                                                                                 A , R , and P follow a joint rst-order
+                                                                                 t   t       t
+                                                                                                           bb
+                                                                                                         -qt
+Markov process. The resources generated by trading assets abroad are given by                                t+1 + bt ,   where
+
+qt   is the price of the international bonds, which satises
+                                                                           b = R-1 .
+                                                                          qt    t
+
+      The left-hand-side of the budget constraint is the sum of consumption expenditures, investment
+
+
+
+
+                                                                8
+and capital adjustment costs. Gross investment is it            = kt+1 - (1 -  )kt and gross investment inclusive
+                              ~                            a (kt+1 -kt )2
+of adjustment costs is        it = kt+1 - (1 -  )kt +      2     kt       . Since government expenditures are not
+
+included in the model, we include a time-invariant consumption tax                     that is used to calibrate the
+
+model to match the average share of government expenditures in GDP in the data. This is done
+
+so that consumption and investment shares in the model can match their data counterparts. Since
+
+the tax is constant it does not distort the savings-consumption margin and it does not create a
+
+time-varying distortion on labor supply.
+
+   The credit constraint limits the total debt, which is equal to intertemporal debt plus working
+
+capital nancing, not to exceed the fraction             of the market value of the end-of-period capital stock.
+This is a more complex constraint than borrowing constraints of the class                bt+1  -, widely used in
+heterogeneous agents models and also in the algorithm proposed by Ludwig and Schön [2018]. Notice
+
+that the prices   qt   and   wt   that appear in this constraint (and the wage in the budget constraint), are
+
+endogenous market prices taken as given by the agent when solving its optimization problem. As in
+
+Mendoza [2010], the wage rate must be on the labor supply curve (i.e. it must equal the tax-adjusted
+
+marginal disutility of labor), which requires          wt = L-1 (1 +  ),      and the price of capital must satisfy
+
+                                                       ~it
+the optimality condition requiring that         qt =   kt+1 . With these simplications noted, the competitive
+
+equilibrium of the economy can be represented with the optimization problem of the rm-household,
+
+instead of dening separate problems for households and rms. This equilibrium, however, cannot
+
+be represented as the solution to a planner's problem represented by a single Bellman equation,
+
+because the planner would internalize the responses of wages and asset prices to its optimal plans,
+
+while the representative rm-household does not.
+
+   Dening    t    and    µt   as the future-value multipliers of the budget and collateral constraints re-
+
+spectively, the model's equilibrium conditions in sequential form are:
+
+
+                                                           -
+                                                      Lt
+                                               ct -             = t (1 +  )                                    (13)
+                                                      
+
+                                                                                µt
+                                  At FLt (kt , Lt , vt ) = wt 1 + (Rt - 1) +       Rt                          (14)
+                                                                                t
+
+                                                                                µt
+                                  At Fvt (kt , Lt , vt ) = pt 1 + (Rt - 1) +       Rt                          (15)
+                                                                                t
+                                                       1
+                                               t =      b
+                                                          Et [t+1 ] + µt                                       (16)
+                                                       qt
+
+
+
+
+                                                            9
+                                                1
+                                          t =      Et [t+1 (dt+1 + qt+1 )] + µt                                           (17)
+                                                qt
+
+                                                      A                a (kt+1 - kt )2
+                                          dt  exp(    t )Fkt      -+           2                                          (18)
+                                                                       2      kt
+
+                                                   ~it                  kt+1 - kt
+                                            qt =        =1+a                                                              (19)
+                                                   kt+1                    kt
+
+                                                      wt = L-1 (1 +  )                                                    (20)
+
+
+                                    a (kt+1 - kt )2
+ct (1+ )+kt+1 -(1- )kt +                            = At F (kt , Lt , vt )-pt vt -(Rt -1)(L                 b
+                                                                                           t (1+ )+pt vt )-qt bt+1 +bt
+                                    2      kt
+                                                                                                                          (21)
+
+    Solving this model with the time iteration method requires solving the Euler equations (16) and
+
+(17) as part of a system of non-linear equations. Given conjectures of the decision rules for capital
+
+and bonds, and simplifying using the other equilibrium conditions, the two Euler equations form
+
+a two-equation system that yields the new decision rules.                         When the collateral constraint does
+
+not bind, these two Euler equations have their standard forms.                         When the constraint binds, the
+
+multiplier    µt     is an additional endogenous variable and there is an additional equation, which is the
+
+constraint holding with equality. The solution can still be reduced to a two-equation system, by
+
+using the constraint to substitute for
+                                                    bb
+                                                   qt        together with the conjectured decision rules so as to
+                                                      t+1
+
+obtain a two-equation system in             kt+1   and   µt . 4
+    Solving with the endogenous grid method requires dening grids for two alternative state vari-
+
+ables   (s1 , s2 )   such that    s1   b
+                                   t  qt bt+1   and   s2
+                                                       t  kt+1 /(1 -  ),        and then proceeding as in Ludwig and
+
+Schön [2018] to rst determine the values of                 (bt+1 , kt+1 )   associated with each   (s1    2
+                                                                                                      t , st )   pair, then use
+
+the optimality conditions (including the Euler equations) to solve for the contemporaneous controls,
+
+particularly     (ct , it ),   and then use the resource constraint and the denition of gross investment to
+
+extract the implied values of the original endogenous states (bt , kt ), namely the endogenous grids.
+
+When solving for the contemporaneous controls, the optimality conditions form a system of equa-
+
+tions that can be solved for analytically, thus avoiding the need to use a non-linear solver, but the
+
+endogenous grids of (bt+1 , kt+1 ) are irregular, so interpolation of the relevant functions required to
+
+obtain the solution of the system is implemented using Delaunay interpolation.
+                                                                                                       5   As noted earlier,
+
+   4 If the solution implies a value of b
+                                          t+1 lower than the lower bound of the grid of bonds, we set bt+1 to that lower
+bound and solve again the two-equation system for the values of kt+1 and µt+1 consistent with that value of bt+1 .
+Hence, the lower bound of the bonds grid is still treated as a constraint of the form bt+1  -.
+   5 The Ludwig-Schon algorithm still needs to solve a non-linear equation in order to solve for the contemporaneous
+controls in states in which their no-borrowing constraint binds.
+
+
+
+
+                                                                  10
+FiPIt does not need either nonlinear solvers or interpolation methods for irregular grids.6                      Standard
+
+bi-linear interpolation over rectangular grids still applies.
+
+
+
+
+3.2 Description of the FiPIt algorithm
+To implement the      FiPIt   method, we rst re-write the equilibrium conditions in recursive form.
+
+The model has two endogenous states,            b   and   k,   and three exogenous states, using             s   to denote
+
+the triple of exogenous shocks       s  (A, R, p),        which includes the shocks to TFP (A), the world
+
+interest rate (R) and the price of imported inputs (p).                 The recursive equilibrium is dened by
+
+a set of recursive functions for allocations        [b (b, k, s), k (b, k, s), c(b, k, s), L(b, k, s), v (b, k, s)],   prices
+
+[w(b, k, s), q (b, k, s), d(b, k, s)] and multipliers [(b, k, s), µ(b, k, s)] that satisfy the following recursive
+representation of the equilibrium conditions:
+
+
+                                                               -
+                                               L(b, k, s)
+                                c(b, k, s) -                       = (b, k, s)(1 +  )                                   (22)
+                                                   
+
+                                                                                        µ(b, k, s)
+                Ak  L(b, k, s)-1 v (b, k, s) = w(b, k, s) 1 + (R - 1) +                            R                    (23)
+                                                                                        (b, k, s)
+
+                                                                                   µ(b, k, s)
+                    Ak  L(b, k, s) v (b, k, s)-1 = p 1 + (R - 1) +                            R                         (24)
+                                                                                   (b, k, s)
+
+                         (b, k, s) = RE [(b (b, k, s), k (b, k, s), s )] + µ(b, k, s)                                   (25)
+
+
+
+                                1
+             (b, k, s) =               E (b (b, k, s), k (b, k, s), s )(d(b (b, k, s), k (b, k, s), s )
+                           q (b, k, s)                                                                                  (26)
+
+                                                         + q (b (b, k, s), k (b, k, s), s )) + µ(b, k, s)
+
+                                                                              a (k (b, k, s) - k )2
+                    d(b, k, s) = Ak  -1 L(b, k, s) v (b, k, s) -  +                                                     (27)
+                                                                              2         k2
+                                                               k (b, k, s) - k
+                                     q (b, k, s) = 1 + a                                                                (28)
+                                                                      k
+
+                                      w(b, k, s) = L(b, k, s)-1 (1 +  )                                                 (29)
+
+
+                                                       a (k (b, k, s) - k )2
+     c(b, k, s)(1 +  ) + k (b, k, s) - (1 -  )k +                            = Ak  L(b, k, s) v (b, k, s)
+                                                       2          k                                                     (30)
+
+                  -pv (b, k, s) - (R - 1)(L(b, k, s) (1 +  ) + pv (b, k, s)) - R-1 b (b, k, s) + b
+
+   6A  nonlinear equation may need to be solved for in states in which the credit constraint binds, depending on
+the structure of the constraint (as we explain in subsection 3.2), but this is separate from the need to solve a
+two-Euler-equation nonlinear system when time iteration is used to solve models with two endogenous states.
+
+
+                                                          11
+    The recursive equilibrium is solved for over a discrete state space, which requires dening discrete
+
+grids for   (b, k, s).   The grid for the shock triples        s  S comes from the discretization of the stochastic
+processes of the model's three shocks. This is typically done using Tauchen's quadrature method.
+
+Here we take S and the associated Markov transition probability matrix from Mendoza [2010],
+
+where S has eight triples (i.e. each shock has two realizations). For the endogenous states, we de-
+
+ne grids with      M      nodes for bonds and       N   nodes for capital, respectively: B       = {b1 < b2 < ... < bM },
+K   = {k 1 < k 2 < ... < k N }.              The state space has         M ×N ×8          elements and is dened by all
+
+(b, k, s)    B    K  S.          Once parameter values and the discrete state space are dened, the                      FiPIt
+algorithm is implemented following the setps decribed below.
+
+
+
+
+Step 1. Start iteration           j   with conjectured functions for the price of capital         q
+                                                                                                  ^j (b, k, s),   the decision
+
+rule for bonds      ^j (b, k, s)  ^
+                    B             bj (b, k, s),      and the multiplier ratio        ^
+                                                                                     ~j (b, k, s)  µj (b, k, s)/j (b, k, s).
+                                                                                     µ
+The rst iteration can start with                ^
+                                                µ
+                                                ~0 (b, k, s) = 0     so that the rst pass runs as if it were an RBC
+
+model and only cases where the constraint binds pass positive multipliers to the next iteration. The
+
+initial functions can be set to             q
+                                            ^0 (b, k, s) = 1   and   ^0 (b, k, s) = b,
+                                                                     B                   which imply stationary decision
+
+rules for capital and bonds. Note also that this same algorithm can be used to solve a standard
+
+RBC model without the occasionally binding constraint, by simply setting                             high enough so that
+
+the constraint never binds.
+
+
+
+
+Step 2. Compute the iteration-j implied decision rules for capital (Kj (b, k, s)                        kj (b, k, s)),   con-
+
+sumption, investment (inclusive of adjustment costs), labor, inputs and output as shown below.
+
+Note that, given         q
+                         ^j (b, k, s),   the capital decision rule has an analytic solution that follows from op-
+
+timality condition (28) (i.e. the capital decision rule has a closed-form solution as a function of the
+
+price of capital). The factor allocation rules follow from the conditions equating marginal products
+
+with marginal costs, which include factor prices and nancing costs. The wages bill                          wL     is replaced
+
+with   (1 +  )L     because of the optimality condition for labor supply. With these arguments in mind,
+
+
+
+
+                                                                12
+the iteration-j implied decision rules are:
+
+
+
+                                            k
+                             Kj (b, k, s) =    qj (b, k, s) - 1 + a]
+                                              [^                                                                      (31)
+                                            a
+        ~                                       a Kj (b, k, s) - k
+        ij (b, k, s) = (Kj (b, k, s) - k ) 1 +                                     - k                                (32)
+                                                2            k
+                                                                                             
+                                                                -        
+                                                                                          (1- )-
+                                                     Ak         
+                                                                    1+
+                                                                         
+                    vj (b, k, s) =         -                                                                          (33)
+                                      p                       ^
+                                               [1 + (R - 1) + µ
+                                                              ~j (b, k, s)R]
+                                                                            1
+                                                                    
+                         Lj (b, k, s) =             pvj ((b, k, s)                                                    (34)
+                                          (1 +  )
+                         yj (b, k, s) = Ak  Lj (b, k, s) vj (b, k, s)                                                 (35)
+
+
+
+
+Consumption then follows from the resource constraint:
+
+
+
+      (1 +  )cj (b, k, s) = yj (b, k, s) - pvj (b, k, s) - (R - 1) [(1 +  )Lj (b, k, s) + pvj (b, k, s)]
+                                              ^j (b, k, s)                                                            (36)
+                                              B
+                            -~ ij (b, k, s) -              +b
+                                                   R
+Note that for points where        ^
+                                  µ
+                                  ~j (b, k, s) = 0,       factor allocations and output are the same as for an
+
+RBC model without credit frictions, which because of the GHH structure of period utility (i.e. the
+
+marginal rate of substitution between           c   and   L   is independent of    c)   depend only on   (k, s).   We keep
+
+them as functions of all three states because when                  ^
+                                                                    µ
+                                                                    ~j (b, k, s) > 0   factor allocations and output do
+
+depend on the three states.
+
+
+
+
+Step 3. Assume the collateral constraint does not bind. This implies that the new decision rule
+
+for the modied multiplier is      ^
+                                  µ
+                                  ~j +1 (b, k, s) = 0,        and the decision rules for the rest of the endogenous
+
+variables are solved as follows:
+
+
+ 3.1 Factor allocations and output again match the expressions corresponding to an RBC model
+
+      with perfect credit markets:
+
+
+                                                                                        
+                                                                     -          
+                                                                                     (1- )-
+                                                           Ak        
+                                                                         1+
+                                                                                
+                                vj +1 (b, k, s) =          -                                                          (37)
+                                                      p         [1 + (R - 1)]
+                                                                                            1
+                                                                                     
+                                     Lj +1 (b, k, s) =             pvj +1 (b, k, s)                                   (38)
+                                                         (1 +  )
+                                  yj +1 (b, k, s) = Ak Lj +1 (b, k, s) vj +1 (b, k, s)
+                                                       
+                                                                                                                      (39)
+
+
+
+
+ 3.2 Solve for   cj +1   by applying the xed-point iteration method to the Euler equation for bonds.
+
+
+
+                                                               13
+    The iteration-j conjectures for capital and bonds are used everywhere in the right-hand-side
+
+    of this Euler equation, so that we obtain an analytic solution for                            cj +1 .     Keep track of the
+
+    subscripts denoting which function is used in each term:
+
+
+     cj +1 (b, k, s)
+                                                                                                                          1
+                                                                                                                -        -
+                                                                    ^                               
+       =       RE             ^j (b, k, s), Kj (b, k, s), s ) - Lj (Bj (b, k, s), Kj (b, k, s), s )
+                          cj (B
+                                                                                 
+               Lj +1 (b, k, s)
+           +
+                      
+                                                                                                                               (40)
+
+
+
+    In the above expression, the functions               cj (b, k, s)    and   Lj (b, k, s)   are dened only at the nodes
+
+    of B    K  S,        but since the values of         ^j (b, k, s)
+                                                         B               and   Kj (b, k, s)   generally do not match node
+
+    grids in B and K, respectively,            cj (·)   and   Lj (·)   are interpolated over their rst two arguments
+
+    to determine           ^j (b, k, s), Kj (b, k, s), s ) and Lj (B
+                       cj (B                                       ^j (b, k, s), Kj (b, k, s), s ).           Standard bi-linear
+
+    interpolation is applied. Use extrapolation if                  Kj (b, k, s)   is below (above)         k 1 (k N )   and also if
+
+    ^j (b, k, s)
+    B              is above   bM ,   but for   ^j (b, k, s) < b1
+                                               B                       evaluate the functions at       b1 ,   because the lower
+
+    bound on bonds represents an ad-hoc debt limit commonly used for calibration of the model
+
+    to the data (see Durdu et al. [2019]). Note also that, because of the fractional exponent (since
+
+                                                                                       Lj (·)
+    typically    > 1)       the above equation solves only if               cj (·) -            > 0,   but if this is true for
+
+    the consumption and labor decision rules implied by the initial conjectures set for the rst
+
+    iteration (c0 (·), L0 (·)), it will also be true at any iteration                j > 0.
+
+3.3 Solve for   Bj +1 (b, k, s)   using the resource constraint:
+
+
+ Bj +1 (b, k, s) = R yj +1 (b, k, s) - pvj +1 (b, k, s)
+                                        - (R - 1) [(1 +  )Lj +1 (b, k, s) + pvj +1 (b, k, s)] - ~
+                                                                                                ij (b, k, s)
+                                                                           - (1 +  )cj +1 (b, k, s) + b
+                                                                                                                               (41)
+
+
+
+3.4 Evaluate if the collateral constraint binds. If:
+
+
+
+       Bj +1 (b, k, s)
+                       - R [(1 +  )Lj +1 (b, k, s) + pvj +1 (b, k, s)] + q
+                                                                         ^j (b, k, s)Kj (b, k, s)  0,                          (42)
+             R
+
+    the constraint does not bind at the point                 (b, k, s), the functions with j +1 subscripts are saved,
+    and skip to Step 5. Otherwise, the constraint binds at this point, the functions with                                     j+1
+    subscripts are discarded and move to Step 4.
+
+
+
+                                                               14
+Step 4.      Solve for decision rules when the collateral constraint binds.                            Since    q
+                                                                                                                ^j (b, k, s)   has not
+
+                                                                                                               k
+changed, we use the same iteration-j implied decision rule for capital                       Kj (b, k, s) =    a    qj (b, k, s) - 1 + a]
+                                                                                                                   [^
+and the same function ~
+                      ij (b, k, s) as before. This is the most computationally intensive step, because it
+solves a nonlinear simultaneous equations system to determine                      Lj +1 (b, k, s), vj +1 (b, k, s), cj +1 (b, k, s),
+Bj +1 (b, k, s), µ
+                 ~j +1 (b, k, s).   The ve equations in the system are the two optimality conditions for
+
+factor allocations, the Euler equation for bonds (with the                         µ
+                                                                                   ~    terms), the credit constraint hold-
+
+ing with equality, and the resource constraint.                 To make the solution more tractable, we express
+
+Lj +1 (b, k, s), vj +1 (b, k, s), cj +1 (b, k, s), Bj +1 (b, k, s)   as functions of        µ
+                                                                                            ~(b, k, s),   and use the results to
+
+reduce the system to a single nonlinear equation in                  µ
+                                                                     ~(b, k, s).   In the simplied system, factor alloca-
+
+tions, consumption and bonds are functions denoted                      Lj +1 (b, k, s, µ
+                                                                                        ~), vj +1 (b, k, s, µ
+                                                                                                            ~), cj +1 (b, k, s, µ
+                                                                                                                                ~),
+Bj +1 (b, k, s, µ
+                ~ ),   but to make the notation simpler we write them as depending on                           µ
+                                                                                                                ~   only (still, keep
+
+in mind the set of equations needs to be solved for each                   (b, k, s)     for which the constraint was found
+
+to be binding in step 3.4):
+
+
+                                                                                                          
+                                                                             -           
+                                                                                                       (1- )-
+                                                                     Ak      
+                                                                                   1+
+                                                                                         
+                                               v (~
+                                                  µ) =          -                                                                 (43)
+                                                           p         [1 + (R - 1) + µ
+                                                                                    ~R]
+                                                                                                  1
+                                                                                                  
+                                                           L(~
+                                                             µ) =                  pv (~
+                                                                                       µ)                                         (44)
+                                                                           (1 +  )
+                                                B (~
+                                                   µ)                            
+                                                      = -q  ^j Kj + Rpv (~
+                                                                         µ) 1 +                                                   (45)
+                                                  R                              
+                                                                           B (~
+                                                                              µ)
+                                 µ) - pv (~
+                         µ) = y (~
+                (1 +  )c(~                µ) - (R - 1)pv (~
+                                                          µ) 1 +    -~ij -       +b                                               (46)
+                                                                            R
+
+where       µ) = Ak  L(~
+         y (~          µ) v (~
+                             µ)  .          The equations for labor and inputs follow from combining the
+
+borrowing constraint with the optimality conditions equating marginal products with marginal
+
+costs, including the      µ
+                          ~ terms.    They are the same equations used in Step 2, but now we need to nd
+
+the value of    µ
+                ~j +1   that solves them, instead of taking as given                µ
+                                                                                    ~j .
+    In addition to equations (43)-(46), the solution for                     µ
+                                                                             ~j +1 (b, k, s)      must also satisfy the Euler
+
+equation for bonds, which can be written as:
+
+
+                                                                                           ^j (b,k,s),Kj (b,k,s),s )   -
+                                              ^j (b, k, s), Kj (b, k, s), s ) -        Lj (B
+                               RE         cj (B                                                      
+      ~j +1 (b, k, s) = 1 -
+      µ                                                                                            -                              (47)
+                                                                               µj +1 (b,k,s))
+                                                                             L(~
+                                                       µj +1 (b, k, s)) -
+                                                     c(~                            
+
+
+Notice the numerator in the second term in the right-hand-side still applies xed-point iteration by
+
+
+
+
+                                                               15
+                                                                                    ^j (b, k, s), Kj (b, k, s), s
+computing expected marginal utility using j-dated functions only. The values of cj (B                                                 )
+and       ^j (b, k, s), Kj (b, k, s), s )
+      Lj (B                                   are again determined by bi-linear interpolation.
+
+    Algebraic manipulation of equations (43)-(47) reduces to this nonlinear equation in                                ~j +1 (·)
+                                                                                                                       µ
+
+                                                                                        +
+                                           
+                                        (1- ) -                                      (1- ) -
+              (1 - µ
+                   ~j +1 (·)) C1
+                                                   1 + (R - 1) + µ
+                                                                 ~j +1 (·)R
+                                                                                                                   -
+                             C1                           (1- ) -        ~
+                                                                         ij (·) - q
+                                                                                  ^j (·)Kj (·) - b                             (48)
+                  -                                                 C2 -
+                    1 + (R - 1) + µ
+                                  ~j +1 (·)R                                      1+
+                                                                                            -
+                                                                  ^                  
+                    = RE                ^j (·), Kj (·), s ) - Lj (Bj (·), Kj (·), s )
+                                    cj (B
+                                                                         
+
+where:
+
+
+                                                  1-
+                                               1             
+                                               C1     Ak                                                                       (49)
+                                              1+           p
+                                            1         
+                                         C2  + +  1 +    (2R - 1)                                                              (50)
+                                                      
+
+Note again that, because of the fractional exponent in the right-hand-side of (48), the equation
+
+                              Lj (·)
+solves only if     cj (·) -            > 0.   Since the rst iteration starts with           ~0 (·) = 0,
+                                                                                            µ             any state that yields
+
+a binding credit constraint in the rst iteration will solve for                    ~1 (·)
+                                                                                   µ        as long as the same condition
+
+required for the unconstrained consumption function (eq. (40)) to solve in the rst iteration holds,
+
+                             (·) 
+namely that       c0 (·) - L0    > 0 for the decision rules implied by the initial conjectures set for the rst
+iteration. Moreover, since when the constraint binds it must be true that                         0<µ
+                                                                                                    ~ < 1,      it follows from
+
+                              Lj (·)
+eq. (47) that      cj (·) -            >0     will hold for any iteration     j > 0.    Once     ~j +1 (b, k, s)
+                                                                                                 µ                 is solved, the
+
+functions    vj +1 (b, k, s), Lj +1 (b, k, s), Bj +1 (b, k, s), cj +1 (b, k, s)   are determined using equations (43)-
+
+(46), but replacing      µ
+                         ~ with µ
+                                ~j +1 (b, k, s).     The functions with       j + 1 subscripts are saved,            and we move
+
+to Step 5.
+
+    It is important to note that, depending on the structure of the occasionally binding constraint, if
+
+µ
+~ can be solved for recursively after solving for the allocations, Step                     4 is much easier because          FiPIt
+does not require a non-linear solver              anywhere.   For example, if working capital is not in the credit
+
+constraint, we can set         Bj +1 (b, k, s)/R = -q
+                                                    ^j (b, k, s)Kj (b, k, s),        and this can be used to determine
+
+cj +1 (b, k, s)   directly from the resource constraint.            The implied value of           µ
+                                                                                                   ~j +1 (b, k, s)   can then be
+
+solved for from the bonds Euler equation. The same applies for a credit constraint set to a constant
+
+value, as in Ludwig and Schön [2018], where they used                     bt+1  0.      Hence,      FiPIt    can solve models
+
+with a large class of occasionally binding constraints without using a non-linear solver at any point,
+
+
+
+                                                               16
+whereas the Ludwig-Schön algorithm needs both the Delaunay interpolation and a non-linear solver
+
+when the constraint binds.
+
+
+
+
+Step 5. Return to Step 3 and repeat               (b, k, s)  B  K  S.              This is necessary before proceeding
+
+to compute a new asset pricing function, because the complete set of j+1-dated functions is required.
+
+
+
+
+Step 6. Compute the new pricing function                  qj +1 (b, k, s).   We describe two ways of doing this:
+
+
+
+ 6.1 The    FiPIt     algorithm proceeds in a manner analogous to xed-point iteration on the Euler
+
+     equation for bonds, by applying the new decision rules for                       cj +1 (·), Lj +1 (·), Bj +1 (·), µ
+                                                                                                                       ~j +1 (·)   to
+
+     the Euler equation for capital and solving it so as to obtain the following analytic solution for
+
+     qj +1 (b, k, s):
+
+   qj +1 (b, k, s)
+                                                    Lj +1 (Bj +1 (·),Kj (·),s )   -
+         Et      cj +1 (Bj +1 (·), Kj (·), s ) -                                      [d (·) + q
+                                                                                               ^j (Bj +1 (·), Kj (·), s )]
+     =                                                                -
+                                                          Lj +1 (·)
+                                            cj +1 (·) -                   (1 - µ
+                                                                               ~j +1 (·))
+                                                                                                                               (51)
+
+
+
+     The asset price used in the right-hand-side is the conjecture set in Step 1.                                 Since all the
+
+     functions in the right-hand-side are known, the equation solves directly for                           qj +1 (b, k, s).   The
+
+     values of       cj +1 (Bj +1 (·), Kj (·), s )), Lj +1 (Bj +1 (·), Kj (·), s )     and   ^j (Bj +1 (·), Kj (·), s )
+                                                                                             q                            are de-
+
+     termined by bi-linear interpolation. The dividends function is obtained from equation (27)
+
+     using bi-linear interpolation on its components (see Appendix for details).                              Notice that the
+
+     decision rule for bonds that sets the value of                   bt+1   at which these functions are interpolated
+
+     is a j+1-dated function, not the j-dated function used in Steps 3 and 4, but over the capital
+
+     dimension we are still using the j-dated decision rule.
+
+
+
+ 6.2 A variant of the algorithm labeled            Fixed-Point Iteration with Forward Solution (FPIFS) solves
+     for the new price conjecture by iterating to convergence on the capital Euler equation (i.e.
+
+     it uses the forward solution of the asset price).                    Index the iterations on this equation with
+
+     superscript       z,   the iterations solve this functional equation problem, always using the                        j + 1-
+
+
+
+
+                                                               17
+         dated functions and the multiplier              ~j +1 (·)
+                                                         µ           obtained in Steps 3 to 5:
+
+
+      q z +1 (b, k, s)
+                                                        Lj +1 (Bj +1 (·),Kj (·),s )    -
+            Et       cj +1 (Bj +1 (·), Kj (·), s ) -                                         [d (·) + q z (Bj +1 (·), Kj (·), s )]
+        =                                                                  -
+                                                               Lj +1 (·)
+                                                 cj +1 (·) -                   (1 - µ
+                                                                                    ~j +1 (·))
+                                                                                                                                     (52)
+
+
+
+         Iterate until     ||q z +1 (b, k, s) - q z (b, k, s)|| q      for small      q ,   and if the result converges, the nal
+
+         result sets     qj +1 (b, k, s).    The values of     cj +1 (Bj +1 (·), Kj (·), s )), Lj +1 (Bj +1 (·), Kj (·), s ), d (·)
+         and   q z (Bj +1 (·), Kj (·), s )    are determined using bi-linear interpolation as in step 6.1.
+
+
+Step 7. Check the convergence of the conjectured functions. Convergence requires that for small
+
+f     the following conditions are satised              (b, k, s)  B  K  S:
+
+
+                                                                   ^j (b, k, s)| f
+                                                |qj +1 (b, k, s) - q                                                                 (53)
+
+                                                                 ^j (b, k, s)| f
+                                              |Bj +1 (b, k, s) - B                                                                   (54)
+
+
+                                               |µ                 ^
+                                                                  ~j (b, k, s)| f
+                                                ~j +1 (b, k, s) - µ                                                                  (55)
+
+
+
+
+If these conditions hold, the recursive competitive equilibrium has been solved.                                    The level of the
+
+multiplier on the credit constraint can then be solved for as follows:
+                                                                                                             -
+                                                                                        Lj +1 (b, k, s)
+                                             ~j +1 (b, k, s) cj +1 (b, k, s) -
+                           µj +1 (b, k, s) = µ                                                                                       (56)
+                                                                                               
+The accuracy of the solution can then be evaluated by verifying that the equilibrium conditions
+
+hold, including computations of the maximum and average absolute values of the errors in the
+
+Euler equations of          k   and   b.
+      If any of the three convergence conditions fails, update the conjectured functions using a convex
+
+combination of the last conjectures and the new functions to dampen possible overshooting or speed
+
+up convergence. This is conventional practice because there is no guarantee that xed-point iteration
+
+algorithms converge, but when they diverge it is generally because they overshoot the true solution.
+
+Hence, the new conjectures are set as:
+
+
+
+
+                                      ^j +1 (b, k, s) = (1 - x )^
+                                      x                         xj (b, k, s) + x xj +1 (b, k, s)                                     (57)
+
+
+
+
+for              ~]
+      x = [q, B, µ       and some          0  x .   Notice that      ^j (b, k, s)
+                                                                     x              in the right-hand-side of this expression
+
+represents the initial conjectures that were used in the current iteration, while                                x
+                                                                                                                 ^+1 j (b, k, s)   in the
+
+
+
+                                                                     18
+left-hand-side denotes the new conjectures for the next iteration. Use         0 < x < 1 (x > 1)     for the
+
+particular function     x(·)    that is not converging (converging too slowly). Return to Step 2, setting
+
+x
+^j (b, k, s)=x
+             ^j +1 (b, k, s),   and repeat until convergence is attained.
+
+
+
+
+4 RBC & Sudden Stops Examples
+We developed a set of Matlab programs to implement the             FiPIt algorithm and used them to solve
+the RBC and Sudden Stops models. The models' parameter values are taken from Mendoza [2010]
+
+and listed in Table 1. We also use the same Markov process for the models' three shocks. The only
+
+dierence, as mentioned earlier, is that instead of using preferences with an endogenous rate of time
+
+preference we use standard time-separable expected utility with constant discounting, setting the
+
+subjective discount factor at        = 0.92.
+    We report the results of solutions using        FiPIt and the FPIFS variant, as well as solutions from
+three other algorithms:         TIFS   replaces the xed-point iteration solution of the bonds decision rule
+
+with a standard time iteration solution that uses a non-linear solver, and solves for the price of
+
+capital using the forward solution of the capital Euler equation;           TIFPI   uses again standard time
+
+iteration for the bonds decision rule, but solves for the price of capital using the xed-point iteration
+
+approach; and     FTI    is the full time iteration solution in which the Euler equations for capital and
+
+bonds are solved as a non-linear equation system. All the computations were made using Matlab
+
+R2017a on a Windows 10 laptop with an Intel Core i7-6700HQ 2.60GHz four-core chip and 16GB
+
+of RAM. The Matlab codes and an Appendix that explains how the codes implement each of the
+
+FiPIt algorithm steps are available online.
+    The state space of the RBC (SS) solutions consists of evenly-spaced grids with 80 (72) nodes
+
+for bonds and 30 nodes for capital.            K spans the [654.5,885.5] interval while in the RBC (SS)
+
+solutions B spans the [-300.0,800.0] ([-188.6,800.0]) interval.        Solving with larger grids increases
+
+sharply execution time and produces negligibly dierent results, while solving with smaller grids is
+
+faster but yields inaccurate results. The Markov process of the shocks has two realizations for each
+
+shock and their values together with the associated 8x8 transition probability matrix approximate
+
+the variability, autocorrelation, and contemporaneous correlation of TFP, interest rates and the
+
+price of imported inputs in the data (see Mendoza [2010] for details). In all the solutions except
+
+FTI, we found faster convergence by setting the dampening parameters for updating the conjectured
+functions to 0.3 for the price of capital (0.25 for a scenario with 60 capital nodes) and 1 for bonds
+
+
+
+
+                                                        19
+and   µ
+      ~.   For   FTI solutions, we kept x = 1 for all three functions, and conrmed that these produces
+convergence in the smallest number of iterations.
+
+
+
+                                      Table 1: Calibrated Parameter Values
+                                  Parameter                             Value
+                                       risk aversion                     2.0
+                                       labor elasticity                 1.8461
+                                       discount factor                   0.92
+                                  a    capital adjustment cost           2.75
+                                       working capital parameter        0.2579
+                                       depreciation rate                0.088
+                                       labor share                       0.59
+                                       imported inputs share             0.10
+                                       capital share of income           0.31
+                                       tax on consumption                0.17
+                                  A    Average TFP                      6.982
+
+
+
+
+4.1 Results for the RBC Model
+Table 2 compares long-run moments of the main macro aggregates and performance statistics for
+
+the RBC model across seven solution scenarios. The RBC case is solved by setting                     high enough
+
+so that the credit constraint never binds. In this case,         =1      was sucient. The Table includes
+
+results for all the algorithm variations mentioned earlier. Columns (1) and (2) are               FiPIt solutions
+with 80x60 v. 80x30 grids respectively, (3) is the        TFIS   solution, (4) is the     FPIFS   solution, (5) is
+
+the   TIFPI solution, and (6) is the FTI solution. Column (7) shows the results reported in Mendoza
+[2010].
+
+      The moments reported in Columns (1) to (6) are very similar, and in fact identical up to one or
+
+two decimals. The comparison of Cols. (1) and (2) shows that solving using                FiPIt with the smaller
+capital grid has nearly no eect on the results but reduces execution time sharply. Comparisons of
+
+Cols. (2)-(5) v. Col. (6) show that all those solution alternatives yield eectively the same results
+
+as the     FTI    method.   The results from Mendoza [2010] in Column (7) are qualitatively similar
+
+in terms of ranking of volatilities and signs and ranking of correlations and autocorrelations, but
+
+quantitatively shows more dierences.          These are due to the dierent discount factors (Mendoza
+
+used endogenous discounting) and the dierent solution methods (Mendoza solved forcing decision
+
+rules to be on the nodes of the grids of bonds and capital, instead of using interpolation, and used
+
+value function iteration on a quasi planner's problem with          w   and    q   restricted to satisfy the labor
+
+supply and investment optimality conditions).
+
+
+
+                                                       20
+   The performance metrics for Columns (1)-(6) reported in panel (b) of Table 2 show that all the
+
+solutions have similar accuracy, with very small maximum and average absolute-value errors in the
+
+Euler equations for bonds and capital. In terms of execution time, however, the          FiPIt   method in
+
+Col.     (2) dominates the other solution methods by large margins.        The absolute speeds will vary
+
+widely with hardware and software congurations, but the relative speeds are likely to vary less
+
+and the ranking across methods based on this criterion is unlikely to change. Comparing speeds
+
+relative to   FiPIt, the second fastest method is FPIFS in Col. (4), which takes twice as long to
+solve.    This algorithm only diers from FiPIt in that it solves for the price of capital by solving
+
+forward the capital Euler equation. The slowest methods are the three that use time iteration (i.e.
+
+a nonlinear solver) at least partially. In Cols. (3) and (5) the bonds decision rule is solved with the
+
+time iteration method, but the price of capital is solved using the forward solution in Col. (3) v.
+
+xed-point iteration in Col. (5). This makes little dierence in execution time, as they take roughly
+
+34 and 36 times as long as the      FiPIt solution in Col.   (2), respectively. Interestingly, the standard
+
+FTI    method in Col. (6), which solves the simultaneous nonlinear Euler equations for bonds and
+
+capital, is signicantly   faster   than the methods used in Cols. (3) and (5), indicating that solving
+
+only one nonlinear Euler equation instead of two does not guarantee a faster algorithm. Still, the
+
+FTI    execution time exceeds that of the   FiPIt solution by a factor of 18.1!
+   The     FTI   solution is faster than the ones in Cols.     (3) and (5) because time iteration takes
+
+advantage of the contraction mapping properties of the two nonlinear Euler equations by solving
+
+them simultaneously while xed-point iteration methods do not. Intuitively, every iteration with
+
+FTI    tends to generate relatively more accurate outcomes, and hence attains convergence in 94
+
+iterations.    The algorithms in Cols.     (3) and (5) take more than twice as many iterations (196
+
+iterations for   TIFS             TIFPI ), and still in each they have to use a root nder because
+                        and 213 for
+
+they solve for the bonds decision rule using time iteration. The FiPIt method converges in a similar
+
+number of iterations (201) as these two methods, but goes through each iteration much faster
+
+because it avoids using nonlinear solvers, overcoming the drawback of not taking advantage of the
+
+contraction mapping properties of the Euler equations, and this makes it the fastest method.        FPIFS
+in Col. (4) is the second fastest for a similar reason, and it is slower than   FiPIt because solving the
+price of capital with the forward solution is slower than with xed-point iteration.
+
+
+
+
+                                                    21
+                      Table 2: Long-run Moments & Performance Metrics: RBC Model Solutions
+
+                                          (1)             (2)          (3)         (4)          (5)          (6)            (7)
+                                   FiPIt Large Grid      FiPIt        TIFS        FPIFS        TIFPI         FTI       Mendoza [2010]
+                                             (a) Long-run moments
+
+ Mean
+ gdp                                   393.803         393.847      393.850      393.847      393.850      393.813        390.135
+ c                                     263.846         264.021      263.901      264.023      263.899      263.871        263.152
+ i                                      67.523         67.530       67.530        67.529       67.530       67.518         66.203
+ nx/gdp                                  0.046          0.045        0.046         0.045        0.046        0.046          0.042
+ k                                     765.720         765.885      765.895      765.884      765.896      765.759        752.27
+ b/gdp                                  -0.378          -0.372       -0.377       -0.372       -0.377       -0.377         -0.326
+ q                                       1.000          1.000        1.000         1.000        1.000        1.000          1.000
+ leverage ratio                         -0.288          -0.286       -0.288       -0.286       -0.288       -0.288         -0.266
+ v                                      42.645         42.649       42.650        42.649       42.650       42.646         42.247
+ working capital                        76.708         76.716       76.717        76.716       76.717       76.710         75.993
+ Standard deviation (in percent)
+ gdp                                     3.97            3.99          3.99         3.99        3.99        3.99            3.90
+ c                                       5.12            5.15          5.14         5.15        5.14        5.14            4.21
+ i                                      13.50            13.51        13.50        13.51        13.50       13.51          13.85
+ nx/gdp                                  3.51            3.53          3.52         3.53        3.52        3.52            3.00
+ k                                       4.60            4.65          4.65         4.65        4.65        4.65            4.39
+ b/gdp                                  29.94            30.28        30.07        30.28        30.06       30.04          17.57
+ q                                       3.23            3.24          3.23         3.24        3.23        3.23            3.33
+ leverage ratio                         14.26            14.42        14.32        14.42        14.32       14.31          8.32
+ v                                       5.90            5.91          5.91         5.91        5.91        5.91            5.85
+ working capital                         4.38            4.40          4.40         4.40        4.40        4.40            4.32
+ Correlation with GDP
+ gdp                                     1.000          1.000        1.000         1.000       1.000         1.000          1.000
+ c                                       0.775          0.773        0.776         0.773       0.776         0.776          0.861
+ i                                       0.645          0.640        0.640         0.640       0.640         0.640          0.616
+ nx/gdp                                 -0.234          -0.227       -0.229       -0.227       -0.229       -0.230         -0.191
+ k                                       0.765          0.767        0.767         0.767       0.767         0.767          0.756
+ b/gdp                                   0.091          0.090        0.093         0.090       0.093         0.093         -0.023
+ q                                       0.391          0.381        0.381         0.381       0.381         0.381          0.379
+ leverage ratio                          0.113          0.112        0.115         0.112       0.115         0.115          0.001
+ v                                       0.833          0.834        0.834         0.834       0.834         0.834          0.830
+ working capital                         0.995          0.995        0.995         0.995       0.995         0.995          0.995
+ First-order autocorrelation
+ gdp                                    0.829            0.830        0.830        0.830        0.830       0.830          0.822
+ c                                      0.884            0.885        0.885        0.885        0.885       0.885          0.817
+ i                                      0.516            0.516        0.516        0.516        0.516       0.516          0.493
+ nx/gdp                                 0.708            0.711        0.710        0.711        0.710       0.709          0.549
+ k                                      0.967            0.964        0.964        0.964        0.964       0.964          0.962
+ b/gdp                                  0.996            0.997        0.997        0.997        0.997       0.997          0.175
+ q                                      0.458            0.460        0.460        0.460        0.460       0.460          0.440
+ leverage ratio                         0.997            0.997        0.997        0.997        0.997       0.997          0.083
+ v                                      0.780            0.780        0.780        0.780        0.780       0.780          0.776
+ working capital                        0.807            0.807        0.808        0.807        0.808       0.808          0.801
+                                             (b) Performance metrics
+
+ Max Log10 Abs. Euler Error              -6.93           -6.93        -6.93        -6.93        -6.93        -6.93           -
+ At Grid Points (b, k, s)              (1, 1, 3)       (1, 1, 3)    (1, 1, 3)    (1, 1, 3)    (1, 1, 3)    (1, 1, 3)         -
+ Mean Log10 Abs. Euler Error            -16.20          -15.96       -13.37       -15.80       -13.36       -13.33           -
+ Capital Euler Equation
+ Max Log10 Abs. Euler Error             -15.18           -15.42       -15.43       -15.43       -15.42       -9.91           -
+ At Grid Points (b, k, s)             (23, 1, 7)       (24, 1, 7)   (24, 1, 7)   (24, 1, 7)   (23, 1, 7)   (2, 1, 3)         -
+ Mean Log10 Abs. Euler Error            -16.36           -16.36       -16.21       -16.19       -16.38      -12.74           -
+ Grid size (#b, #k)                    (80, 60)        (80, 30)     (80, 30)     (80, 30)     (80, 30)     (80, 30)       (80, 60)
+  Seconds elapsed                           160             100          3367        178         3643      1808              -
+  Relative to FiPIt                         1.6             1.0          33.7        1.8         36.4       18.1             -
+  Number of iterations                      214             201           196        184          213        94              -
+Note: Column (1) and Column (2) are for the FiPIt algorithm, xed-point iteration is used for both the bonds decision rule and
+the price of capital. Column (3) is for the TIFS method, which uses the time iteration method for the bonds decision rule and the
+forward solution of the capital Euler equation for the price of capital. Column (4) is for the FPIFS method, which uses
+xed-point iteration for the bonds decision rule and the forward solution of the capital Euler equation for the price of capital.
+Column (5) is for the TIFPI method, which uses time iteration for the decision rule for bonds and xed-point iteration for the
+price of capital. Column (6) is for the FTI method, which solves the bonds decision rule and the price of capital by solving the
+Euler equations for bonds and capital as two simultaneous non-linear equations.
+   Figure 1 shows the ergodic marginal distributions of                                       b   and    k,   and the ergodic joint marginal
+
+
+distribution of   (b, k )   produced by the                            FiPIt solution. To compute the full limiting distribution, we
+applied the standard procedure iterating to convergence on the law of motion of the conditional
+
+
+distribution of   (b, k, s)                         starting from an arbitrary initial condition.                   Full details are provided in
+
+
+the Appendix. The distributions produced by all the other solution methods, includings                                                    FTI, are
+visually identical, and hence we only show the ones for the                                   FiPIt case. The long-run moments listed
+in Table 2 were produced using this limiting distribution.
+
+
+
+
+   0.12                                                                                0.12
+
+    0.1                                                                                 0.1
+
+   0.08                                                                                0.08
+
+   0.06                                                                                0.06
+
+   0.04                                                                                0.04
+
+   0.02                                                                                0.02
+
+      0                                                                                  0
+          -200      0             200                      400    600       800                       700       750           800   850
+
+      (a) Ergodic Marginal Distribution of Bonds                                         (b) Ergodic Marginal Distribution of Capital
+
+
+
+                                                    10-3
+
+
+                                                     2
+                             Ergodic Distribution
+
+
+
+
+                                                    1.5
+
+                                                     1
+
+                                                    0.5
+
+                                                 0
+                                               900
+                                                                                                                        400
+                                                           800
+                                                                                                              200
+                                                                   700                            0
+                                                                                       -200
+                                                             Capital        600                   Bond
+
+
+                                                           (c) Ergodic Distribution of Bonds and Capital
+                   Figure 1: Long-run Distributions of the RBC model solved with FiPIt.
+
+
+
+
+                                                                                  23
+   The distributions show standard properties of the small open economy RBC model. The distri-
+
+
+bution for capital is bell-shaped, while the one for bonds is skewed to the left. This occurs because
+
+
+the model inherits the property of incomplete markets models with standard preferences requiring
+
+
+R < 1     in order to prevent precautionary saving incentives from driving bond holdings to innity.
+
+
+As a result, the distribution of bond holdings has mass at the pre-determined ad-hoc debt limit
+
+
+dened by the lower bound of the bonds grid, or at the natural debt limit dened by the annuity
+
+
+value of the lowest disposable income realization.
+
+
+
+
+4.2 Results for the Sudden Stops Model
+Table 3 shows long-run moments and performance metrics for the SS model with                     = 0.2,   which is
+
+
+the baseline value used in Mendoza [2010]. The moments are again similar across solution methods,
+
+
+and dier slightly more from the ones reported by Mendoza for the same reasons explained earlier.
+
+
+The only item that diers noticeably is the probability of Sudden Stops, which is about 2.0 percent
+
+
+in all the alternatives we solved here v.       3.3 percent in Mendoza's paper.          We applied the same
+
+
+denition of Sudden Stops (i.e.        coordinates   (b, k, s)   in which the collateral constraint binds and
+
+
+the trade balance-GDP ratio is at least 2 percentage points above what the RBC model yields).
+
+
+The lower frequency of Sudden Stops is due to the approximately-continuous decision rules that we
+
+
+obtain using interpolation in our solutions v. decision rules forced to be on grid nodes in Mendoza's
+
+
+solution.    This makes our estimates of the frequency with which             µ(b, k, s) > 0,   and of the trade
+
+
+balance adjustment implied by the associated        b (b, k, s)   in those states, more accurate. In all of our
+
+
+results, the long-run probability of states with      µ>0       is about 2.6 percent, but 23 percent of these
+
+
+states do not yield a suciently large increase in the trade balance to classify as a Sudden Stop.
+
+
+   Euler equation errors are again very small and similar across solutions in Cols.                 (1)-(5), but
+
+
+now the     FTI solution yields larger maximum and average absolute Euler equation errors. Still, this
+only results in means that dier to the rst decimal, and makes very little dierence in second- and
+
+
+higher-order moments.      In terms of speed, the     FiPIt     method in Column (2) remains the fastest,
+
+
+and the ranking of the execution time of the other methods relative to             FiPIt   remains unchanged.
+
+
+All the speed ratios get closer to the execution time of the          FiPIt   solution, but the dierences are
+
+
+still signicant.    In particular,   FTI   takes 2.5 times as long, and the two methods that use time
+
+
+iteration partially (by applying it only to the bond's Euler equation) take nearly 5 times as long.
+
+
+
+                                                       24
+The dierence in speed ratios narrows because in every state in which the constraint binds in each
+
+
+iteration,   all the algorithms require a non-linear solver. FiPIt loses in relative terms because it still
+requires a higher number of iterations in order to converge (196) but now in each one it needs to
+
+
+solve a non-linear equation, while      FTI     still converges faster (in 94 iterations) and still solves two
+
+
+non-linear equations in each iteration.
+                                            7
+
+
+
+
+   7 Thissuggests that FiPIt can be again much faster than FTI in applications in which, as explained in Section 3,
+the structure of the occasionally binding constraint is such that FiPIt does not need a root-nder in states in which
+the constraint binds (e.g. qt
+                            b
+                              bt+1  -qt kt+1 , qt
+                                                b
+                                                  bt+1  -). We show results for a case like this in subsection 4.3.
+
+
+                                                        25
+                 Table 3: Long-run Moments & Performance Metrics: Sudden Stops Model ( = 0.2)
+
+                                                (1)                 (2)           (3)           (4)           (5)            (6)            (7)
+                                         FiPIt Large Grid          FiPIt         TIFS          FPIFS         TIFPI           FTI       Mendoza [2010]
+                                                    (a) Long-run moments
+
+ Mean
+ gdp                                          393.629            393.619        393.626       393.618        393.626      393.549           388.339
+ c                                            273.910            274.123        274.074       274.124        274.073      274.011           267.857
+ i                                             67.482            67.481         67.484         67.481         67.484       67.459            65.802
+ nx/gdp                                         0.016             0.015          0.015          0.015          0.015        0.015             0.024
+ k                                            765.191            765.171        765.202       765.170        765.202      764.922           747.709
+ b/gdp                                          0.007             0.015          0.013          0.015          0.013        0.012            -0.104
+ q                                              1.000             1.000          1.000          1.000          1.000        1.000             1.000
+ leverage ratio                                -0.106             -0.102         -0.103        -0.102         -0.103       -0.103            -0.159
+ v                                             42.618            42.617         42.618         42.617         42.618       42.609            41.949
+ working capital                               76.660            76.658         76.659         76.658         76.659       76.644            75.455
+ Standard deviation (in percent)
+ gdp                                             3.91              3.94           3.94           3.94         3.94          3.94              3.85
+ c                                               3.95              4.03           4.02           4.03         4.02          4.03              3.69
+ i                                              13.33              13.33         13.33          13.33         13.33         13.32            13.45
+ nx/gdp                                          2.90              2.94           2.94           2.94         2.94          2.94              2.58
+ k                                               4.40              4.49           4.49           4.49         4.49          4.50              4.31
+ b/gdp                                          18.72              19.62         19.47          19.62         19.47         19.45            8.90
+ q                                               3.20              3.20           3.20           3.20         3.20          3.20              3.23
+ leverage ratio                                  8.79              9.22           9.15           9.22         9.15          9.14              4.07
+ v                                               5.87              5.89           5.89           5.89         5.89          5.89              5.84
+ working capital                                 4.33              4.35           4.35           4.35         4.35          4.36              4.26
+ Correlation with GDP
+ gdp                                            1.000             1.000          1.000          1.000         1.000         1.000             1.000
+ c                                              0.849             0.842          0.844          0.842         0.844         0.844             0.931
+ i                                              0.646             0.641          0.641          0.641         0.641         0.641             0.641
+ nx/gdp                                        -0.122             -0.117         -0.118        -0.117         -0.118       -0.120            -0.184
+ k                                              0.757             0.761          0.761          0.761         0.761         0.761             0.744
+ b/gdp                                         -0.133             -0.120         -0.119        -0.120         -0.119       -0.117            -0.298
+ q                                              0.400             0.387          0.387          0.387         0.387         0.387             0.406
+ leverage ratio                                -0.125             -0.111         -0.111        -0.111         -0.111       -0.108            0.258
+ v                                              0.831             0.832          0.832          0.832         0.832         0.832             0.823
+ working capital                                0.994             0.994          0.994          0.994         0.994         0.994             0.987
+ First-order autocorrelation
+ gdp                                            0.823              0.825         0.824          0.825         0.824         0.825            0.815
+ c                                              0.823              0.830         0.829          0.830         0.829         0.829            0.766
+ i                                              0.500              0.501         0.500          0.501         0.500         0.500            0.483
+ nx/gdp                                         0.589              0.601         0.598          0.601         0.598         0.598            0.447
+ k                                              0.964              0.962         0.962          0.962         0.962         0.962            0.963
+ b/gdp                                          0.989              0.990         0.990          0.990         0.990         0.990            0.087
+ q                                              0.444              0.447         0.446          0.447         0.446         0.446            0.428
+ leverage ratio                                 0.991              0.992         0.992          0.992         0.992         0.992            0.040
+ v                                              0.776              0.777         0.777          0.777         0.777         0.777            0.764
+ working capital                                0.800              0.801         0.801          0.801         0.801         0.801            0.777
+ Prob. of Sudden Stops                         1.98%              1.99%          2.03%         1.99%          2.04%        2.05%             3.32%
+                                                    (b) Performance metrics
+
+ Bonds Euler Equation
+ Max Log10 Abs. Euler Error                     -3.58              -3.58          -3.58         -3.58         -3.58         -3.52               -
+ At Grid Points (b, k, s)                    (1, 11, 3)          (1, 6, 3)      (1, 6, 3)     (1, 6, 3)     (1, 6, 3)     (2, 1, 7)             -
+ Mean Log10 Abs. Euler Error                   -14.45             -14.45         -12.41        -14.27        -12.39        -12.35               -
+ Capital Euler Equation
+ Max Log10 Abs. Euler Error                    -15.38             -15.37         -15.42        -15.37         -15.42        -4.06               -
+ At Grid Points (b, k, s)                    (72, 1, 7)         (72, 1, 7)     (32, 1, 7)    (72, 1, 7)     (32, 1, 7)    (1, 1, 7)             -
+ Mean Log10 Abs. Euler Error                   -16.22             -16.22         -16.07        -16.04         -16.21       -12.45               -
+ Grid size (#b, #k)                           (72, 60)           (72, 30)       (72, 30)      (72, 30)       (72, 30)     (72, 30)          (80, 60)
+ Seconds elapsed                                 1985                810            3735        956          4136          1986                 -
+ Relative to FiPIt                                2.5                1.0             4.6        1.2           5.1           2.5                 -
+ Number of iterations                             196                196             190        178           207            94                 -
+Note: Column (1) and Column (2) are for the FiPIt algorithm, xed-point iteration is used for both the bonds decision rule and the price of capital.
+Column (3) is for the TIFS method, which uses the time iteration method for the bonds decision rule and the forward solution of the capital Euler
+equation for the price of capital. Column (4) is for the FPIFS method, which uses xed-point iteration for the bonds decision rule and the forward
+solution of the capital Euler equation for the price of capital. Column (5) is for the TIFPI method, which uses time iteration for the decision rule for
+bonds and xed-point iteration for the price of capital. Column (6) is for the FTI method, which solves the bonds decision rule and the price of
+capital by solving the Euler equations for bonds and capital as two simultaneous non-linear equations. Sudden Stop states are dened as in Mendoza
+[2010]: states (b, k, s) such that µ(b, k, s) > 0 and the trade balance-GDP ratio is at least 2 percentage points above its value in the RBC model.
+   Since we found larger Euler equation errors in the SS model than in the RBC model, we also
+
+
+examined dierences in the recursive equilibrium functions produced by each solution method rela-
+
+
+tive to theFiPIt solution for the SS model. Table 4 shows the maximum and mean of the absolute
+value of the point-wise dierences of the functions as a ratio of the corresponding FiPIt solution.
+
+
+The dierences are generally negligible, except for the maximum dierences for b and i in the FTI
+
+
+solution, which reach 9.94 and 2.25 respectively in states in which the corresponding denominator
+
+
+is very close to zero. Still, as shown in Table 3 this makes little dierence in rst moments and is
+
+
+nearly irrelevant for second- and higher-order moments.
+
+
+
+       Table 4: Absolute Values of Dierences in Equilibrium Functions Relative to    FiPIt   Solution
+
+                                   Dierences Relative to     FiPIt Method
+                                   (1)         (2)          (3)          (4)
+                                  TIFS       FPIFS         TIFPI        FTI
+                         Max Dierence
+                         b      3.17e+00    5.71e-02      3.21e+00    9.94e+00
+                         k      2.23e-04    7.17e-07      2.23e-04    1.10e-02
+                         q      6.04e-04    1.99e-06      6.04e-04    1.30e-01
+                         c      9.72e-05    7.08e-07      9.72e-05    1.09e-02
+                         i      8.75e-02    5.79e-05      8.74e-02    2.25e+00
+                         L      4.92e-05    3.94e-07      4.92e-05    2.57e-03
+                         v      9.08e-05    7.27e-07      9.08e-05    4.76e-03
+                         gdp    3.27e-05    2.61e-07      3.27e-05    1.77e-03
+
+
+                         Mean Dierence
+                         b      6.29e-04    1.10e-05      6.37e-04    4.35e-03
+                         k      1.13e-05    2.76e-07      1.15e-05    9.81e-05
+                         q      3.16e-05    7.61e-07      3.22e-05    5.64e-04
+                         c      2.00e-05    3.22e-07      2.03e-05    7.10e-05
+                         i      1.74e-04    3.27e-06      1.76e-04    1.51e-03
+                         L      1.22e-06    3.27e-09      1.22e-06    2.38e-05
+                         v      2.24e-06    6.03e-09      2.25e-06    4.40e-05
+                         gdp    8.16e-07    2.19e-09      8.18e-07    1.62e-05
+
+
+
+
+   Figure 2 shows the ergodic marginal distributions of bonds and capital, and the ergodic joint
+
+
+marginal distribution of both variables produced by the       FiPIt   solution. As in the RBC case, the
+
+
+distributions are visually identical for all the other solution methods, including   FTI. Comparing with
+the distributions of the RBC model shown in Figure 1, we nd standard properties of SS models:
+
+
+The distribution of bonds shifts to the right because of the credit constraint and the strengthened
+
+
+
+                                                     27
+precautionary saving incentives. The distribution of capital shows higher dispersion and a fatter
+
+
+left tail because of the re-sales of capital in states in which the constraint binds.
+
+
+
+
+   0.12                                                                          0.12
+
+    0.1                                                                           0.1
+
+   0.08                                                                          0.08
+
+   0.06                                                                          0.06
+
+   0.04                                                                          0.04
+
+   0.02                                                                          0.02
+
+      0                                                                            0
+          -200    0          200                      400       600   800                   700       750         800   850
+
+             (a) Ergodic Bond Distribution                                              (b) Ergodic Capital Distribution
+
+
+
+                                               10-3
+
+
+                                                2
+                        Ergodic Distribution
+
+
+
+
+                                               1.5
+
+                                                1
+
+                                               0.5
+
+                                            0
+                                          900
+                                                                                                            400
+                                                      800
+                                                                                                  200
+                                                                700                     0
+                                                                                 -200
+                                                        Capital       600               Bond
+
+
+                                                      (c) Ergodic Distribution of Bonds and Capital
+            Figure 2: Long-run Distributions of the Sudden Stops Model solved with the FiPIt
+
+
+   Figure 3 shows the decision rules of bonds and capital, the pricing function of capital and the
+
+
+multiplier of the credit constraint for the RBC and SS models across the full state space of the
+
+
+endogenous states, B                            K, with     s   evaluated at the adverse values of the model's three shocks
+
+
+(low TFP, high interest rate, high input prices). We show results obtained with the                                     FiPIt method
+because the comparable plots for the other solution methods are visually identical.
+
+
+
+
+                                                                            28
+   The four plots show signicant dierences between the RBC and SS solutions in the region where
+
+
+the credit constraint binds and near where it binds. In particular, the SS outcomes show signicant
+
+
+non-linearities, whereas the RBC outcomes are approximately linear. The re-sales of capital when
+
+
+the constraint binds, the resulting collapse in the price of capital, and the associated sharp reversal
+
+
+in the bond position as borrowing capacity collapses due to the capital re-sales and the drop in the
+
+
+price of capital, are evident in plots (a) to (c). When the constraint binds, plot (d) shows that   µ rises
+
+sharply and at an increasing rate as   b and/or k fall.   The sharp curvature of the recursive equilibrium
+
+
+functions of the SS model highlights the advantages of using a nite-state-space solution method,
+
+
+instead of a colocation method, as well as the importance of solving using rst-order conditions and
+
+
+approximately-continuous decision rules. Decision rules that capture accurately the nonlinearities
+
+
+implied by occasionally binding constraints are critical for quantifying the positive and normative
+
+
+implications of this class of models. For their positive implications, the magnitude, dynamics and
+
+
+frequency of nancial crises depends critically on the behavior of the decision rules near and at
+
+
+the constraint.   For example, the magnitudes of the current account reversal and the collapse in
+
+
+investment depend on how far above (below) the 45 degree ray is the bonds (capital) decision rule
+
+
+in the region where the constraint binds. For the normative implications, quantifying the size of
+
+
+pecuniary externalities induced by the credit constraint and optimal macroprudential debt taxes
+
+
+that can prevent Sudden Stops hinges critically on how likely is the credit constraint expected to
+
+
+bind at t+1 and how severely, conditional on being in a state in which it does not bind at t (see
+
+
+Bianchi and Mendoza [2018]).
+
+
+
+
+                                                    29
+                    200                                                                                  900
+
+                                                                                                         800
+                    100
+
+
+
+
+                                                                                    Capital Prime
+  Bond Prime
+
+
+
+
+                                                                                                         700
+                         0
+                                                                                                         600
+                -100
+                                                                                                         500
+
+                -200                                                                                     400
+
+                    900                                                                                900
+                                                                         100                                                                                                     100
+                              800                                                                                                      800
+                                                                    0                                                                                                       0
+                                      700                    -100                                                                              700                   -100
+                                                      -200                                                                                                    -200
+                                Capital       600            Bond                                                                        Capital     600             Bond
+
+
+                                      (a) Bonds decision rule                                                                                 (b) Capital decision rule
+
+
+
+                                                                                                                   10-4
+                        1.2
+                                                                                                    Credit Constraint Multiplier
+                         1                                                                                                         4
+        Capital Price
+
+
+
+
+                        0.8
+                                                                                                                                   3
+                        0.6
+                                                                                                                                   2
+                        0.4
+                                                                                                                                   1
+                        0.2
+
+                      0                                                                                  0
+                    900                                                                                900
+                                                                         100                                                                                                     100
+                              800                                                                                                      800
+                                                                    0                                                                                                       0
+                                      700                    -100                                                                              700                   -100
+                                                      -200                                                                                                    -200
+                                Capital       600            Bond                                                                        Capital     600             Bond
+
+
+                                          (c) Price of capital                                                                           (d) Credit Constaint Multiplier
+Figure 3: Decision Rules, Price of Capital and Credit Constraint Multiplier in Sudden Stops & RBC Models
+
+Note: All plots show solutions obtained with the                         FiPIt      method. Surface plots in red (blue) are for the SS
+(RBC) model.
+
+
+          The decision rules suggest the presence of strong nancial amplication and asymmetries in the
+
+
+SS model, but they do not control for whether particular points in B  K have positive probability
+
+
+in the stochastic steady state. States with zero-probability are irrelevant for economic uctuations
+
+
+over the long run. To address this issue, we follow the methodology proposed by Mendoza [2010]
+
+
+to calculate long-run averages of impact amplication coecients and report the results in Table
+
+
+5. The coecients in this Table measure the excess response of macro variables across the SS and
+
+
+RBC solutions for each triple                            (b, k, s) that can be observed at any date t,                                                     separating the state space
+
+
+into Sudden Stop (SS) and non-Sudden Stop (NSS) regions. A triple                                                                                    (b, k, s)   belongs in the SS set
+
+
+
+                                                                               30
+if the trade balance-GDP ratio in the Sudden Stops model is 2 percentage points or more above
+
+
+its value in the RBC model at the same             (b, k, s),   otherwise it belongs in the NSS region.          The
+
+
+amplication coecients for each variable at any state               (b, k, s)   are calculated as dierences relative
+
+
+to their values in the RBC model in the same state and expressed in percent of the unconditional
+
+
+mean of the variable also in the RBC model.
+                                                   8   The averages in the SS and NSS columns of the Table
+
+
+are computed using the limiting distribution of              (b, k, s)   of the Sudden Stops model.       Hence, the
+
+
+SS averages only reect nancial amplication in Sudden Stop events that can occur with positive
+
+
+probability in the stochastic stationary equilibrium. The results in the SS column by themselves
+
+
+measure nancial amplication impact when a crisis occurs.                       Dierences across the SS and NSS
+
+
+columns illustrate asymmetry, namely the amount by which shocks of identical magnitudes generate
+
+
+dierent eects when the collateral constraint is present and active v. when is not.
+
+
+    Table 5 shows results for the        FiPIt   and   FTI    solutions only, because the other methods yield
+
+
+nearly identical results. The coecients produced by the                   FiPIt   v.   FTI   solutions dier also very
+
+
+marginally, and in most instances they are the same up to the second decimal. The Table shows
+
+
+that the occasionally binding credit constraint induces signicant amplication and asymmetry.
+
+
+Amplication coecients on factor allocations and output are relatively smaller, because on impact
+
+
+at date-t when the credit constraint binds it can only aect them via its eect on working capital
+
+
+nancing and hence on labor and imported inputs, since the date-t capital stock is pre-determined.
+
+
+    The results in Table 5 are qualitatively similar to those reported in Table 4 of Mendoza [2010],
+
+
+but quantitatively there are signicant dierences, which are again due to dierences in model
+
+
+structure (i.e.   endogenous v.     exogenous discounting) and solution methods (i.e.                  decision rules
+
+
+forced to be on grid nodes v.       interpolated decision rules, value function iteration v.               rst-order
+
+
+conditions). The SS coecients of supply side variables (i.e. GDP, labor, imported inputs and
+
+
+working capital) are smaller in our solution, while those for the rest of the variables (particularly
+
+
+investment and the price of capital) are larger.              Moreover, for supply-side variables in the NSS
+
+
+region we obtained near-zero amplication while Mendoza obtained gures ranging between -0.11
+
+
+and -0.29.   This is again reecting the improved accuracy of our algorithm.                        In theory, since   k
+
+is pre-determined at each date       t   and preferences assume away the wealth eect on labor supply,
+
+   8 Forvariables that are dened as ratios, the coecient is simply the dierence in the Sudden Stops model relative
+to the RBC model.
+
+
+
+                                                         31
+when   µ(b, k, s) = 0   the set of optimality conditions is the same in the RBC and SS models and
+
+
+in both cases all supply-side variables depend only on              (k, s).   Thus, amplication coecients for
+
+
+these variables should indeed be very close to zero numerically.                 The coecients around -0.11 to
+
+
+-0.29 Mendoza obtained for these variables in NSS states result from approximation errors when
+
+
+averaging outcomes for states in which the NSS and SS regions are adjacent, and in determining
+
+
+the value of   µ(b, k, s)   when assigning   (b, k, s)   triples to the SS and NSS sets.
+
+
+
+                        Table 5: Amplication and Asymmetry of Sudden Stop events
+                                                     (1)                       (2)
+                                                    FiPIt                     FTI
+                                               SS          NSS          SS           NSS
+                               gdp           -0.777        -0.001     -0.789         -0.001
+                               c             -3.849        -0.255     -3.882         -0.260
+                               i             -24.965       -1.036    -25.384         -1.089
+                               q             -6.090        -0.253     -6.194         -0.266
+                               nx/gdp        4.033         0.233       4.047         0.238
+                               b /gdp        4.215         0.251       4.229         0.257
+                               k /gdp        -1.667        -0.105     -1.680         -0.110
+                               lev. ratio    1.166         0.081       1.167         0.082
+                               L             -1.178        -0.001     -1.196         -0.002
+                               v             -2.146        -0.003     -2.180         -0.003
+                               w. cap        -2.160        -0.003     -2.193         -0.003
+
+Note: Sudden Stop (SS) states are dened as states in which the collateral constraint binds and the trade
+balance-GDP ratio in the Sudden Stop model is more than 2 percentage points above the trade
+balance-GDP ratio of the RBC model. The coecients are computed as mean dierences relative to the
+RBC model in percent of the RBC unconditional averages.
+
+
+   Figure 4 shows the results of a Sudden Stops event analysis applying the same methodology as
+
+
+in Mendoza [2010]. We run a 100,000 period time-series simulation of the model and dene Sudden
+
+
+Stop events as periods in which the collateral constraint binds, the trade balanceGDP ratio is one
+
+
+standard deviation above its HP trend and GDP is one standard deviation below its HP trend. We
+
+
+show results based on the       FiPIt solution. The event plots produced by the other methods are very
+similar and hence we do not include them in the paper.
+
+
+
+
+                                                            32
+                  Figure 4: Sudden Stop Event Windows (means of deviations from HP trend)
+
+                              GDP                           Private Consumption                         Investment
+           0.02                                   0.02                                   0.1
+
+           0.01
+                                                     0                                    0
+             0
+
+          -0.01                                   -0.02                                 -0.1
+
+          -0.02
+                                                  -0.04                                 -0.2
+          -0.03
+
+          -0.04                                   -0.06                                 -0.3
+               -4      -2      0      2       4        -4     -2         0    2   4         -4     -2       0        2    4
+                        T: Time Horizon                       T: Time Horizon                       T: Time Horizon
+
+                    Net Exports - GDP ratio                         Tobin Q       TFP (solid), Int Rate (dashed), Price Input (dotted)
+           0.04                                   1.04                                 0.04
+
+           0.03                                                                        0.03
+                                                  1.02
+                                                                                       0.02
+           0.02
+                                                     1                                 0.01
+           0.01
+                                                                                          0
+                                                  0.98
+             0                                                                         -0.01
+
+          -0.01                                   0.96                                 -0.02
+               -4      -2      0      2       4       -4      -2         0    2   4         -4     -2       0        2    4
+                        T: Time Horizon                       T: Time Horizon                       T: Time Horizon
+
+
+Note: Sudden Stop events in the model simulations are dened as events in which the collateral constraint
+binds, the trade balanceGDP ratio is one standard deviation above its HP trend and GDP is one standard
+deviation below its HP trend. Tobin's Q is shown in levels.
+
+
+4.3 Robustness Analysis & Credit Constraint Variations
+The last set of experiments evaluates the robustness and stability of the                           FiPIt algorithm by exam-
+ining its performance relative to the time iteration method for various parameter changes applied
+
+
+to the SS model. This is important in light of the potential instability of xed-point iteration meth-
+
+
+ods. As documented below, the              FiPIt method remains stable and continues to outperform the FTI
+method in all the experiments.                We also examine results for variations of the formulation of the
+
+
+credit constraint for which          FiPIt    does not require using a non-linear solver in states in which the
+
+
+constraint binds and found even larger gains in execution time.
+
+
+   Tables 6, 7 and 8 show long-run moments and performance metrics obtained by solving the
+
+
+Sudden Stops model using the              FiPIt and FTI            methods for these parameter changes: (a) removing
+
+
+working capital (           = 0);   (b) lowering the discount factor (                = 0.91);     (c) reducing the collateral
+
+
+coecient (        = 0.15);     (d) increasing the collateral coecient (                  = 0.25);        (e) increasing the labor
+
+
+disutility coecient (          = 2.5);    and (f ) increasing the relative risk aversion coecient (                       = 3.0).        For
+
+
+
+
+                                                                    33
+each parameter variation, the grids of capital and bonds were re-sized to obtain the fastest solution
+
+
+that does not distort the quantitative results, using identical grids for the       FiPIt and FTI solutions.
+Still, this resulted in grids of about the same dimensions: 71 or 72 nodes in B and 30 nodes in K,
+
+
+except for case (e) that needed only 62 nodes in B.
+
+
+   The dominance of the        FiPIt   method is robust to all these parameter changes, and in all cases
+
+
+the algorithm is stable and yields solutions nearly identical to the         FTI   results. Comparing across
+
+
+the cases in which the root-nder is needed to solve allocations when the credit constraint binds
+
+
+(i.e. excluding case (a)),     FTI   is 2.0 to 6.0 times slower than     FiPIt   depending on which scenario
+
+
+is considered. Comparing v. the scenario in which          FiPIt   does not need the root nder when the
+
+
+constraint binds (Col. (2) of Table 6),     FTI   is 13.0 times slower. Moreover, in most cases      FiPIt did
+not require changing the values of the dampening parameters for the updates of the decision rule
+
+
+for bonds (
+             b   = 1),   the credit constraint multiplier (
+                                                            µ   = 1)   and the pricing function (
+                                                                                                 q   = 0.3).
+
+   It is worth noting that the time iteration solutions required about the same number of iterations
+
+
+(between 87 and 100) and execution time in all the experiments except case (e), which has the
+
+
+smaller B grid and used about the same number of iterations but solved faster than the other time-
+
+
+iteration solutions. There is more variation in both number of iterations and execution times in the
+
+
+FiPIt   solutions, but the two tend to move together: The slowest solution was for case (b) which
+
+
+took 1,130 seconds and 244 iterations.
+
+
+   For the case without working capital (case (a)), Column (2) shows the results that           FiPIt yields
+when the code is modied to take into account that, since the credit constraint is now of the form
+
+
+Bj +1 (b, k, s)/R  -q
+                    ^j (b, k, s)Kj (b, k, s),   a root-nder is not needed to solve when the constraint
+
+
+binds, as explained in Section 3. We also solved an additional experiment with an alternative credit
+
+
+constraint in the same class that does not require a non-linear solver:           Bj +1 (b, k, s)/R     with   
+
+set one standard deviation below the average of        b   in the limiting distribution of the RBC model.
+
+
+These experiments illustrate the large additional gain in speed that         FiPIt yields when used to solve
+models with constraints like these. In Case (a), the  FiPIt solution is obtained in almost one-third
+of the time taken by the FiPIt algorithm that uses the non-linear solver, which implies that FiPIt
+
+
+is faster than the time iteration solution by a factor of 13.0 (v. 5.6 with the FiPIt algorithm that
+
+
+uses the non-linear solver). In the case with the constraint given by , the FiPIt solution is faster
+
+
+than the time iteration method by a factor of 17.9.
+
+
+
+                                                      34
+                     Table 6: Sudden Stops Model Variations: Working Capital & Discounting
+
+                                                        (a) Working Capital  = 0               (b) Discount factor  = 0.91
+                                           (1)                     (2)               (3)          (1)             (3)
+                                          FiPIt                   FiPIt              FTI         FiPIt           FTI
+                                                       (no root-nder when µ > 0)
+                                                     (a) Long-run moments
+
+      Mean
+      gdp                               406.361                 406.361            406.291     368.772        368.159
+      c                                 282.681                 282.681            282.564     255.219        254.877
+      i                                 69.847                   69.847             69.824     59.863         59.678
+      nx/gdp                              0.015                   0.015             0.015       0.029          0.029
+      k                                 792.035                 792.035            791.780     678.870        676.802
+      b/gdp                              -0.202                  -0.202             -0.205      -0.161         -0.160
+      q                                   1.000                   1.000             1.000       1.000          1.000
+      leverage ratio                     -0.095                  -0.095             -0.097      -0.195         -0.195
+      v                                 45.079                   45.079             45.072     39.798         39.729
+      working capital                     0.000                   0.000             0.000      71.585         71.460
+      Standard deviation (in percent)
+      gdp                                 3.71                   3.71               3.71         3.93           3.93
+      c                                   3.82                   3.82               3.82         3.91           3.92
+      i                                   13.16                  13.16              13.16        12.17         12.16
+      nx/gdp                              2.94                   2.94               2.93         2.12           2.11
+      k                                   4.44                   4.44               4.45         4.53           4.54
+      b/gdp                               20.06                  20.06              19.88        2.28           2.26
+      q                                   3.16                   3.16               3.16         2.88           2.88
+      leverage ratio                      9.47                   9.47               9.39         0.69           0.68
+      v                                   5.42                   5.42               5.43         5.97           5.97
+      working capital                       -                      -                  -          4.38           4.39
+      Correlation with GDP
+      gdp                                 1.000                  1.000              1.000       1.000          1.000
+      c                                   0.820                  0.820              0.823       0.969          0.969
+      i                                   0.593                  0.593              0.594       0.713          0.713
+      nx/gdp                             -0.083                  -0.083             -0.085      -0.310         -0.311
+      k                                   0.775                  0.775              0.776       0.754          0.754
+      b/gdp                              -0.070                  -0.070             -0.067      -0.093         -0.096
+      q                                   0.334                  0.334              0.334       0.442          0.441
+      leverage ratio                     -0.076                  -0.076             -0.073      -0.024         -0.030
+      v                                   0.795                  0.795              0.795       0.833          0.833
+      working capital                       -                       -                  -        0.988          0.988
+      First-order autocorrelation
+      gdp                                 0.834                  0.834              0.834        0.818         0.818
+      c                                   0.860                  0.860              0.860        0.759         0.759
+      i                                   0.501                  0.501              0.500        0.330         0.330
+      nx/gdp                              0.608                  0.608              0.606        0.068         0.068
+      k                                   0.962                  0.962              0.962        0.970         0.970
+      b/gdp                               0.991                  0.991              0.991        0.423         0.415
+      q                                   0.446                  0.446              0.446        0.234         0.235
+      leverage ratio                      0.992                  0.992              0.992        0.686         0.679
+      v                                   0.788                  0.788              0.788        0.756         0.757
+      working capital                       -                      -                  -          0.755         0.756
+      P(S.S)                             1.43%                   1.43%              1.49%       39.98%        40.44%
+                                                     (b) Performance metrics
+
+      Bonds Euler Equation
+      Max Log10 Abs. Euler Error          -4.17                   -4.17              -4.13       -3.56          -3.51
+      At Grid Points (b, k, s)          (1, 1, 3)               (1, 1, 3)          (1, 1, 3)   (3, 1, 3)      (3, 1, 3)
+      Mean Log10 Abs. Euler Error        -15.53                  -15.53             -13.25      -18.96         -12.07
+      Capital Euler Equation
+      Max Log10 Abs. Euler Error           15.43                 15.43               -6.36       15.40          -4.18
+      At Grid Points (b, k, s)          (72, 1, 7)             (72, 1, 7)          (1, 1, 7)   (72, 1, 7)     (2, 1, 7)
+      Mean Log10 Abs. Euler Error         -16.17                 -16.17             -12.77       -22.43        -12.23
+      Grid size (#b, #k)                (72, 30)                (72, 30)           (72, 30)    (72, 30)       (72, 30)
+      Seconds elapsed                    297                 123                   1593        1220            2405
+      Relative to FiPIt                  2.4                 1.0                    13.0        1.0             2.0
+      Number of iterations               200                 200                     95         244             87
+Note: Columns (1) are FiPIt solutions and Columns (3) are time iteration (FTI ) solutions. Column (2) shows results for the
+model with  = 0 obtained with the FiPIt algorithm without using a non-linear solver when µ > 0, since it is not needed.
+                           Table 7: Sudden Stops Model Variations: Collateral Coecient
+
+                                           (c) Lower Collateral Coe.  = 0.15      (d) Higher Collateral Coe.  = 0.25
+                                              (1)                (2)                 (1)                 (2)
+                                             FiPIt               FTI                FiPIt                FTI
+                                                        (a) Long-run moments
+
+         Mean
+         gdp                               393.503               393.433          393.728             393.659
+         c                                 276.545               276.436          271.926             271.807
+         i                                  67.442                67.420          67.517              67.495
+         nx/gdp                              0.007                 0.008           0.022               0.022
+         k                                 764.752               764.503          765.564             765.316
+         b/gdp                               0.109                 0.106           -0.070              -0.073
+         q                                   1.000                 1.000           1.000               1.000
+         leverage ratio                     -0.057                -0.059           -0.142              -0.144
+         v                                  42.604                42.596          42.630              42.622
+         working capital                    76.634                76.620          76.681              76.667
+         Standard deviation (in percent)
+         gdp                                  3.91                3.91               3.96              3.96
+         c                                    3.87                3.87               4.20              4.20
+         i                                   13.23                13.22             13.43              13.43
+         nx/gdp                               2.90                2.89               3.02              3.01
+         k                                    4.43                4.44               4.54              4.55
+         b/gdp                               19.10                18.92             20.73              20.55
+         q                                    3.18                3.18               3.23              3.23
+         leverage ratio                       8.96                8.88               9.76              9.68
+         v                                    5.87                5.87               5.91              5.91
+         working capital                      4.33                4.33               4.38              4.38
+         Correlation with GDP
+         gdp                                 1.000                1.000            1.000              1.000
+         c                                   0.842                0.844            0.836              0.839
+         i                                   0.641                0.642            0.640              0.640
+         nx/gdp                             -0.085                -0.088           -0.145             -0.148
+         k                                   0.758                0.758            0.763              0.763
+         b/gdp                              -0.169                -0.167           -0.072             -0.069
+         q                                   0.390                0.390            0.385              0.385
+         leverage ratio                     -0.165                -0.164           -0.060             -0.057
+         v                                   0.831                0.831            0.833              0.833
+         working capital                     0.995                0.995            0.994              0.994
+         First-order autocorrelation
+         gdp                                 0.823                0.823             0.826              0.826
+         c                                   0.823                0.822             0.837              0.837
+         i                                   0.500                0.499             0.501              0.501
+         nx/gdp                              0.602                0.600             0.607              0.604
+         k                                   0.961                0.961             0.962              0.962
+         b/gdp                               0.989                0.988             0.991              0.991
+         q                                   0.447                0.447             0.446              0.446
+         leverage ratio                      0.990                0.990             0.993              0.993
+         v                                   0.776                0.776             0.777              0.777
+         working capital                     0.800                0.800             0.802              0.802
+         P(S.S)                             2.90%                 2.98%            1.34%              1.45%
+                                                        (b) Performance metrics
+
+         Max Log10 Abs. Euler Error          -3.59                 -3.53            -3.57              -3.52
+         At Grid Points (b, k, s)          (1, 1, 3)             (1, 1, 3)        (1, 2, 3)          (1, 1, 3)
+         Mean Log10 Abs. Euler Error        -14.11                -12.09           -14.96             -12.71
+         Capital Euler Equation
+         Max Log10 Abs. Euler Error           15.37                -4.22             15.37             -4.14
+         At Grid Points (b, k, s)          (71, 1, 7)            (1, 1, 7)        (72, 1, 7)         (1, 1, 7)
+         Mean Log10 Abs. Euler Error         -16.28               -12.38            -16.24            -12.56
+         Grid size (#b, #k)                (71, 30)              (71, 30)         (72, 30)           (72, 30)
+         Seconds elapsed                     1066              2668                  657               1604
+         Relative to FiPIt                    1.0               2.5                  1.0                 2.4
+         Number of iterations                196                94                   196                  94
+Note: Columns (1) are for the FiPIt algorithm. Columns (2) are for the full time iteration method (FTI ).
+                    Table 8: Sudden Stops Model Variations: Labor Elasticity & Risk Aversion
+
+                                                 (e) Higer Labor Coef.  = 2.5        (f) Higher Risk Aversion  = 3
+                                                    (1)            (2)                   (1)             (2)
+                                                   FiPIt           FTI                 FiPIt            FTI
+                                                              (a) Long-run moments
+
+               Mean
+               gdp                               110.477            110.441          393.797         393.722
+               c                                  78.995            78.897           277.504         277.357
+               i                                  18.937            18.924           67.534          67.509
+               nx/gdp                             -0.007             -0.006            0.005          0.005
+               k                                 214.735            214.586          765.801         765.531
+               b/gdp                               0.289             0.278            0.138           0.134
+               q                                   1.000             1.000            1.000           1.000
+               leverage ratio                      0.027             0.023            -0.044          -0.045
+               v                                  11.960            11.956           42.639          42.630
+               working capital                    21.514            21.507           76.697          76.682
+               Standard deviation (in percent)
+               gdp                                  3.33              3.33              3.97          3.98
+               c                                    6.31              6.24              4.35          4.35
+               i                                   13.11             13.11              13.46         13.46
+               nx/gdp                               5.39              5.31              3.25          3.24
+               k                                    4.32              4.34              4.59          4.61
+               b/gdp                               56.17             55.03              28.69         28.55
+               q                                    3.17              3.17              3.23          3.23
+               leverage ratio                      26.48             25.94              13.55         13.49
+               v                                    5.40              5.41              5.91          5.92
+               working capital                      3.76              3.77              4.39          4.40
+               Correlation with GDP
+               gdp                                 1.000             1.000            1.000           1.000
+               c                                   0.451             0.463            0.744           0.747
+               i                                   0.614             0.614            0.638           0.639
+               nx/gdp                             -0.077             -0.084           -0.059          -0.062
+               k                                   0.755             0.756            0.765           0.765
+               b/gdp                              -0.039             -0.034           -0.058          -0.054
+               q                                   0.366             0.365            0.381           0.381
+               leverage ratio                     -0.043             -0.037           -0.048          -0.044
+               v                                   0.797             0.797            0.834           0.834
+               working capital                     0.992             0.992            0.995           0.995
+               First-order autocorrelation
+               gdp                                 0.820             0.821              0.828         0.828
+               c                                   0.941             0.939              0.894         0.894
+               i                                   0.489             0.489              0.506         0.506
+               nx/gdp                              0.857             0.852              0.733         0.731
+               k                                   0.960             0.960              0.963         0.963
+               b/gdp                               0.995             0.995              0.995         0.995
+               q                                   0.435             0.435              0.450         0.450
+               leverage ratio                      0.995             0.995              0.996         0.996
+               v                                   0.768             0.769              0.779         0.779
+               working capital                     0.793             0.794              0.804         0.805
+               P(S.S)                             3.38%              3.66%            1.29%           1.35%
+                                                              (b) Performance metrics
+
+               Bonds Euler Equation
+               Max Log10 Abs. Euler Error          -3.43              -3.37            -3.82           -3.75
+               At Grid Points (b, k, s)          (1, 1, 7)          (1, 1, 7)        (2, 1, 7)       (2, 1, 7)
+               Mean Log10 Abs. Euler Error        -14.27             -13.16           -15.11          -12.41
+               Capital Euler Equation
+               Max Log10 Abs. Euler Error           14.09             -4.46            16.30           -3.90
+               At Grid Points (b, k, s)          (62, 1, 7)         (1, 1, 7)        (71, 1, 7)      (1, 1, 7)
+               Mean Log10 Abs. Euler Error         -14.76            -12.52            -17.13         -12.56
+               Grid size (#b, #k)                (62, 30)           (62, 30)         (71, 30)        (71, 30)
+              Seconds elapsed                      283             1700              1108           3533
+              Relative to FiPIt                    1.0              6.0               1.0            3.2
+              Number of iterations                 163              98                246            100
+Note: Columns (1) are for the FiPIt algorithm. Columns (2) are for the full time iteration method (FTI ).
+4.4 Sketch of Other FiPIt Applications
+Applying the  FiPIt algorithm requires mainly a xed-point iteration strategy to iterate on recursive
+functions using Euler equations. In the RBC and SS models we solved, we examined, FiPIt was
+
+
+applied to the Euler equation for bonds to solve for the bonds decision rule and to the Euler equation
+
+
+for capital to solve for the price of capital. The Tobin's Q investment optimality condition was used
+
+
+to determine the decision rule for capital given the capital pricing function.             It is possible to re-
+
+
+arrange the solution in other ways that        FiPIt may still accommodate, for example conjecturing the
+bonds and capital decision rules and using the two Euler equations to solve for their updates.
+
+
+   Applying the above principles to other model specications so that they can be solved using
+
+
+FiPIt seems relatively straightforward. We provide here a brief sketch of four examples:
+  1. Mendoza [1995]: This is an RBC small open economy with incomplete markets and three
+
+
+     sectors, quadratic capital adjustment costs given by           (/2)(kt+1 - kt )2 ,   and a maximum debt
+
+
+     limit as the only occasionally binding constraint. The model has endogenous discounting, but
+
+
+     consider a variant with a standard constant discount factor. The adjustment costs formulation
+
+
+     does not satisfy the Hayashi conditions required for the average and marginal Tobin's Q to
+
+
+     be the same, but for implementing            FiPIt   dene a quasi capital pricing function given by
+
+
+     qt  1 + (kt+1 - kt ),       so that given a conjecture of this pricing function we can obtain an
+
+
+     implied capital decision rule.       Start with this pricing conjecture and a conjectured bonds
+
+
+     decision rule. The model's equilibrium conditions, the implied capital decision rule, and the
+
+
+     bonds decision rule can be used so that the resource constraint for tradable goods yields an
+
+
+     implied decision rule for tradables consumption.         FiPIt can then be used on the Euler equation
+     for bonds to solve for a new tradables consumption decision rule, and the resource constraint
+
+
+     yields a new bonds decision rule.     FiPIt can then be applied to the Euler equation for capital
+     to solve for a new   q   function.
+
+
+
+  2. Ludwig and Schön [2018]: This is a model of optimal human capital accumulation                    h   with a
+
+
+     no-borrowing constraint on an asset          a   that pays an exogenous interest rate     R   (i.e. a small
+
+
+     open economy). Human capital depreciates at rate               and is produced with a concave function
+
+
+     of human capital investment      f (i).   Agents have CRRA period utility and an exogenous prob-
+
+
+     ability of survival given by an increasing, concave function          s(h).   To solve using   FiPIt, start
+                                                        38
+  with a conjectured decision rule for assets        ^(a, h)
+                                                     A         and a conjecture for the shadow relative
+
+
+  price of human capital investment       ^
+                                          ~(a, h)
+                                          µ         where   µ  µ/    and       and   µ    are the multipliers on
+
+
+  the resource constraint and law of motion of human capital accumulation respectively. Given
+
+
+  these conjectures, the model's equilibrium conditions yield implied decision rules for human
+
+
+  capital, consumption and investment in human capital.              Then      FiPIt      can be applied to the
+
+
+  Euler equation on assets to solve for a new consumption decision rule and using the result in
+
+
+  the resource constraint yields a new decision rule for assets        A(a, h).      If   A(a, h) < 0,   re-dene
+
+
+  the decision rule as     A(a, h) = 0,   set the associated consumption to the amount supported
+
+
+  by the resource constraint, and compute the ratio            /   (where       is the multiplier on the no-
+
+
+  borrowing constraint). Finally, rewrite the Euler equation for human capital in terms of the
+
+
+  ratio   µ/   and apply   FiPIt   to solve for a new decision rule for     ~.
+                                                                            µ    There is no need to use a
+
+
+  root-nder in this case.
+
+
+
+3. Mendoza and Smith [2006]: This is a stochastic model of a small open economy in which agents
+
+
+  trade in world bond markets and in a market where equity on the economy's capital can be
+
+
+  bought by foreign investors, who face a quadratic cost of purchasing equity. A productivity
+
+
+  shock aects equity returns. There is a credit constraint imposing a limit on the ratio of debt
+
+
+  to the market value of the equity holdings of domestic agents, and a short-selling limit on
+
+
+  the equity position. Given conjectures of the decision rule for bonds and the equity pricing
+
+
+  function, the optimality condition of foreign investors and market clearing conditions yield an
+
+
+  implied decision rule for equity holdings (the quadratic adjustment cost plays a role similar
+
+
+  to the capital adjustment cost in the SS model we solved earlier). Given these, the resource
+
+
+  constraint of the small open economy yields a decision rule for consumption. Assuming the
+
+
+  credit constraints do not bind,     FiPIt can then be applied to the bonds Euler equation to solve
+  for a new consumption decision rule, and the resource constraint yields a new bonds decision
+
+
+  rule. If the latter yields a value that violates the credit constraint, the constraint is imposed
+
+
+  with equality to obtain new values for the bonds decision rule and consumption, and for the
+
+
+  ratio of the multiplier of the borrowing constraint.           Finally,   FiPIt    is applied to the Euler
+
+
+  equation for equity holdings to obtain a new equity pricing function.
+
+
+
+4. Huggett [1993]: This is one of the canonical heterogeneous agents models in which a continuum
+
+
+
+                                                    39
+     of agents trade non-state-contingent debt facing idiosyncratic Markov income shocks and a
+
+
+     maximum debt limit. The optimization problem solved by an individual agent, who takes an
+
+
+     exogenously-determined value of the interest rate as given, is identical to that of the small open
+
+
+     endowment economy studied in Section 2, which has only one endogenous state variable. Start
+
+
+     with a conjectured decision rule for bonds, use the resource constraint to obtain the implied
+
+
+     decision rule for consumption.    Then apply     FiPIt   to solve for a new consumption decision
+
+
+     rule, and use the resource constraint to obtain a new bonds decision rule. If the latter violates
+
+
+     the maximum debt limit, redene to bonds decision rule to match the debt limit and set the
+
+
+     associated consumption decision rule to the amount supported by the resource constraint.
+
+
+     Iterate to convergence on the bonds decision rule and then use the decision rules and Markov
+
+
+     process of income shocks to compute the ergodic distribution of bonds and income (i.e. the
+
+
+     wealth and income distribution across agents). The dierence with the small open economy
+
+
+     is that now the interest rate is also part of the solution.     The ergodic distribution is used
+
+
+     to compute the aggregate demand for bonds (i.e. the mean of asset demand across agents),
+
+
+     which must be equal zero at equilibrium in order to clear the bond market. If it yields exceeds
+
+
+     demand (supply), the interest rate is reduced (increased) until the market-clearing condition
+
+
+     holds up to a convergence criterion. Again   FiPIt does not require a root nder.
+
+5 Conclusions
+FiPIt is a simple and fast algorithm designed to solve macroeconomic models with two endogenous
+state variables and occasionally binding constraints using widely used software.       The algorithm
+
+
+applies xed-point iteration on the Euler equations and by doing so it avoids solving the Euler
+
+
+equations as a non-linear system, as with the standard time iteration method, and does not require
+
+
+interpolation of decision rules over irregular grids, as with the endogenous grids method. Analytic
+
+
+solutions are obtained for recursive equilibrium functions in each iteration of the algorithm, and
+
+
+standard bi-linear interpolation for obtaining these analytic solutions remains applicable.
+
+
+   The   FiPIt   algorithm can handle a large class of occasionally binding constraints, including
+
+
+constraints set to xed values as well as constraints that depend on endogenous variables. If the
+
+
+constraints are such that equilibrium allocations and prices when the constraints bind must be
+
+
+
+
+                                                 40
+solved jointly with their associated multipliers, FiPIt does need a root-nder in states in which the
+constraint bind, but for a large class of constraints the two can be solved separately and FiPIt does
+
+
+not require a non-linear solver anywhere. In contrast, the endogenous grid method requires a root
+
+
+nder whenever the constraint binds.
+
+
+   We documented the performance gains and accuracy of           FiPIt   by comparing the solutions it
+
+
+produces for RBC and Sudden Stops models of a small open economy vis-a-vis solutions obtained
+
+
+with the time iteration method, and hybrid methods that combine xed-point and time iteration
+
+
+techniques. In addition, we explored the robustness of our algorithm by documenting solutions for
+
+
+six parameter variations. The algorithm was coded in Matlab and executed in a standard Windows
+
+
+laptop. In all cases,   FiPIt produced quantitative outcomes nearly identical to time iteration results
+at large gains in speed and comparable accuracy as measured by Euler equation errors.             Time
+
+
+iteration solutions exceeded execution time relative to     FiPIt   solutions by factors of 2.0 to 17.9.
+
+
+The largest gains were obtained in cases in which     FiPIt does not use root-nders anywhere, which
+include the RBC solution (since it only has a standard maximum debt constraint) and instances
+
+
+of the Sudden Stops model in which solving for allocations when the credit constraint binds does
+
+
+not require a non-linear solver. In these cases, time iteration took 15.1 and 17.9 times longer than
+
+
+FiPIt.   In the baseline Sudden Stops model, which does need the solver to determine allocations
+
+
+when the constraint binds, time iteration took 2.5 times longer than      FiPIt to solve the model.
+   The   FiPIt algorithm can be extended to other models with two endogenous states. Performance
+gains are likely to be even larger if the algorithm is coded in languages that are more ecient
+
+
+at handling high-dimensional, sequential loops and parallel optimization, such as Julia, Fortran
+
+
+or Python. The large gains in speed and simplicity of the algorithm also open up the possibility
+
+
+of exploring research topics such as Bayesian estimation of models of nancial crisis driven by
+
+
+occasionally binding collateral constraints.
+
+
+
+
+                                                    41
+References
+S Bora§an Aruoba, Jesus Fernandez-Villaverde, and Juan F Rubio-Ramirez. Comparing solution
+
+
+  methods for dynamic equilibrium economies.     Journal of Economic dynamics and Control, 30(12):
+  24772508, 2006.
+
+
+
+Javier Bianchi and Enrique G. Mendoza. Optimal time-consistent macroprudential policy.    Journal
+  of Political Economy, 126(2):588634, 2018.
+Javier Bianchi, Chenxin Liu, and Enrique G Mendoza. Fundamentals news, global liquidity and
+
+
+  macroprudential policy.    Journal of International Economics, 99:S2S15, 2016.
+Emine Boz and Enrique G Mendoza. Financial innovation, the discovery of risk, and the us credit
+
+
+  crisis.   Journal of Monetary Economics, 62:122, 2014.
+Johannes Brumm and Michael Grill.        Computing equilibria in dynamic models with occasionally
+
+
+  binding constraints.   Journal of Economic Dynamics and Control, 38:142160, 2014.
+Christopher D Carroll. The method of endogenous gridpoints for solving dynamic stochastic opti-
+
+
+  mization problems.     Economics letters, 91(3):312320, 2006.
+Christopher D Carroll. Lecture notes on solution methods for representative agent dynamic stochas-
+
+
+  tic optimization problems.    Mimeo, 2011.
+Wilbur John Coleman. Solving the stochastic growth model by policy-function iteration.    Journal
+  of Business & Economic Statistics, 8(1):2729, 1990.
+Bora Durdu, Oliver de Groot, and Enrique Mendoza. Global v. local methods in the quantitative
+
+
+  analysis of open-economy models with incomplete markets.        Mimeo, 2019.
+Jeremy Greenwood, Zvi Hercowitz, and Gregory W Human. Investment, capacity utilization, and
+
+
+  the real business cycle.   The American Economic Review, pages 402417, 1988.
+Luca Guerrieri and Matteo Iacoviello. Occbin: A toolkit for solving dynamic models with occasion-
+
+
+  ally binding constraints easily.   Journal of Monetary Economics, 70:2238, 2015.
+
+
+                                                  42
+Mark Huggett. The risk-free rate in heterogeneous-agent incomplete-insurance economies.   Journal
+  of economic Dynamics and Control, 17(5-6):953969, 1993.
+Kenneth L Judd.   Numerical methods in economics. MIT press, 1998.
+Lars Ljungqvist and Thomas J Sargent.     Recursive macroeconomic theory. MIT press, 2012.
+Alexander Ludwig and Matthias Schön. Endogenous grids in higher dimensions: Delaunay interpo-
+
+
+  lation and hybrid methods.   Computational Economics, 51(3):463492, 2018.
+Enrique G Mendoza. The terms of trade, the real exchange rate, and economic uctuations.        Inter-
+  national Economic Review, pages 101137, 1995.
+Enrique G Mendoza. Sudden stops, nancial crises, and leverage.    American Economic Review, 100
+  (5):194166, 2010.
+
+
+
+Enrique G Mendoza and Katherine A Smith. Quantitative implications of a debt-deation theory
+
+
+  of sudden stops and asset prices.   Journal of International Economics, 70(1):82114, 2006.
+Pontus Rendahl. Inequality constraints and euler equation-based solution methods.   The Economic
+  Journal, 125(585):11101135, 2015.
+
+
+
+
+                                                 43
+

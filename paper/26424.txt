@@ -1,0 +1,2029 @@
+                               NBER WORKING PAPER SERIES
+
+
+
+
+                         DEMAND ANALYSIS WITH MANY PRICES
+
+                                      Victor Chernozhukov
+                                       Jerry A. Hausman
+                                       Whitney K. Newey
+
+                                       Working Paper 26424
+                               http://www.nber.org/papers/w26424
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                   November 2019
+
+
+
+
+Research for this paper was supported by NSF Grant 1757140. Helpful comments were provided
+by R. Blundell, B. Deaner, Y. Gao, M. Harding, S. Hoderlein, M. Keene, and J. Shapiro. B.
+Deaner, Y Gao, M. Hardy, and K. Quist provided excellent research assistance. The empirical
+work here is researchers own analyses based in part on data from The Nielsen Company (US),
+LLC and marketing databases provided through the Nielsen Datasets at the Kilts Center for
+Marketing Data Center at The University of Chicago Booth School of Business. The conclusions
+drawn from the Nielsen data are those of the researchers and do not reflect the views of Nielsen,
+nor of the National Bureau of Economic Research. Nielsen is not responsible for, had no role in,
+and was not involved in analyzing and preparing the results reported herein.
+
+At least one co-author has disclosed a financial relationship of potential relevance for this
+research. Further information is available online at http://www.nber.org/papers/w26424.ack
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2019 by Victor Chernozhukov, Jerry A. Hausman, and Whitney K. Newey. All rights reserved.
+Short sections of text, not to exceed two paragraphs, may be quoted without explicit permission
+provided that full credit, including © notice, is given to the source.
+Demand Analysis with Many Prices
+Victor Chernozhukov, Jerry A. Hausman, and Whitney K. Newey
+NBER Working Paper No. 26424
+November 2019
+JEL No. C13,C14,C21,C23,C55,D12
+
+                                         ABSTRACT
+
+From its inception, demand estimation has faced the problem of "many prices." This paper
+provides estimators of average demand and associated bounds on exact consumer surplus when
+there are many prices in cross-section or panel data. For cross-section data we provide a debiased
+machine learner of consumer surplus bounds that allows for general heterogeneity and solves the
+"zeros problem" of demand. For panel data we provide bias corrected, ridge regularized
+estimators of average coefficients and consumer surplus bounds. In scanner data we find smaller
+panel elasticities than cross-section and that soda price increases are regressive.
+
+
+Victor Chernozhukov                             Whitney K. Newey
+Department of Economics                         Department of Economics, E52-424
+Massachusetts Institute of Technology           MIT
+77 Massachusetts Avenue                         50 Memorial Drive
+Cambridge, Mass. 02139                          Cambridge, MA 02142
+vchern@mit.edu                                  and NBER
+                                                wnewey@mit.edu
+Jerry A. Hausman
+Department of Economics, E52-518
+MIT
+50 Memorial Drive
+Cambridge, MA 02142
+and NBER
+jhausman@mit.edu
+1       Introduction
+Estimation of demand models has a long history in econometrics. Beginning in the 1950s during
+the "Stone age" of econometrics at Cambridge University and elsewhere, applied researchers
+began estimating systems of demand equations as computer power increased.1 From its incep-
+tion, demand estimation faced the problem of "many prices." A demand system of  goods for
+person  takes the form  =  (       ), where  is an vector of quantities demanded,  is
+an -vector of prices,  is a measure of income or expenditure,  is a conditioning variable for
+the individual and potentially for variables that are time specific, and  is a vector of unknown
+dimension (potentially an infinite vector) of an unobserved heterogeneity term and stochas-
+tic terms. Since  has high dimension, the presence of many goods and many prices creates
+problems for demand estimation.2
+    While some aggregation across goods is always necessary, the problem of many prices remains
+even after aggregation. Omission of relevant prices creates an omitted-variables problem, which
+leads to biased estimates. A number of approaches have been used on the many-prices problem.
+The Hicks-Leontief composite commodity theorem states that if prices move together for a group
+of commodities, i.e. relative prices are constant, they can be treated as a single good.3 This type
+of aggregation is often used, at least implicitly. Another common approach is to assume some
+form of separability of preferences. If demand for some goods is independent of the demand and
+prices of other goods, no omitted variables problems will exist. A more sophisticated approach
+using this idea is to assume two-stage budgeting. At the top stage the consumer determines how
+much to spend on, say, food using price indices for food and other groups of expenditure. At the
+second stage the consumer determines the price index for food and demand for individual food
+products using only food prices and food expenditure. The required conditions for exact two-
+stage budgeting can be weakened and further results by Gorman (1959, 1981) used.4 Separability
+can also be tested using specification tests. However, all the approaches to separability place
+strong assumptions on the demand system, such as approximate homotheticity, where budget
+shares do not depend on expenditure, or quasi-homotheticity, where budget shares are linear
+functions of expenditure so that Engel curves are linear. A last approach not using separability
+assumptions uses statistical aggregation for the many prices to a price index which, however, is
+independent of consumer preferences.5
+    1
+     Named after Richard Stone, director of the Department of Applied Economics and co-inventor of the Stone-
+Geary demand system.
+   2
+     For example, a typical supermarket has approximately 50,000 individual products.
+   3
+     See e.g. Deaton and Muellbauer (1980) for a discussion of separability approaches.
+   4
+     Blundell and Robin (2000) introduce latent separability in demand systems but, again, the required condi-
+tions are quite strong in terms of the cross price effects among goods.
+   5
+     A recent approach is by Holderlein and Lewbel (2012), who use principal components to reduce the dimension
+of prices.
+
+
+                                                      2
+     An observation arising from economic theory is that often, but not always, the policy question
+of interest depends on only one, or a very few, price effects. For example, estimation of consumer
+surplus and deadweight loss typically depend only on the own price effect since, all other prices
+are held constant.6 Another example is merger analysis, where the price effect of the merger
+depends mostly on the cross-price effect of the merging goods, so if single-product firms are
+merging, only the cross price effect between the two goods which, by Slutsky, are equal in both
+directions, matters.7 Another common feature is that cross-price effects for goods that are not
+closely related tend to be small, e.g. of an order of magnitude smaller than own-price effects.
+     These observations suggest that machine learning (ML) methods could be used to mitigate
+the curse of dimensionality this type of situation, e.g. Lasso. Exact sparsity (zero cross-price
+effects) is not required for estimating the objects of interest, only approximate sparsity. Thus,
+to estimate consumer surplus (CS) and the bounds on consumer surplus (BCS) along with
+the associated deadweight loss (DWL), we employ modern machine-learning methods to first
+estimate average demand for products in the presence of many substitute and complementary
+products. Here the average demand function is "high-dimensional" in that it may depend on
+a high-dimensional price vector of prices and other features such as expenditure and consumer
+characteristics. ML methods can perform well for estimating such high-dimensional demand by
+employing regularization to reduce variance and trading off regularization bias with overfitting
+in practice. The regularization used by Lasso mitigates the curse of dimensionality by setting
+many coefficients equal to zero.
+     Both regularization bias and overfitting in estimating demand cause a heavy bias in estima-
+tors of BCS that are obtained by naïvely plugging ML estimators of demand into the definition
+of BCS. This bias results in the naïve estimator failing to be root-  consistent, where  is the
+sample size. The impact of regularization bias and overfitting on estimation of the parameter
+of interest can be removed by using double/debiased machine learning (DML), which relies on
+two critical ingredients:
+    1. using debiased/locally robust/orthogonal moments/scores that have reduced sensitivity
+       with respect to unknown functions (the average expenditure share in our case) to estimate
+       CS/BCS and
+    2. making use of cross-fitting, which provides an efficient form of data-splitting.
+     By constructing the debiased moment equation, our DML estimators of BCS are root ()-
+consistent and are approximately unbiased and normally distributed, which allows us to con-
+struct valid confidence statements. We focus our estimates of high-dimensional average share
+based on Lasso, although the overall strategy can also be used in conjunction with other ML
+  6
+    See e.g. Hausman (1981) and Hausman and Newey (1995).
+  7
+    See e.g. Hausman, Leonard and Zona (1994) and Hausman, Morisi, and Rainey (2010) and more generally
+the 2010 DOJ and FTC Horizontal Merger Guidelines.
+
+
+
+                                                  3
+methods. This approach to estimate BCS when demand depends on many prices is a main
+contribution of our paper.
+    This paper allows for general consumer heterogeneity through the multidimensional  in
+the demand function (       ). Hausman and Newey (2016) find that in a single cross
+section of individuals that the demand functions are not identified. If the demand functions
+are linear, parameter estimates may find the mean preference of the "representative consumer."
+However, typically, demand systems are non-linear because of the presence of the budget con-
+straint and non-homotheticity as demonstrated in the often-used AIDs demand system of Deaton
+and Muellbauer (1980).8 Thus, Hausman and Newey (2016) developed the BCS approach based
+                                         R
+on the average demand      ¯(     ) =  (      )() where  () denotes the distribu-
+tion of heterogeneity. Empirically, the bounds are found to be close to each other. This paper
+also allows for  to be correlated with income   which can occur because  is set equal to
+total expenditure. We control for this source of endogeneity by using a control variable  such
+that preferences are independent of prices, total expenditure, and covariates conditional on  ,
+similarly to Hausman and Newey (2016).
+    Another methodological contribution is to treat the "zero problem" of demand estimation as
+a demand choice, not as a result of a stochastic disturbance. For example, consumer data which
+considers alcohol or tobacco consumption will have many individuals with zero consumption.
+In typical demand estimation, where identical parameters are assumed across individuals, zero
+consumption must occur because of a stochastic disturbance, since similar individuals both
+consume and do not consume the same good, e.g. alcohol. However, with a vector of disturbances
+ of unknown dimension, we allow zero purchases to be the outcome of a demand choice rather
+than the outcome of a stochastic disturbance. Thus, some consumers have preferences such
+that they will not consume alcohol or tobacco. Allowing for preference variation and including
+the zeros in the demand estimation is the correct econometric approach for estimating average
+demand. Similarly, including the zero-consumption outcomes in the estimate of CS and BCS is
+the correct approach for policy analysis. This approach to zero consumption outcomes greatly
+simplifies the analysis and estimation of demand systems.
+    An additional contribution is to use panel data to control for prices and total expenditure
+that may be correlated with preferences. Such correlation could result from consumers with
+higher elasticities searching more intensively for lower prices. We estimate separate own price
+and income effects for each individual and then average them to obtain average price effects. We
+regularize using ridge regression for each individual and debias to correct for ridge regularization
+on average. The resulting average slope estimators are unbiased if individual coefficients are
+independent of regressors and otherwise are a weighted average of individual coefficients with
+more strongly identified individual coefficients weighted more heavily. We give inference theory,
+  8
+      Other demand systems such as the translog are also non-linear in the absence of homotheticity.
+
+
+                                                        4
+including primitive conditions for large enough, fixed number of time periods.
+    We compare these methods in estimating average share regressions using scanner data for
+soda and other commodities. We use these estimates to bound average welfare effects of an
+increase in the price of soda, as would occur if soda were taxed more heavily. For the cross-
+section estimators we use share regression specifications that allow for nonlinearity in log prices
+and log income. For the panel results we consider a share regression that is linear in log prices and
+income. This functional form is more parsimonious than our cross-section models, motivated by
+the few numbers of observations for each individual. We find panel elasticities are substantially
+smaller than the cross section estimates, strongly suggesting that prices are correlated with
+preferences. We also find less striking differences between cross-section and panel estimates of
+average surplus bounds.
+    Choice models with general heterogeneity have previously been considered. In their analysis
+of nonlinear taxes, Burtless and Hausman (1978) allowed heterogenous income effects. Lewbel
+(2001) considered the implications of such models for conditional mean regressions. McFadden
+(2005) allowed for general heterogeneity in a revealed preference framework. The approach here
+specializes the revealed preference work in imposing single valued, smooth demands to facilitate
+estimation, as in Hausman and Newey (2016). Blomquist and Newey (2002) derived the form of
+average demand with nonparametric, nonseparable, scalar heterogeneity and nonlinear taxes and
+Blomquist, Kumar, Liang, and Newey (2014) showed the same form for general heterogeneity.
+Hoderlein and Stoye (2014) showed how to impose the weak axiom of revealed preference. Dette,
+Hoderlein, and Neumeyer (2016) proposed tests of downward sloping compensated demands.
+Bhattacharya (2015) derived average surplus for discrete demand and general heterogeneity.
+Kitamura and Stoye (2018) gave tests of the revealed preference hypothesis.
+    The double machine learning estimator is novel in the use of a minimum distance Lasso
+method to debias the estimator when using a control variable. The estimator and theory build
+on that of Chernozhukov, Newey, and Robins (2018) and Chernozhukov, Newey, and Singh
+(2018) for minimum distance Lasso bias correction without a control function. This work in
+turn builds on Belloni et al. (2012) and Belloni, Chernozhukov and Hansen (2013) on debiased
+machine learning.
+    For panel data Chamberlain (1982, 1992), Pesaran and Smith (1995), Wooldridge (2005),
+Arellano and Bonhomme (2012), Chernozhukov, Fernandez-Val, Hahn, and Newey (2013), and
+Graham and Powell (2012) have considered averaging individual slope estimates. The bias
+corrected average ridge estimator given here appears to be novel as does the associated inference
+theory.
+    Harding and Lovenheim (2017) analyze the role of prices in determining food purchases and
+nutrition and estimate the impact of taxes on nutrition and individual welfare. Allcott, H., B.
+B. Lockwood, and D. Taubinsky (2019) and Dubois, P., R. Griffith, and M. O'Connell (2019)
+
+
+                                                 5
+have also considered the welfare effects of taxing soda. Our results are complementary to theirs
+in the use of grocery store scanner data, allowance for nonparametric, general heterogeneity in
+the cross-section, including zeros in regressions, and in the comparison of cross-section and panel
+results.
+
+
+2    Demand and Weighted Average Surplus
+We consider a demand model where the form of heterogeneity is unrestricted. To describe the
+model let  denote the quantity of a vector of goods,  the quantity of a numeraire good,  the
+price vector for  relative to , and  the individual income level relative to the numeraire price.
+The unobserved heterogeneity will be represented by a vector  of unobserved disturbances of
+unknown dimension. We think of each value of  as corresponding to a consumer but do allow
+ to be continuously distributed.
+    For each consumer  the demand function  (  ) will be obtained by maximizing a utility
+function  (   ) that is monotonic increasing in  and  subject to the budget constraint,
+with
+                          (   ) = arg max  (  ) s.t. 0  +                                   (2.1)
+                                         00
+
+Here we assume that demand is single valued and not a correspondence. This assumption
+is essentially equivalent to strict quasi-concavity of the utility function. We impose no form
+on the way  enters the utility function  and hence the form of heterogeneity is completely
+unrestricted.
+    For analyzing the effect of price changes on welfare we focus on equivalent variation. Let
+(  ) = min00 {0  +  s.t.  (  )  } be the expenditure function and  (  ) =
+ - (0  1  ) be the equivalent variation for individual  for a price change from 0 to 1
+with income  and 1 the utility at price 1 . The corresponding deadweight loss is (  ) =
+ ( ) - (1 - 0 )0  (1    )
+    In the remainder of this paper we focus on the case where the first price 1 changes from     1
+to a higher value  ¯1 and the other prices 2 in  = (1  02 )0 are fixed. In that case the equivalent
+variation  (2   ) will also depend on the other prices 2  Also, in many applications it may
+be useful to allow for covariates. Covariates  represent observed sources of heterogeneity in
+preferences that are allowed to be correlated with prices and income and are independent of
+preference heterogeneity  In that case the equivalent variation  (2    ) will also depend
+on . For notation we will find it convenient to put the prices, income, and covariates into one
+vector  = (0   0 )0 and partition as  = (1  02 )0  Also we denote the equivalent variation and
+demand for the first good as  (2   ) and 1 (  )
+    Our object of interest is the average equivalent variation (AEV) weighted by a function  (2 )
+
+
+                                                6
+that depends on observed variables 2 other than 1  given by
+
+                                    0 =  [ (2 ) (2   )]
+
+Following Hausman and Newey (2016) we can use bounds on income effects to construct an
+identified set for 0 using expected demand. The bound on income effects takes the following
+form.
+
+   Assumption 1: There are   ¯
+                              such that for all 1  [1  ¯1 ] (2   ) and   [0  (2   )]
+
+           (2 ) ·  ·    (2 )[1 (   ) - 1 (  -    )]  (2 ) · ¯
+                                                             · 
+
+
+    This condition places upper and lower Lipschitz bounds on income effects, as we will further
+discuss below.
+    The bound on income effects leads to a BCS of the form
+                                    Z ¯1
+                         (2   ) =        1 ( 2  ) exp(- [ -     1 ])                       (2.2)
+                                      1
+
+where  is a scalar variable of integration for the first price and  is equal to  or ¯       from
+Assumption 1. If  =  (or  = ¯        ) then  (2  ) is an upper (lower) bound on the equivalent
+variation for a price change from    1 to ¯1 at 2 , for an individual indexed by . This bound can
+be integrated over  to obtain a BCS for average equivalent variation based on average demand.
+Taking the expectation over the marginal distribution  of  and interchanging the order of
+integration we obtain
+                        Z Z    ¯1
+               (2 ) = {           1 ( 2  ) exp(- [ -       1 ])}( )                          (2.3)
+                             1
+                        Z ¯1                                           Z
+                      =      ¯1 ( 2 ) exp(- [ - 
+                                                     1 ])     ¯1 () = 1 (  )( )
+                        1
+
+If  =  (or  = ¯  ) then  (2 ) is an upper (or lower) bound on the equivalent variation for a
+price change from 1 to   ¯1 averaged over the unobserved individual heterogeneity .
+    The bound  (2 ) will be identified from data where individual heterogeneity  is distributed
+independently of  Under such independence       ¯1 () will be the conditional expectation of 1
+given  in the data, i.e. the nonparametric regression of 1 on . Thus the BCS  (2 ) can be
+obtained by integrating the nonparametric regression   ¯1 () of 1 on  as in equation (2.3). A
+corresponding BCS for 0 can be constructed from the weighted expectation of  (2 ) over 
+as
+                                     =  [ (2 ) (2 )]
+If  =  (or  = ¯
+              ) then  is an upper (lower) bound on the AEV 0 .
+
+                                                7
+   One example of a weight function is an average BCS where income varies over a range. In
+that example we could take
+
+                            (2 ) = 1( (1 )     (2 ))(2 - 1 )
+
+where  ( ) is the quantile function for  As 1 and 2 vary  will give a BCS for different
+income groups. In the application we will consider the case where (1  2 ) = (0 25) for one
+bound and (1  2 ) = (75 1) for another bound. In this case the two bounds will give BCS over
+the lower and upper quartiles of income.
+    Applications of demand models often involve estimating expenditure share equations rather
+than demand equations, for the reasons discussed in Deaton and Muellbauer (1980). We will
+follow that practice in this paper. For this reason we restate the BCS in terms of expenditure
+share. Let ( ) =  -1 1 1 (  ) denote the share of income spent on the first good. The
+average share is given by             Z
+                                                         1 ¯1 ()
+                                ¯() = (  )() =                   
+                                                            
+The BCS in terms of expected share is
+                                     Z ¯1
+                                           
+                       0 =  [ (2 )        ( )¯( 2 ) exp(- [ -      1 ])]                 (2.4)
+                                      1    
+Throughout the remainder of the paper we will carry out the analysis in terms of share equations
+to maintain a close link with applied demand analysis. Thus we will take 0 to be one object of
+interest, a BCS stated in term of the regression of share on prices, income, and other covariates.
+We could also consider a corresponding bound on deadweight loss (BDL) given by
+
+                          0 = 0 - ¯-1
+                                      1 - 
+                                   1 (¯              1  2 )]
+                                          1 ) [(2 ) (¯                                       (2.5)
+
+In this paper we will focus on the BCS 0 
+    An important feature of these bounds is that they allow for individuals to choose zeros for
+some goods. Intuitively, if 1 (  ) = 0 over the range of change for 1 then the price change does
+not effect the welfare of the individual (e.g. see equation (2.2)). The BCS 0 simply includes
+these zeros in the average. Similarly if quantity demanded is not zero over the price range then
+the positive part will also be included in the average. In addition, the form of the income effect
+bound in Assumption 1 implicitly allows for zeros. A demand function will generally not be
+differentiable in income at a point where demand begins to become positive. The bound in
+Assumption 1 allows for nondifferentiable demand functions.
+    The unstructured nature of heterogeneity also provides intuition for the absence of a zeros
+problem. Any disturbance can affect any quantity demanded. Also, the presence of specific
+disturbances that determine when specific goods are zero is allowed for. The dimension of  and
+the way in which  affects demand is completely unrestricted. The average share      ¯(1  2 ) takes
+
+                                                8
+all this into account as it integrates over possible values of  In this way the BCS overcomes
+the "zeros problem."
+    The BCS depends on bounds on the income effect. Simple bounds are available when all
+goods are normal goods, that is when all income effects are nonnegative.
+
+    Lemma 1: If preferences satisfy local nonsatiation and all goods are normal then Assumption
+1 is satisfied with  = 0 and ¯
+                              = 1   1 
+
+    This result is intuitive: If all of the income addition  is spent on the first good and
+1       1 then the individual can purchase no more than 1     1 and no other income will be
+available because all of the goods are normal goods. This bound is quite coarse because we
+would expect purchases from additional income to be spread across all goods, at least to some
+degree. Hausman and Newey (2016) consider finer bounds obtained as some large multiple of
+the maximum of quantile derivatives over several quantiles.
+    This bound does depend crucially on all goods being normal. Normal goods seems a reason-
+able assumption for scanner data if goods are aggregated into groups of goods. For individual
+goods which differ primarily in quality, e.g. standard and premium orange juice, it seems un-
+likely that the normal goods assumption would hold. Consumers might choose less of the lower
+quality good as income increases.
+    For a normal good the upper BCS will be approximate average surplus obtained from equa-
+tion (2.4) with  = 0 We can also obtain a simple lower bound from choosing  = 1          1 in
+equation (2.4). For   [   1  ¯1 ],
+                                 - 1          ¯1 - 1
+                         exp(-       )  exp(-        )  2 - [¯
+                                                             1 1 ]
+                                 1               1
+It follows from the this equation and the form of 0 in equation (2.4) that the lower BCS will be
+2 - [¯
+     1   1 ] times the upper bound. For example, for a 10 percent price increase this lower bound
+would be 90 percent of the upper bound. We emphasize that this is an even coarser bound than
+that for  = 1     1  In the application we will consider both this coarse bound and finer bounds
+based on quantile derivatives.
+
+
+3    Learning the BCS from Cross-Section Data
+For learning (estimating) the weighted average BCS it is helpful to modify the formula to
+allow simulation to be used in estimating the integral in the BCS. For this purpose let 
+denote a random variable that is independent of the data and uniformly distributed on (1  ¯1 )
+~ = (  2 ), and  (~
+                    ) = (2 )(¯  1 -  1 )() exp(- [ -      1 ]) The BCS is then
+                                                      R
+                                                    1 1 (  )( )
+                       0 =  [ (~   )¯
+                                    (~ )]  ¯() =                                        (3.1)
+                                                           
+
+                                               9
+When  is independent of prices , income  and covariates  the average share       ¯() will equal
+the conditional expectation  [|] of observed share  given  = (  ).
+    In scanner data independence of  and  will be problematic because the variable  will
+be total expenditure on the goods considered. Total expenditure depends on  so  will be
+endogenous and    ¯() 6=  [|] A control variable can be used to correct for this endogeneity.
+A control variable is an observed or estimable variable  such that  and  are independent
+conditional on  Averaging over  controls for endogeneity in nonseparable models with general
+heterogeneity, see Chamberlain (1984), Blundell and Powell (2003), Wooldridge (2002), and
+Imbens and Newey (2009). Demand with general heterogeneity is such a model, as shown in
+Hausman and Newey (2016) and Kitamura and Stoye (2018). For demand analysis a control
+variable can be constructed when there is a first stage equation for expenditure as a function
+of earnings, other exogenous variables, and a scalar disturbance, with earnings acting as an
+instrument for total expenditure. Any strictly monotonic function of the scalar disturbance will
+be a control variable when it and the demand heterogeneity are jointly independent of earnings.
+Blundell, Duncan, and Pendakur (1998) used such a specification to control for endogeneity of
+total expenditure.
+    Independence of  and  conditional on the control variable  and an identification condition
+will imply that                 Z
+                         ¯() =     0 ( )0 ( ) 0 (  ) =  [|  ]                               (3.2)
+
+Here the average share  ¯() is the average structural function of Blundell and Powell (2003)
+and Wooldridge (2002). The average structural function will be identified if ( ) = ()0 
+for a known vector of functions () and  [()()0 | ] is nonsingular with probability one, as
+shown by Masten and Torgovitsky (2015). This nonsingularity condition allows for a discrete
+instrument as long as the instrument has as many points of support as the dimension of ()
+Allowing for a discrete instrument will be important in our application. With average share
+¯() in equation (3.2) the BCS will be given by equation (3.1). We will develop an estimator of
+
+this object.
+    In scanner data  can be high dimensional because prices of many goods may affect the share
+of a particular good. Cross price elasticities tend to be quite small suggesting machine learning
+methods that make use of approximate sparseness might be useful. Here we consider Lasso
+estimation of the share regression in order to do this. A natural approach would be to "plug
+in" a Lasso share regression into sample analogs of equations (3.2) and (3.1). That approach
+does not work in general. It may be so biased that it is not root-n consistent, as discussed
+in Chernozhukov et al. (2018a,b). An alternative method that will give a root-n consistent
+estimator is debiased/double machine learning (DML).
+    DML modifies the plug-in estimator by adding the influence adjustment for the presence
+of an unknown conditional expectation and unknown distribution of the control function, as
+
+                                               10
+in Chernozhukov et al. (2018b), Newey (1994), and Newey and McFadden (1994). Adding
+the adjustment gives second order error from estimating the conditional expectation and dis-
+tribution of the control function. The adjustment term does depend on additional, unknown
+high-dimensional objects and so these have to be estimated. Here we do so using an auto-
+matic method that depends only the integral in equation (2.4) and not on knowing the form
+of the adjustment. That automatic method is a minimum distance Lasso that builds on Cher-
+nozhukov, Newey, and Singh (2018) and Chernozhukov, Newey, and Robins (2018) and is novel
+in accounting for the distribution of the control function.
+    To describe the DML estimator let  denote a data observation that includes the share
+  prices   income   covariates   and control variable  for observation  = 1   We
+will use a Lasso estimator of the share regression. To describe that estimator let (  ) =
+(1 (  )   ( ))0 be a dictionary of functions that will be used to approximate the share
+regression. A Lasso estimator of 0 (  ) is given by
+                                                    X
+                                                                            X
+                                                                               
+              ^( ) = (  )  ^ = arg min{ 1
+                               0^                                    0 2
+                                                        [ - (   )  ] +             | |}
+                                                    =1
+                                                                            2  =1
+                                                                                  P
+where we assume that the elements of (  ) have already been scaled so that  (   )2  = 1.
+The coefficient vector ^ will often have some zero elements corresponding to a sparse approxi-
+mation to the conditional mean. The term  is a regularization degree that controls how much
+sparsity (number of zero coefficients) there are in ^. In the application we will use cross-validation
+to choose  
+    We next describe the plug-in estimator. It is convenient to combine equations (3.1) and (3.2)
+to obtain                                 Z
+                                  0 =  [  (~    )0 (~    )0 ()]
+
+The plug in estimator can be constructed by substituting ^ and ^ in this equation and replacing
+the expectation with the sample average. To help reduce bias and to obtain root-n consistency
+and asymptotic normality under weak regularity conditions we will use cross-fitting where     ^
+     ^
+and  come from different observations than those being averaged over. To do this cross-fitting
+we divide the data into  about equal sized groups. Let  denote the index of observations in
+group  Let   ^ be the Lasso estimator computed from all observations not in   The cross-fit
+plug in estimator is
+                                                      
+                                X
+                                 X
+                                          1  X
+                           ~= 1
+                                      ) 
+                                    (~               ) 
+                                               ^ (~
+                               =1         - 
+                                                           
+
+where  is the number of observations in  
+    As previously noted such a plug-in estimator can have large bias. We debias by adding the
+influence adjustment that corrects for the presence of an unknown conditional expectation and
+
+                                                 11
+                                                                   RR
+marginal distribution. The adjustment is the influence function of     (~
+                                                                        ) (~
+                                                                              )0 (    ~) ( )
+where  (   ) denotes the conditional expectation of  given (  ) and  the marginal dis-
+tribution of  when  is the true distribution. As in Newey (1994, p. 1357) the influence
+adjustment will be the sum of two terms, one being the adjustment for  and the other for  .
+The influence adjustment for  depends on a Riesz representer 0 ( ) such that
+          Z
+                                                                           0 (2 )0 ()
+         [  (~  ) (~   ) ()] =  [0 (   ) (   )] 0 (  ) =  () 2                        
+                                                                           0 (  )
+for all  (   ) with finite second moment, where 2 0 () and 0 ( ) are the marginal pdf's of
+2 and  and 0 (  ) the joint pdf. The adjustment for  is
+
+                               1 (   ) = (  )[ -  ( )]
+
+where  and  represent a possible conditional mean and Riesz representer, as shown by Newey
+(1994). Also, the adjustment for  is
+                             Z                    Z Z
+           2 (       ~   ) =    (~
+                                 ) (~  )  ~ (~) -      (~
+                                                        ) (~   )   ~ (~) ()]
+
+where   ~ and  are possible CDF's of   ~ and  respectively, as shown in Newey and McFadden
+(1994). Plugging in estimators ^ and  ^  and taking ^ and  ^~ to be the empirical distributions
+over observations not in  gives the estimated adjustment term
+              ^ ( ) = 
+                      ^1 ( ) + ^2 ( )  ^1 ( ) = ^  (  )[ - ^ (  )]
+                             X                   µ      ¶ 2 X
+             ^2 ( ) = 1
+                                 (~ )^
+                                      (~  ) -
+                                                     1
+                                                                (~ )^    0 )
+                                                                     (~
+                       -                             -       0
+                                                               
+
+The DML estimator with cross-fitting for the influence adjustment is then
+                                           XX  
+                                    ^=
+                                      ~+ 1    ^ ( )
+                                              
+                                          =1 
+                                                    
+
+
+    This estimator depends on the estimator  ^ of the Riesz representer 0  It is not necessary
+to use the form of 0 to estimate it. We can construct a Lasso minimum distance estimator that
+automatically estimates 0 using only  (~ ) without knowing the form of 0  Let      ^  denote a
+ × 1 vector with  component
+           µ       ¶2 X X
+                                                                  1 X
+                                                                        
+     ^         1                                           ^
+     =                        (~
+                                ) (~     ) ( = 1   )  =                   (   )(   )0 
+              -                                                  - 
+                                                                        
+
+The estimator ^  is
+                                                                      X
+                                                                      
+               ^ (  ) = (  ) ^  0
+                                ^ = arg min{-2^ 0  + 0 ^   +                | |}
+                                              
+                                                                      =1
+
+
+                                              12
+The coefficients  ^ minimize a 1 penalized minimum distance objective function. The         ^  here
+has a novel form in accounting for endogeneity through averaging over the control function. The
+objective function is like that considered in Chernozhukov, Newey, and Singh (2018) with the
+novel form of   ^ 
+   We can estimate the asymptotic variance of   ^ using the fact that to first order ^ is a sample
+average. For    let
+                   X                                   µ         ¶2 X
+     ^ =      1                                             1                                 ^
+                     [ (~ )^ (~
+                                 ) +  (~  )^ (~   )] -                    (~  )^ (~   0 ) - 
+            -                                             -           0
+                                                                       
+
+       +^  (   )[ - ^ (   )]
+
+This ^ is an estimator of the influence function of ^ The asymptotic variance of ^ will be
+estimated by the sample second moment of  ^ as
+
+                                              XX
+                                        ^ = 1
+                                                 ^2 
+                                                 
+                                             =1  
+                                                      
+
+
+
+    We now give regularity conditions for asymptotic normality of    ^ and consistency of  ^  The
+first condition specifies that the dictionary is multiplicatively separable in the regressors and
+control variable and bounded.
+
+   Assumption 2: There is   0 and for every  there is         
+                                                       () and  () such that
+                                      ¯  ¯         ¯  ¯
+                   ( ) =              ¯     ¯
+                            () ( )  ()    ( )  
+                                                   ¯    ¯
+
+
+   The multiplicative form of the dictionary terms  is useful in analyzing the double averages
+on which  ^ depends. We also require that the joint pdf of 2 and  dominates the product of
+marginal densities.
+
+  Assumption 3: There is   0 such that |0 ()|      for some   0, and the
+(   ) are absolutely continuous with respect to a product measure with joint pdf 0 (  ) and
+marginal pdf's 2 0 (2 ) and 0 ( ) satisfying
+
+                          1(1  1  ¯1 )2 0 (2 )0 ()  0 (  )
+
+
+    We note that this condition requires that the pdf of   is bounded away from zero over the
+price range 1  1        ¯1  at all 2 and  with 2 0 (2 )  0 and 0 ()  0. This condition also
+includes the full support condition for the control function by virtue of the joint distribution
+dominating the product of marginals. In Appendix A we also give more technical conditions
+that involve sparse eigenvalue and rate of approximation conditions in Assumptions A1 and A2.
+
+                                                13
+                                                                p              p
+    Theorem 2: If Assumptions 1, 2, 3, A1, and A2 are satisfied, ln( ) = ( ) ln( ) =
+                                          2
+                                                                            12
+( ), and for ¯ from Assumption A2,     ¯    - 0,  - 0, and (¯          )12   - 0 then
+there is   0 with
+                            ^                              
+                            ( - 0 ) -  (0  )           ^ -    
+
+
+4    Estimation for Panel Data
+Panel data has the potential to control for time invariant endogenous unobserved individual
+heterogeneity. Such endogeneity could arise from correlation of expenditure on a group of com-
+modities with preferences that determine share purchases. Also, preferences could be correlated
+with prices due to search behavior of consumers. In this Section we give a panel estimator
+for a linear model with individual specific coefficients that may be correlated with prices and
+income. Individual coefficients are estimated in a ridge regression to allow for the possibility
+that these coefficients are not well identified for some individuals. We average the individual
+ridge estimates and bias correct the averages for ridge regularization. We rely on the number
+of time periods and the within individual variation being large enough that the inverse of the
+individual regressor second moment matrices have finite expectation.
+    One important feature of our data is that not every time period is observed for every in-
+dividual. We will assume for convenience that the first    observations are available for
+individual . The vector of observations on shares and prices, income, and other covariates will
+then be
+                               = (1    )0   = (01   0 )0 
+We continue to assume that the data are independently distributed across  We also assume
+that time series observations are missing at random so that our results are not affected by having
+different number of observations for different individuals. Assumption 4 given below implicitly
+includes this condition. Our conditions are like Wooldridge (2018). Also, Hausman and Leibtag
+(2007) tested the missing at random assumption and found it was not rejected.
+    For panel data we assume that the budget share  of individual  in time period  is
+
+                            = (   ) ( = 1   ;  = 1  )
+
+where  denotes period specific preferences. Here each individual is allowed to have different
+preferences in each time period. Such idiosyncratic preference variation should help fit data
+better because it is often found that individuals make different choices when faced with the
+same choice sets. If preferences of individuals change over time in unrestricted ways then panel
+data provides no more information than cross-section data. Panel data does provide information
+when time variation is restricted. We will consider individual preferences where the distribution
+of  given  = (01   0 )0 is the same in each time period. This assumption can be thought of
+
+                                               14
+as time homogeneity of preferences, with the preference being drawn from the same distribution
+in each time period conditional on   Time homogeneity of preferences corresponds to time
+homogeneity of disturbances, an econometric condition that has proven useful in recent work on
+nonlinear panel data models, such as Chernozhukov et al. (2013), Graham and Powell (2012),
+Hoderlein and White (2011), Chernozhukov et al. (2015), and Chernozhukov, Fernandez-Val,
+and Newey (2017). Here time homogeneity will allow us to identify the average share, as needed
+for BCS, under conditions that we will describe.
+    We will impose the condition that the share is a linear combination of known functions of  
+Specifically, we assume that there is a known vector of functions () that includes a constant
+and  are coefficients, with individual shares given by
+
+                                   = (   ) = ( )0  
+
+As discussed in Hausman and Newey (2016) this specification can be interpreted as a series
+approximation to a general nonseparable share equation where the () is a vector of approx-
+imating functions. In this paper we ignore the approximation error and treat ( )0  as a
+correct specification of individual shares.
+   The next condition imposes our basic panel data identifying assumption.
+
+   Assumption 4:  = ( )0  ,  [ | ] does not depend on  and ¯ =  [ ] is finite and
+does not depend on .
+
+   Here we require that the conditional mean  [ | ] does not vary with . In requiring that
+ [ ] does not vary with  we also impose that unbalanced panel data, where  varies with ,
+does not affect  [ ] This assumption is weaker than those of Graham and Powell (2012) in
+only imposing time homogeneity on conditional means rather than conditional distributions.
+   The average share continues to be the object of interest for learning the BCS. In the panel
+model here the average share will be
+                                     Z                  Z
+                                0          0
+                     ¯() = () 
+                                  ¯ = ()  ( ) = (  )( )
+
+Here the integration over  is done for a single time period, with the time homogeneity hy-
+pothesis of Assumption 4 making the average surplus not depend on the time period. The
+corresponding BCS will be an average over different time periods and individuals of the bound
+on the equivalent variation. The average over individuals will not depend on the time period by
+virtue of Assumption 4.
+    The time stationarity condition helps to identify average coefficients when  and  are
+correlated, similarly to Chamberlain (1982, 1992). To explain let      ¯ =  [ | ] and  =
+      0                                       0
+( ) [ -     ¯ ] Adding and subtracting ( )      ¯ gives
+
+                         = ( )0 ¯ +   ( = 1   ;  = 1  )
+
+                                              15
+By the time stationarity condition of Assumption 4 the disturbance  will have conditional
+mean zero,
+                                        [ | ] = 0
+leading to unbiasedness of ordinary least squares. Let  = [(1 )  ( )]0 and  = 0   
+By Assumption 4  [ | ] = 0, so the usual least square properties will imply that when 
+is nonsingular the least squares estimator   ~ = -    1 0
+                                                        will be a conditionally unbiased
+estimator of ¯ ,
+                                          [~ | ] =  ¯ 
+Thus using just the within individual variation in ( ) a conditionally unbiased estimator of
+¯ can be constructed by least squares regression for individual . If  is nonsingular for every
+
+                              P
+ then the sample average        =1  ~  of individual least squares estimators is a conditionally
+                       P
+unbiased estimator of =1      ¯ .
+                                                                              P
+    The problem with the average of individual least squares estimators =1          ~  is that 
+could be close to singular or even singular for some individuals, so that average least squares may
+not be well behaved. Singularity of  can occur when there is not enough variation in ( )
+over time for some individuals and will result in    ¯ not being identified for those individuals.
+Also, even when  is nonsingular for every individual the average of individual least squares
+estimators may not be unconditionally unbiased nor consistent because moments of -          
+                                                                                              1
+                                                                                                may
+not exist, as pointed out by Graham and Powell (2012).
+    We deal with this problem by averaging ridge regularized individual estimates and correcting
+for the average bias of the regularization. We also partial out each individual specific constant
+before the ridge regularization. We suppose that () = (1 2 ()0 )0 and partition  = (1  2         0 0
+                                                                                                  )
+conformably, so that 2 is the vector of coefficients of the nonconstant elements of () Let
+2 = [2 (1 )  2 ( )]0 be the matrix of observations on nonconstant regressors with rows
+corresponding to time periods and columns to variables. Let  = (1  1)0 be a  × 1 vector
+of ones and ~2 be the matrix of deviations from time means given by
+
+                                ~        02  ¯
+                                2 = 2 -  ¯   2 = 02   
+
+Let  = ~  02~2  . A ridge regression estimator of the individual coefficients 2 of nonconstant
+variables is
+                             ^2 = ~  02     = ( +  )-1 
+where  is a positive scalar and  is a  dimensional identity matrix. The estimator of the
+average coefficients ¯2 that we consider is
+                                  Ã         !    Ã          !-1
+                                   1 X            1 X
+                          ^2 = 
+                                ^         ^2  ^=                                   (4.1)
+                                    =1             =1
+
+
+                                                16
+    The matrix  ^ in the estimator ^2 corrects for average regularization bias from the individual
+ridge regressions. We can see this by noting that when -     
+                                                              1
+                                                                exists for each  the estimator  ^2
+                                                                                        -1~0
+is a matrix weighted average of the individual least squares slope estimators    ~2 =  2   
+Since ^2 =       ~2 we have
+                                 Ã        !-1 
+                                  X           X
+                            ^2 =                      ~2   =   
+                                    =1            =1
+The matrix  is closer to the identity the larger is  in the positive semidefinite sense. Larger
+ corresponds to slope coefficients being more strongly identified and  closer to the identity
+corresponds to less shrinkage. Thus,   ^2 can be interpreted as a matrix weighted average where
+more strongly identified individuals receive weight with less shrinkage. We can also estimate the
+average of the constant coefficients while correcting for regularization bias as
+                                 1X
+                                    
+                            ^1 =        ^1  ^1 =  ¯ - ¯
+                                                      02 (^
+                                                          2 +       ^2 )                    (4.2)
+                                  =1
+
+   To show how    ^ corrects for regularization bias we can give an explicit expression for the
+                        0 0
+expectation of      1  
+               ^ = (^  ^2 ) conditional on the regressors for all individuals.
+
+   Theorem 3: If Assumption 4 is satisfied then for ¯ =  [ | ]
+                               Ã         !-1 
+                                 X            X
+               [^2 |1    ] =                        ¯2 
+                                          =1           =1
+
+                                      1   X
+                     1 |1    ] =
+                    [^                         {¯1 + ¯
+                                                     02  (¯
+                                                          2 -  [^
+                                                                2 |1    ])}
+                                          =1
+
+Also, if  [ | ] does not depend on  then ^ is an unbiased estimator of ¯ =  [ ]
+
+    Thus we see that the conditional expectation of the slope estimator is a matrix weighted
+average of the expectations of the individual slopes, with weights  =   . Also we see that           ^
+is corrected for regularization in that it is an unbiased estimator for the expectation of individual
+coefficients when they are conditional mean independent of the regressors.
+    It is straightforward to estimate the asymptotic variance of     ^ while accounting for estimated
+bias corrections. An estimator is
+                          1 X ^ ^0 ^
+                             
+                     ^
+                     =              = (           ^1  ^0 )0  ^2 = ^ [^
+                                                                     2 -        ^2 ]             (4.3)
+                                                       2
+                           =1
+                                   1 X¡
+                                          
+                                                  ¢
+                  ^1 = 
+                       ¯ - ¯
+                           02 ^2 -      ¯ - ¯
+                                            02 ^2
+                                     =1
+                                   1 X ¯0            1 X ¯0
+                                                            
+                      - (¯
+                         02  -          2  )0 ^2 - (       )^2 
+                                     =1                =1 2
+
+
+                                                  17
+    In panel data we can construct a BCS estimator from an estimator for average share similar
+to the cross-section case. In panel data the estimator of the average share will be
+
+                                          ^() = ()0 
+                                                    ^.
+
+To describe a corresponding BCS estimator let   ~ = (  02 )0 where  is uniformly distributed
+                                                     P
+on (1  ¯1 ) independently of the data. Also let  =    =1  (~
+                                                            )(~  )  A BCS estimator is
+
+                                               1X
+                                                        
+                                    ^ = 0 
+                                          ^  =                                                (4.4)
+                                                =1 
+                                              ^
+An estimator of the asymptotic variance of   ( - 0 ) will be
+                                  X
+                            ^ = 1   ^2  
+                                     
+                                        ^ = ( - )0     0
+                                                   ^ +   ^                                    (4.5)
+                                
+    Graham and Powell (2012) have given a regularized estimator that is an average of individual
+least squares estimators over individuals where the determinant of 0  is larger than some cutoff.
+This is a hard thresholding regularization where individual data with 0  close to singular are
+not used in the estimator. The ridge regularization involves shrinkage where all individuals are
+used with individual coefficients weighted by the strength of identification for the individual.
+Varying  for the ridge regularization is useful because that changes how much the strength of
+identification affects the weights. This feature of ridge will be useful for the demand application
+where variation in  helps quantify how fixed effect demand elasticities differ from average
+individual elasticities.
+    The ridge and Graham and Powell (2012) estimators are special cases of a general class of
+bias corrected regularized estimators. Let  denote some regularization of -         1
+                                                                                     For the ridge
+and Graham and Powell (2012) estimators we would have
+
+         = ( +  )-1 (ridge);  = 1(det( )  )-
+                                           
+                                            1
+                                              (Graham and Powell, 2012).
+
+A general regularized estimator is
+                         Ã         !
+                           1 X            1X
+                                           
+                  ^2 = ^             ^
+                                 ^2   = [       ]-1  ^2 = ~
+                                                          02   
+                            =1             =1
+
+where for convenience we have not changed the notation for ^ and ^ . It follows exactly as in
+Theorem 3 that                            Ã       !-1 
+                                            X          X
+                            2 |1    ] =
+                           [^                                ¯2 
+                                                 =1         =1
+
+so that ^2 will be unbiased when  ¯2 does not depend on . This general class of estimators will
+be considered in more detail in future work.
+
+                                                18
+  For consistency and asymptotic normality we will impose that slightly more than the first
+moment of the trace (-   1
+                        ) of  exists.
+
+   Assumption 5: There is    0 such that for all , k¯ k   k2 k  
+                               h ¡     ¢    i
+                                      1 1+
+                             tr -              
+
+Also,  [ 0 | ]   -1  with probability one for every .
+
+    The existence of the 1 +  moment of (-        1
+                                                  ) will be implied by more primitive conditions.
+One example is where 2   (   ) conditional on unobserved  = (   ) In this case 
+has a Wishart distribution conditional on  and hence Assumption 5 will be satisfied when 
+is sufficiently large relative to the dimension dim(2 ) of 2 .
+
+   Theorem 4: If   dim(2 ) + 5 for all , there are unobserved random vectors  and
+matrices  such that 2   (   ) conditional on  = (   ) and  is bounded and has
+smallest
+  h ¡ eigenvalue bounded away from zero uniformly in , then there are    0 such that
+           ¢ i
+         -1 1+
+ tr             
+
+    This result gives primitive conditions for Assumption 5 when  is large enough relative to the
+number of regressors. The conditional Gaussian assumption allows for a wide range of possible
+distributions of the observed 2 that could be nonsymmetric and vary across time periods in
+general ways. Boundedness of the smallest eigenvalue of  away from zero does mean that
+there is variation in the regressors after conditioning on individual effects.
+    The next result shows asymptotic normality of the average ridge coefficients and BCS and
+that using the estimated variances results in correct inference in large samples. Let ¯ =  [ ]
+                                    0 0
+from Assumption 4 and     ^ = (^1  ^2 ) be as defined in equations (4.1) and (4.2).
+                                                                
+    Theorem 5: If Assumptions 4 and 5 are satisfied and  - 0 then there is   0 with
+ (^   )   for all  large enough and for any  ×  matrix  with () = ,
+                                                                                
+       [ (^    )0 ]-12  (^      -   ¯) -  (0  ) [        ^ 0 ]-12  (^   -   ¯) -  (0  )
+                        P P
+Also if 0 = lim- [         =1
+                                            0
+                                 =1  [( ) ]( )] 
+                                                    0
+                                                      ¯ exists then
+                                                        
+                                   ^ -12 (
+                                              ^ - 0 ) -     (0 1)
+
+    This result differs from previous work in applying to the debiased average ridge estimator,
+in having  big enough relative to  so that the estimator is root-n consistent (unlike most of
+Graham and Powell, 2012), and in the parameter of interest being the average of coefficients over
+the whole population rather than over a subset where det(0  ) is large enough (unlike Arellano
+and Bonhomme, 2012). In our empirical work we will use this result to make inference about
+average elasticities for income and prices and for BCS.
+
+                                               19
+5     Application to Scanner Data
+The data we used is a subset of the Nielsen Homescan Panel like that of Burda, Harding, and
+Hausman (2008, 2012). The data include 1483 households from the Houston-area zip codes for
+the years 2004-2006. The number of monthly observations for each household ranges from 12
+to 36, with some households being added and taken away throughout the 3 years we covered
+and 609 households being included the entire time. At several points in the empirical analysis
+we checked for differences in results between using all households and the 609 that were always
+present and found no statistically significant differences. This lack of sensitivity to the length of
+panels used in estimation suggests an absence of attrition and selection bias in this data, similar
+to Wooldridge (2018).
+    Expenditures are total over all purchases of the household bought in each month. The
+original data had timestamps for purchases. If a household purchased something more than
+once in a month, the "monthly price" is the average price that the household purchased (i.e.
+total amount spent on good/total quantity purchased).
+    Including zero expenditures makes it necessary to impute prices for those times periods
+where an individual purchased none of a particular good. We tried two ways of imputing the
+missing prices. We tried replacing the missing price with the price paid last time the good was
+purchased, or the price next paid if there was no past purchase, or the average price paid for
+that good that month at stores frequented by the consumer if there was no purchases. We also
+tried just imputing the price to be the average price paid that month at stores frequented by
+the consumer. These two imputation methods produced similar results for soda demand, so we
+used the first method of imputing price, involving past or future purchase prices.
+    We included prices for 15 groups of goods; soda, milk, soup, water, butter, cookies, eggs,
+orange juice, ice cream, bread, chips, salad, yogurt, coffee, and cereal. As in Burda, Harding,
+and Hausman (2008, 2012) we chose these groups because they made up a relatively large
+proportion of total expenditure. The data also includes demographics such as race, marital
+status, household composition, as well as male and female employment status. We use family
+size as a covariate, after finding that other family composition covariates are not important.
+    We also use income as an instrument for total expenditure in linear share regressions and to
+construct a control variable for total expenditure in the Lasso estimates. The income variable is
+the integer denoting which of 20 categories the household income fell in, excluding one category..
+Such a category counter will be a valid instrument whenever income is independent of the
+disturbance in the share equation disturbance. Also, as shown by Masten and Torgovitzky
+(2015), categorical instruments are allowed for in the specification of a control variable.
+    We first give standard share regression results. Table 1 gives the soda and milk expenditure
+and own price elasticities from regressing the share of (soda and milk) expenditure on the
+natural log of prices and of total expenditure. The results in the table are for OLS and IV
+
+                                                 20
+where total expenditure is instrumented by the income variable. We find that instrumenting for
+total expenditure has very little effect on price elasticities and the total expenditure elasticity
+for milk, but does have some effect on the expenditure elasticity for soda. The IV coefficient 932
+is quite different than the OLS 683 with the  (0 1) Hausman test statistic for the difference
+of OLS and IV expenditure elasticities for soda being -141. Although this is not significant
+at conventional levels the economic reasons for endogeneity of total expenditure are important
+enough that we will correct for endogeneity for our BCS estimates by using a control variable..
+All the standard errors for the cross-section estimates correct for clustering that could arise from
+correlation of individual observations over time.
+                Table 1: Cross Section Elasticities   For Each Good
+                                  OLS                             IV
+                       Exp S.E. Own P. S.E.            Exp S.E. Own P.        S.E.
+                soda .683 .015       -.855    .020     .932 .177    -.867     .052
+                milk .539 .024 -1.416 .020             .570 .154 -1.412       .064
+
+    Table 2 gives the soda share cross price elasticities and their standard errors as well as the
+soda results from Table 1. We do find that cross-price elasticities are much smaller than own
+price elasticities, which motivates our use of Lasso in the cross section estimation of BCS.
+
+                             Table 2: Cross-price Elast for Soda
+                                            OLS              IV
+                                        Elast. S.E. Elast. S.E.
+                             exp        .683     .015 .932      .177
+                             soda       -.855 .020 -.867 .052
+                             soup       .028     .022 .040      .056
+                             water      .034     .012 .032      .039
+                             butter     -.177 .013 -.177 .040
+                             cookies    -.028 .014 -.046 .035
+                             eggs       -.074 .022 -.080 .049
+                             oj         .040     .027 .015      .089
+                             ice cream .177      .023 .174      .076
+                             bread      -.127 .019 -.153 .055
+                             chips      -.006 .023 -.016 .055
+                             milk       -.076 .026 -.039 .079
+                             salad      -.084 .014 -.092 .041
+                             yogurt     .032     .025 .025      .075
+                             coffee     -.074 .011 -.068 .032
+                             cereal     .087     .021 .041      .059
+
+                                                21
+    We estimated the BCS for a 10% price increase in soda with starting price being the sample
+mean of soda price observed in the data. We did Lasso regression of soda expenditure share
+on ln(prices), ln(total expenditure), powers of logs of own price, total expenditure, and the
+control function up to order 4, quadratic terms in own other prices, an interaction of the log
+of total expenditure and household size, and an interaction of the control function with log
+total expenditure. We estimated the BCS by total expenditure groups, obtaining estimates for
+those in the lowest and highest quartile of total expenditure as well as overall averages. In the
+estimation we use the cross-validated choice of penalty for the share regression and vary the
+penalty for the estimation of the Riesz representer. The results for all households and for the
+lower quartile did not change much with the penalty. For the upper quartile the BCS changed
+by slightly less than 10 percent as we varied the penalty. For the BCS the income effect lower
+bound was taken to be zero and upper bound to be 20 times the maximum of the income effect
+over .1, .25, .5, .75, .9 quantile effect regressions, similar to Hausman and Newey (2016). In
+the results we only report one bound because the lower and upper estimated bounds were equal
+to four significant digits. Wider bounds based on assuming that all goods are normal would
+have upper bounds equal to the reported one and lower bounds being 90 percent of the reported
+bounds, corresponding to the 10 percent price change we are considering.
+    The BCS estimates in terms of annual dollars and their standard errors are given in Table 3.
+
+                     Table 3: Cross Section Estimates of Surplus Bounds
+                         All households Lower Quartile Upper Quartile
+                   BCS        12.97             5.43            17.28
+                   S.E.        .34              .14              .44
+
+    Despite the high dimensional potentially nonparametric specification the BCS are very pre-
+cisely estimated from this data, consistent with the averaging over many individuals and time
+periods. As with the elasticity estimates from Tables 1 and 2 we accounted for clustering by
+individuals in the standard errors. The average monthly total food expenditure for all indi-
+viduals is 621, for upper quartile 1265, for lower is 190. The ratio of the BCS to the average
+total food expenditure is 17281265 = 01366 for the upper quantile and 543190 = 002858
+for the lower quartile. Thus we find that the average surplus, i.e. average welfare cost, of a
+10 percent soda price increase relative to average expenditure, is estimated to be much higher
+for individuals in the lowest quartile of the total food expenditure distribution. Using the more
+conservative bounds based on all goods being normal does not change this conclusion. The lower
+bound for the average surplus relative to expenditure in the lowest expenditure quartile would
+be 9  (02858) = 02572 which is still much larger than the upper bound 01366 for the upper
+quartile. We also estimated the BCS using many more regressors including interactions among
+all different prices and the results were found to be very close to those reported here.
+
+                                               22
+    Turning to the panel data results, Table 4 gives standard fixed effects estimates (allowing
+an individual specific constant) of soda and milk own price and total expenditure elasticities,
+without instrumenting for total expenditure. We found no evidence for time trends in this data,
+so we report results for fixed effects without any treands and for the time homogenous model
+we have considered. The standard errors here allow for general dependence over time for each
+individual. We find that the fixed effect own price elasticities are much smaller than the cross-
+section. For example, the panel milk price elasticity is about half the size of the cross-section,
+with the panel estimate being more reasonable in size. Standard errors are not very much larger
+than the cross-section elasticities.
+
+                               Table 4: Fixed Effects Elasticities
+                                      Exp S.E. Own P. S.E.
+                               soda .638 .018       -.689     .022
+                               milk .430 .042       -.699     .033
+
+    Table 5 gives the elasticities corresponding to bias corrected averages of individual ridge
+coefficient estimates for  = 05 and  = 005. We find that these elasticities are much smaller
+than the fixed effects estimates. The -364 own price elasticity from the average coefficient for
+soda is slightly more than 13 the size of the corresponding cross-section elasticity and somewhat
+more than half the size of the fixed effects estimate. Evidently allowing for individual price and
+expenditure coefficients that can be correlated with prices and expenditure has strong effects on
+elasticity estimates.
+
+                Table 5: Average Ridge Elasticities
+                                  .05                            .0005
+                       Exp S.E. Own P. S.E. Exp             S.E. Own P.      S.E.
+                soda .615 .012      -.558   .017 .595       .021    -.364    .056
+                milk .445 .014      -.652   .013 .437       .020    -.508    .052
+
+   Table 6 gives panel estimates of the BCS for all individuals, the highest quartile of the total
+expenditure, and the lowest quartile.
+
+                     Table 6: Panel Estimates of Surplus Bounds,  = 05
+                          All households Lower Quartile Upper Quartile
+                   BCS         8.70             3.90            15.43
+                   S.E.         .49              .21             1.25
+
+    The income grouped panel estimates are quite similar to the corresponding cross-section,
+although BCS for all households is quite a bit smaller for the panel estimates. The ratio of
+the BCS to the average total food expenditure is 15431265 = 01220 for the highest quartile
+
+                                               23
+and 390190 = 002053 for the lowest quartile. Here the discrepancy of average surplus/total
+expenditure between income groups is not as large as in the cross-section. This discrepancy does
+still persist when we consider the wider bounds based on all goods being normal, as it does for
+the cross-section estimates.
+     A particularly striking empirical finding is the small size of the elasticity average relative to
+the elasticities obtained in the cross section data. The way that panel estimates change with the
+regularization parameter  helps describe these differences. The decrease in the price elasticity
+as  decreases is consistent with lower elasticities being associated with individuals with less
+price variation. As we have discussed, the bias corrected ridge estimator gives more weight to
+individuals where there is more variation in the regressors. As  decreases there is less variation
+in the weights, approaching an equal weighted average as  goes to zero. Observations with less
+variation in prices receive more weight for smaller lamdas. Thus, the elasticity reduction as 
+goes from .05 to .0005 is consistent with individuals with lower elasticities also having less price
+variation.
+     The difference between the fixed effects and bias corrected ridge estimates are also consistent
+with this pattern. For simplicity we explain when there is a single nonconstant regressor  and
+the number of time periods is the same for each individual. Wooldridge (2005) used a similar
+calculation to get conditions for consistency of the fixed effects estimator when slopes are varying.
+Our purpose is to find conditions for the fixed effects slope estimator to be downward biased,
+so that fixed effects elasticities are more negative than, i.e. larger in absolute value, than the
+elasticity for the average slope.
+     A model with varying slopes and a single regressor is
+
+                  =  +   +    [ | ] = 0 ( = 1   ;  = 1  )
+
+Taking deviations from individual means gives
+
+                                            ~ =  ~  + ~ 
+
+where ~ =  -     ¯ , ~  =  - ¯  ~ =  - ¯ , and ¯ , ¯   and ¯ are time means. Adding
+                ¯ ~      ¯
+and subtracting    for  =  [ ] gives
+
+                                   ~ = ¯~  + ~ + ~  ( - ¯)
+
+The usual regression analysis implies that when the data is i.i.d. across individuals
+                                                P ~2              ¯
+                                ^  ) =   ¯+   [(     )( -  )]
+                           lim(                     P ~2             
+                                                  [(    )]
+Thus, the fixed effects estimator of the price elasticity being larger in magnitude that the average
+elasticity across individuals (i.e.  lim(^  )     ¯) is associated with
+                                        X
+                                     [(     ~ 
+                                              2
+                                                 )( -     ¯)]  0
+                                         
+
+
+                                                 24
+that is the sample time variance of log of prices is larger when the elasticity is larger in magnitude.
+This bias characterization for the fixed effects estimator seems consistent with search behavior
+of consumers, where those with higher elasticities have high dispersion of prices over time due
+to more search.
+    A potential alternative explanation for the decrease in elasticities when going from least
+squares to fixed effects is measurement error as in Griliches and Hausman (1986). There is some
+possibility of measurement error in prices because of missing price data for zeros and because
+some averaging over prices at different stores is done in data collection. To see if accounting
+for measurement error changed the estimates we tried estimating individual coefficients while
+instrumenting the own price by the four month lag of the own price, a type of instrument
+considered by Griliches and Hausman (1986). We report averages of individual, ridge regularized
+two-stage least squares estimates, where we bias correct the average. The estimates are given
+in Table 6. There is a slight increase in the estimated average price elasticity of soda although
+the increase is small and not enough to explain the large differences between cross-section and
+panel elasticities.
+
+               Table 6: Ridge Elasticities with Four Month Own Lag Price as IV
+                                 .05                         .0005
+                      Exp S.E. Own P. S.E. Exp S.E. Own P.               S.E.
+               soda .615 .013       -.653    .011 .585 .029    -.392     .055
+               milk .446 .014       -.705    .008 .422 .021    -.448     .048
+
+    These results suggest that the large differences between cross section and panel elasticity
+estimates cannot be explained by measurement error.
+    We also conducted some small Monte Carlo experiments to determine whether the smaller
+elasticities could result from finite sample bias. We did find small finite sample bias in the
+bias corrected average ridge estimates with endogenous  but not large enough to explain the
+small average elasticities. We conclude that there is strong evidence in the data that prices are
+correlated with preferences, and that the large differences in cross-section and panel elasticities
+are not explained by either measurement error or bias in the average ridge estimator.
+
+
+6     Conclusion
+In this paper we have found large differences between cross-section and panel price elasticity
+estimates, where the panel estimates allow coefficients to vary over individuals. These findings
+provide strong evidence that individual preferences are correlated with prices in the Nielsen
+scanner data. The BCS estimates by expenditure group appear to be less sensitive, with cross-
+section and panel estimates being similar.
+
+                                                  25
+    The estimators solve the zeros problem by simply including zero expenditure values for the
+left had side variable. The allowance for general, nonparametric heterogeneity facilitates this
+solution to the zeros problem. We allow for many prices by using debiased machine learning in
+the cross-section and bias corrected ridge regularization for panel data. The cross-section allows
+endogeneity of total expenditure and potentially of prices via inclusion of control functions. In
+these ways we provide useful approaches to estimation of demand models in large data sets with
+many prices, where prices may be correlated with preferences.
+
+
+7     Appendix A: Assumptions A1 and A2.
+In this brief Appendix we give Assumptions A1 and A2 which are used in the result for the DML
+estimator of Section 3. We give only a brief discussion here. A more extensive discussion can
+be found in Chernozhukov, Newey, and Singh (2018). Assumption A1 gives an approximation
+rate hypothesis for both the regression 0 (  ) and the Riesz representer 0 ( )
+
+     Assumption A1: There exists   0     ¯, and ¯ with ¯ nonzero elements such that
+P             P ¯     ¯                      p        °      °
+         ¯ |    =1 ¯¯ ¯   and k0 -  
+                                   0
+                                     ¯k   ln( ) °0 - 0 
+                                       2                    ¯°2   
+     =1 |                                                           ¯ ln( )
+
+    The next Assumption gives a sparse eigenvalue conditions that is common in the Lasso
+literature
+
+    Assumption A2:  =  [( )( )0 ] is nonsingular and has largest eigenvalue uniformly
+                                                        ©                  ª
+bounded in . Also there is   3 such that for ~ = arg min k0 - 0  k2 +  || and J = { :
+                                                                         1
+~ 6= 0}
+
+                                                      0 
+                                      inf          P      2
+                                                             0
+                           { : 6=0  J  | |  J | |}    J 
+
+
+
+8     Appendix B: Proofs of Theorems
+Proof of Lemma 1: In this proof let  denote the number of goods and  (1   ) denote the
+demand for the  good as a function of 1 and  holding all other prices 2 and covariates 
+fixed. Then by local nonsatiation,
+
+                           X
+                                                     X
+                                                     
+                       =            (1   )  -  =               (1   -  )
+                             =1                         =1
+
+Subtracting the second equation from the first gives
+
+       X
+       
+ =            [ (1   )- (1   - )]  1 [1 (1   )-1 (1   - )]  1 [1 (1   )-1 (1   - )]
+        =1
+
+
+                                               26
+where the first inequality follows by all goods being normal goods and the second by 1  [1  ¯1 ].
+Dividing through by   1 gives ¯  = 1  1  Also  = 0 follows by 1 being a normal good. Q.E.D..
+   The following two results are useful in the proof of Theorem 2. Let          (~     )
+                                                                                 ) =  (~    ),
+                                                                                           (~
+ 
+¯ =  [ (~
+         
+             )] ¯         
+                  =  [ ( )], and  =         ¯ ¯
+                                               
+                                                ( = 1   )
+
+   Lemma A1: If Assumption 3 is satisfied then for any two empirical CDF's ^ and ~ for
+subsamples with sample sizes greater than  for some  ,
+       ¯         ¯      p             Z
+       ¯^        ¯                                 ^ - 0 )(   ~ - 0 )( ) =  (-12 )
+   max ¯ -  ¯ =  ( ln( ))                (~
+                                          ) ^ (~
+                                                ) (        ~)(
+    
+
+
+   Proof: By Assumptions 2 and 3  (~)      ), and 
+                                          (~         ( ) are each bounded uniformly in  , ~,
+             
+               ) is also. Then by Assumption 2 and standard maximal inequality arguments,
+and  so that  (~
+       ¯Z                   ¯      r              ¯Z                   ¯       r
+       ¯                    ¯        ln(  )       ¯                    ¯
+   max ¯    
+             )(
+            (~   ^ - 0 )( ~)¯               ) max ¯          ^ - 0 )()¯ =  ( ln( ) )
+    ¯                       ¯ =  (                ¯    ( )(            ¯           
+Then we have
+           ¯    ¯ ¯  Z                      ¯ ¯Z                       ¯
+           ¯^   ¯ ¯                         ¯¯                         ¯
+           ¯ -  ¯  ¯
+                   ¯    
+                        
+                         (~
+                            )( ^ - 0 )(
+                                        ~ ) ¯ ¯  ()(
+                                            ¯¯
+                                                          ^ - 0 )( )¯
+                                                                       ¯
+                   ¯Z                      ¯               ¯Z                   ¯
+                   ¯                       ¯ ¯   ¯   ¯   ¯ ¯                    ¯
+                  +¯
+                   ¯
+                       
+                         (~
+                            )( ^ - 0 )( ~
+                                          )¯
+                                           ¯ 
+                                             ¯ ¯¯
+                                                   + ¯ ¯ ¯ ¯
+                                                          ¯   
+                                                               (  )( ^  - 0 )( )¯
+                                                                                ¯
+                                   ¯ ¯     ¯ ¯
+so the first conclusion follows by ¯¯
+                                     ¯ and ¯¯ ¯ uniformly
+                                                        ¯ bounded in  . Also by Lemma A3 of
+                                            P ¯  ¯^ ¯
+                                                     ¯     ¯
+                                                        ¯ ^¯
+Chernozhukov, Newey, and Singh (2018), =1 ¯ ¯ = ¯ ¯ =  (1) Then by Assumptions 2
+                                                            1
+and 3 it follows that
+
+¯Z                                            ¯ ¯        Z                     Z                  ¯
+¯                                             ¯ ¯¯ X
+                                                                                                  ¯
+                                                                                                  ¯
+¯  ()    ^ (     ) ( ^ - 0 )()(  ~ - 0 )( )¯ = ¯      ^ [  () (
+                                                                ^ -    )(  )][   
+                                                                                  ( )( ~ -   )( )]¯
+¯                                             ¯ ¯                    0                     0
+                                                                                                  ¯
+                                                   =1
+   ¯ ¯       ¯Z                     ¯     ¯ Z                ¯
+   ¯ ^¯      ¯                      ¯     ¯                  ¯      ln( )
+ ¯    ¯ max ¯¯      (~
+                     )(  ^ - 0 )( ~)¯
+                                    ¯ max ¯
+                                          ¯     ( )( - 0 )( )¯ =  (
+                                                    ~        ¯            ) =  (-12 )
+       1                                                               
+
+   Proof of Theorem 2: We fix  and let     ^ be the empirical distribution over observations
+not in  and  ~ be the empirical distribution over observations in   Also define 0 (~   ) =
+  ) 0 (~
+ (~     )       ) =  (~
+            ^(~        )  ^ (~
+                              ) 
+              Z        ³         ´     ³       ´
+         1 =     ^(~     ^
+                     )  - 0 (            ^
+                                    ~)  - 0 ( ) 
+              Z        ³         ´              Z         ³        ´
+         2 =         ) 
+                 ^(~     ~ - 0 (    ~) ^ () - 0 (~     )    ~ - 0 (   ~) 0 ( ) 
+              Z                ³       ´       Z                 ³       ´
+         3 =     ^(~   ^
+                     ) (         ~
+                            ~)  - 0 ( ) - 0 (~        )0 (    ~)   ~ - 0 () 
+
+
+                                               27
+                                                 R                ³      ´
+Lemma A1 implies that 1 =  (-12 ) Also, for ~2 = [^(~  ) - 0 (~
+                                                                )]  ~ - 0 (~) 0 ()
+we have that
+                      Z      ³       ´
+             2 =  ~2 +  ^(~
+                            )  ~ - 0 (    ~) (^ - 0 ) ( ) = ~2 +  (-12 )
+
+
+where the last equality follows by Lemma A1. Furthermore, for the estimation sample ^ for ^
+ h        i Z                                        Z
+    ~ 2 ^
+ 2 |   {[^         (~  ) - 0 (~            2
+                                  )] 0 ( )} 0 (  ~)  [^  (~ ) - 0 (~    )]2 0 ( ) 0 (   ~)
+                 Z                                     Z
+                                                                                           
+              [^     (~ ) - 0 (~  )]2 0 () 0 (   ~)   [^    ( ) - 0 (  )]2 0 ( ) - 0
+
+where the last inequality follows by Assumption 3. Therefore, by the conditional Markov in-
+                 ¡      ¢                                                       ¡    ¢
+equality, ~2 =  -12 . It then follows by the triangle inequality that 2 =  -12 . An
+                                      ¡    ¢
+analogous argument also gives 3 =  -12 
+   Let  ^ be the average over   so that
+
+                                               X
+                                               
+                                                 
+                                          ^=
+                                                        ^ 
+                                                        
+                                               =1
+                                                     
+
+In this notation,
+         Z                        Z                          Z
+    ^
+     =      ^(~   ~
+                 ) (      ^
+                      ~)  ( ) +      ^(~    ^
+                                          ) (        ~
+                                                 ~)  () -      ^(~  )  ^ ( ~) ^ ()
+         Z
+      +     ^ (  ) [ -  ^ (  )] ~ ( )
+         Z                         Z
+      =     ^(~  )0 (      ^
+                       ~)  ( ) +      ^(~ )(  ~ - 0 ) (  ~) ^ ( )
+         Z                         Z                                 Z
+      +    ^(~    ^
+                ) (   ~) 0 () +          ) (
+                                      ^(~   ^          ~
+                                                 ~) ( - 0 ) () -       ^(~  ) ^ (   ~) ^ ()
+         Z                         Z                           Z
+      -    ^(~  )0 (   ~) 0 () +       ^(~
+                                          )0 (     ~) 0 ( ) +     ^ (  ) [ -   ^ (  )]   ~ ( ) 
+                        Z          ³       ´                 Z                 ³         ´
+       = 1 + 2 + 3 + 0 (~            ~
+                              )  - 0 (          ~) 0 ( ) + 0 (~     )0 (    ~)    ~ - 0 ( )
+         Z                         Z
+      +    ^(~  )0 (   ~) 0 () +       ^ ( ) [ -    ^ (  )] ~ ( ) 
+
+It follows from the above reasoning and the triangle inequality that 1 + 2 + 3 =  (-12 ).
+    Next, for  = ( ) let
+         Z                                         Z
+      0
+    1 = [^    () - 0 ()] [ - 0 ()]    ~ ( )  2 = [^
+                                                0
+                                                        () - 0 ()] [0 () -   ^ ()] ~ ( ) 
+         Z
+      0
+    3 = 0 () [0 () -       ^ ()] (~ - 0 ) ( ) 
+
+
+                                                28
+Then we have
+Z                      Z                        Z
+  ^ () [ -       ~
+           ^ ()]  ( ) =                 ~
+                         ^ () [ - 0 ()]  ( ) +      ^ () [0 () - ^ ()] ~ ( )
+                       Z                               Z
+                      = 0 () [ - 0 ()]   ~ ( ) + 1 + 0 () [0 () - 
+                                                   0
+                                                                       ^ ()] ~ ( ) + 2
+                                                                                     0
+
+                       Z                         Z
+                                         ~
+                      = 0 () [ - 0 ()]  ( ) + 0 () [0 () -         ^ ()] 0 ( )
+                         0   0   0
+                       + 1 + 2 + 3 
+
+Note that Assumption 1 Chernozhukov et al. (2018, CNS) is satisfied with  ( ) bounded
+uniformly in  Assumption 2 of CNS holds by the first part of Lemma A1, and Assumption 3
+of CNS holds by Assumption A1. Then by Theorem 2 of CNS,
+                                                   
+                               k^ - 0 k2 =  ( ) - 0
+                  R                                                ¡   ¢
+where k^ - 0 k2 = [^(  ) - 0 (  )]2 0 ( ). This result implies 1
+                                                               0
+                                                                 =  -12 as in
+CNS. Also, by Assumptions A1 and A2 and Theorem 3 of CNS,
+                                                   
+                              k^ - 0 k2 =  (¯
+                                              2
+                                                ) - 0
+           0
+                   ¡   ¢
+implying 3   =  -12 as in CNS. It also follows that
+                                                               
+                        k ^ - 0 k k^ - 0 k =  ( (¯  )12  12
+                                                            ) - 0
+         0
+                 ¡   ¢
+so that 2  =  -12  We also have
+                                   Z                      Z
+                              0 = 0 (~   )0 (   ~) 0 () = 0 ()0 ()0 ()
+         Z                         Z
+             ^(~
+                 )0 (  ~) 0 () = 0 ()^      ()0 ()
+
+Therefore we have
+    Z          ³        ´              Z             ³        ´   Z
+^ = 0 (~
+             )   ~ - 0 (    ~) 0 ( ) + 0 (~   )0 ( ~)  ~ - 0 ( ) +  ^(~
+                                                                       )0 (~) 0 ( )
+    Z                              Z
+                                                                ¡   ¢
+                          ~
+  + 0 () [ - 0 ()]  ( ) + 0 () [0 () -           ^ ()] 0 ( ) +  -12
+    Z          ³        ´              Z             ³        ´
+  = 0 (~         ~
+             )  - 0 (       ~) 0 ( ) + 0 (~   )0 (     ~
+                                                   ~)  - 0 ( ) + 0
+    Z
+  + 0 () [^    () - 0 ()] 0 ()
+    Z                              Z
+                                                                ¡   ¢
+                          ~
+  + 0 () [ - 0 ()]  ( ) + 0 () [0 () -           ^ ()] 0 ( ) +  -12
+          Z         ³        ´              Z             ³     ´
+  = 0 + 0 (~          ~
+                )  - 0 (         ~) 0 ( ) + 0 (~
+                                                 )0 (       ~
+                                                        ~)  - 0 ( )
+    Z
+                                     ¡    ¢
+  + 0 () [ - 0 ()]        ~ ( ) +  -12 
+
+
+                                          29
+Then it follows that
+                     1 X
+                            
+             ^ = 0 + 
+                           ( ) +  (-12 )
+                        =1
+                 Z              Z
+            ( ) = 0 (~
+                        )0 ( ) + 0 (~
+                                      )0 (~) - 20 + 0 ( ) [ - 0 ( )] 
+
+The remainder of Theorem 2 follows similarly to CNS. Q.E.D.
+
+   Proof of Theorem 3: Note that for ¯ =  [ | ]
+
+                              [ | ] = ( )0  [ | ] = ( )0 ¯ 
+
+Therefore
+                          2 | ] = ~
+                         [^       02  [ | ] =   ¯2 =  ¯2 
+The first conclusion then follows from independence of the observations which gives
+                           Ã        !-1                     Ã        !-1 
+                             X          X                     X          X
+          [^2 |1    ] =                      2 |1    ] =
+                                            [^                               [^2 | ]
+                            =1            =1                   =1        =1
+                           Ã        !-1
+                            X             X
+                                          
+                       =                        ¯2 
+                            =1            =1
+
+Similarly, for                                     | ] = ¯
+                      2 |1    ] it follows from  [¯
+               ¯2 =  [^                                  0 ¯ that
+                                 1X
+                                          
+                     1 |1    ] =
+                    [^                   | ] - ¯
+                                     { [¯      02 ( [^
+                                                     2 | ] +  ¯2 )}
+                                  =1
+                                    1 X ¯0
+                                          
+                                  =    [   ¯ - ¯
+                                               02 (  ¯2 +  ¯2 )]
+                                     =1 
+                                      1X
+                                          
+                                  =        1 + ¯
+                                          [¯   02 {( -   )¯
+                                                          2 -  ¯2 }]
+                                       =1
+                                    1X
+                                          
+                                  =      1 + ¯
+                                        [¯   02  (¯
+                                                  2 - ¯2 )]
+                                     =1
+
+Also, if ¯2 does not depend on  so that ¯2 = ¯2 for all  then
+                                          Ã       !-1 
+                                           X           X
+                           2 |1    ] =
+                          [^                                  ¯2 = ¯2 
+                                                =1     =1
+
+Similarly we will have  [^
+                         1 |1    ] = ¯1  
+
+   Proof of Theorem 4: By boundedness of  and its smallest eigenvalue bounded away
+from zero uniformly in  it follows that there is  such that for  = -
+                                                                   
+                                                                    1
+
+
+                                             ( )  
+
+                                                 30
+for all  with probability one (wp1). By 2 Gaussian conditional on  = (   ) is follows that
+W =   is Wishart with degrees of freedom  =  - 1 and variance matrix   all conditional
+on   Then by moment formulas for the inverse of a Wishart (Press, 1982) it follows that for
+ = dim(2 ) and each   {1  }
+
+                    [(-1 2         -1          -1 2
+                       ) | ] =   (( ) | ) +  [( ) | ]
+
+                                            2                2
+                                    =                     +
+                                      [ -  - 1] [ -  - 3] [ -  - 1]2
+                                               2
+
+                                            2                2 
+                                    =                     +
+                                      [ -  - 2]2 [ -  - 4] [ -  - 2]2
+                                      2  2
+                                     2 + 2  
+                                       3  3
+By iterated expectations it follows that  [(-1 2        -1 2
+                                             ) ] =  [ [( ) | ]]   for all  and  Then
+ [(-    1 1+
+        )    ]   for all  for  = 1 
+
+  Proof of Theorem 5: By Assumption 5, -  
+                                           1
+                                             exists with probability one. Also, by  0 
+k k2  and  bounded,
+                            ³            ´
+     k    2
+      ^2 k = tr (^
+                 2  0         ~
+                   ^2 ) = tr  2   2    tr (   ) k k2    tr (   ) 
+                               0 0~    2
+
+
+                               12
+For a symmetric square root  of  it follows by   -    
+                                                       1
+                                                         that
+                            ³          ´     ³                  ´
+                              12    12         12 12 -1 12 12
+           tr (   ) = tr  2               tr                  
+                                 ³               ´
+                                   12 12 12 12                 12 -1 12
+                        tr -  1
+                               tr                   tr -  1
+                                                          tr(   )
+
+
+Therefore
+                                              ¡      ¢
+                                      k^2 k2   tr -
+                                                  
+                                                   1
+                                                       
+Then for the  of Assumption 5 it follows that
+
+                                         [k^2 k2+2 ]  
+
+   Next, it follows by time stationarity that
+
+                       2 | ] = ~
+                      [^       02  [ | ] = ~
+                                           02  ¯  =   ¯2 
+
+By  positive definite it follows that |( ) |  (( ) + ( ) )2. Then by ¯2 bounded we
+have
+                                            X
+                            |  ¯2 |   max      |( ) |  ( )
+                                           
+                                                =1
+
+
+
+                                                31
+Also by   -  =  , it follows by the Holder and triangle inequalities that
+         ¯                    ¯   ¯                  ¯     ¯                 ¯
+         ¯ 1 X                ¯   ¯ 1 X              ¯     ¯ 1 X             ¯
+         ¯                    ¯   ¯                  ¯     ¯                 ¯
+         ¯        2 | ] - 
+               ( [^       ¯2 )¯ = ¯       (  -  )¯ = ¯                    ¯2 ¯
+         ¯                    ¯   ¯                  ¯     ¯                 ¯
+                                                                              
+                                      1X                     1X
+                                 (1)        |  ¯2 |  (1)           [( )]
+                                                              
+                                      1X
+                                 (1)        (-     1
+                                                  ) = (1) (1) =  (1)
+                                       
+It follows similarly that
+                                      ^ =  +  (-12 )
+                                      
+It then follows that
+                                           1X
+                 (^2 - ¯2 ) = [ +  (-12 )]      2 - 
+                                               (^   ¯2 )
+                                            
+                              1 X               1 X
+                            =           2 ]) + 
+                                  2 -  [^
+                                 (^                  ( [^2 ] - ¯2 ) +  (1)
+                                                   
+                              1 X
+                            =     2 -  [^
+                                 (^     2 ]) +  (1)
+                                
+   Next, by  and ( ) bounded there is  such that for all ,
+   ^1 = ¯ - ¯
+            02 (^
+                2 +  ^2 )
+
+                             [|^1 |2+2 ]   (1 +  [k^2 k2+2 ] + )  
+
+            | ] = ¯
+Also, by  [¯       0  ¯ = ¯1 + ¯
+                               02 ¯2 
+¯                     ¯
+¯ 1 X                 ¯   1 X¯                       ¯   1 X¯                              ¯
+¯                     ¯          ¯ [(¯
+¯           1 ] - 
+         ( [^     ¯1 )¯               - ¯1 - ¯
+                                             02 ^2 )]¯ =     ¯ [ [¯ | ] -  ¯1 - ¯    2 | ]]¯
+                                                                                02  [^
+¯                     ¯                                    
+      
+                          1  X   ¯ 0               ¯  1 X¯ 0             ¯
+                        =        ¯ [¯
+                                    2 ( -   )¯ 2 ]¯ =         ¯ [¯
+                                                                 2   ¯2 ]¯ =  (1)
+                                                            
+It then follows similarly to the above that
+                                           1 X
+                             (^1 -  ¯1 ) =     1 -  [^
+                                              (^     1 ]) +  (1)
+                                             
+
+   For 0    1 let A denote the event that (-1
+                                            )  (1 - )() Note that max ( )  
+by  bounded. Then we have
+                     1-             1-                
+           (-1
+             )          = max (-1
+                                )        = min ( ) 
+                                                     1-
+                          
+                    =        =   -    
+                                       1
+                         1-
+                                                       1
+                    =       2 -    1   2   -1
+                                     min ( ) = 
+                                                   2
+                                                               
+                                                     max ( )
+
+                                             32
+Therefore there exists  such that
+
+                                    1(     )  1(A )
+
+Furthermore, note that by the Markov inequality and Assumption 5,
+                                                     [(-1
+                                                        )]
+                      Pr(A ) = 1 - Pr(A)  1 -               1 -                             (8.1)
+                                                    1-
+    Next consider ^ = (^     0 0                                       ¯0
+                        1   ^2 ) . For convenience we will neglect the 2  ^2 term in ^1 , which
+will be asymptotically negligible due to  - 0. Note that
+                         0   0 0      -1 0 ¯0 ~0      -1 ~0
+              ^ =     = [1   2 ]  1 =  [ - 2  2 ] 2 =   2 
+
+
+Then by Assumption 5, for 0 = [-¯
+                                2   ]
+                                                      "                               #
+                                          1+¯02   ¯  2 -¯ 02   
+           | ) =  
+         (^               ( | )0
+                                   =     0       -1
+                                           -  ¯    2        
+                    "     #                  "     #
+                      1 0                      1 0
+               = -1         + -1     0               + 1(A ) 0
+                      0 0                      0 0
+                       "             #
+                         1+¯  2 -¯
+                            02¯   02
+                 1(A )                   1(A )
+                          -¯2     
+
+where the last inequality follows by ¯
+                                     2 uniformly bounded. Also we have
+
+             (^         | )] +  ( [^
+               ) =  [ (^            | ])   [ (^
+                                               | )]   Pr(A )
+
+It then follows from equation (8.1) and  - 0 that for large enough ,
+
+                             1X         1X
+                                
+                                    )  
+                                  (^        Pr(A )  
+                              =1         =1
+         P
+Therefore =1   (^  ) is uniformly nonsingular.
+  The remainder of the proof is entirely standard. Q.E.D.
+
+
+
+9    Appendix C: Solving the Zeros Problem of Demand
+In this Appendix we briefly explain how the bounds on average surplus we consider solve the zeros
+problem of demand. First, allowing a vector of disturbances to enter the demand function in a
+nonseparable, nonlinear way allows zeros as the outcome of a very general choice specification.
+For example, an underlying demand model where zeros occur as a censored outcome is allowed
+because disturbances are not constrained to be additively separable in our specification.
+
+                                               33
+   Second, the economics of demand helps explain how zeros are correctly accounted for. An
+individual who chooses zero over the price range being considered does not care about the price
+change and so has zero surplus. Average demand includes zero choices and the average and
+average surplus averages over the same zero surplus individuals. Including zeros in the average
+demand accounts for individuals who have zero surplus because they do not choose to purchase
+the good with changing price. This is why including zeros is the correct econometric approach.
+   To elaborate on the economics suppose only one price  is varying. For simplicity we consider
+quantity rather than share. Let  (  ) be the demand function for the good with price varying
+(holding all other prices constant) for one type  of individual preferences. Let (  ) be the
+equivalent variation EV for a price change from  to 1 for type  Hausman and Newey (2016)
+showed that if the income effect for every is bounded below and above by  and  respectively
+then      Z 1                                          Z 1
+                (   ) exp(- [ - ])  ( )                    (  ) exp(- [ - ])
+                                                         
+
+If (   ) is zero over [ 1 ] then upper and lower bounds coincide at zero. Itegrating over the
+distribution of  gives
+              Z 1                                 Z 1
+                  ¯(  ) exp(- [ - ])  
+                                           ¯()        ¯(  ) exp(- [ - ])
+                                                      
+                                                      
+                 R
+where  ¯(  ) =  (  )( ) is average demand. Here               ¯() includes the zero surplus in-
+dividuals as it must do to be an average surplus over all individuals. Also the average over
+quantities  ¯(  ) includes the zeros, as it must do to include in the average surplus those who
+do not purchase any of the good. Thus we get correct bounds for average EV by including the
+zeros in estimation of average demand.
+   It also follows from Battacharya (2015) that averaging over zeros leads to the correct cal-
+culation in multinomial discrete choice when the price of one good is changing. Let       ¯(  )
+denote choice probability for the good with changing price. Bhattacharya (2015) shows average
+equivalent variation is                      Z  1
+                                     ¯() =          ¯(  )
+                                             
+
+As usual the choice probability is the average across individuals of the choice of 0 or 1 Thus
+the choice probability is an average demand that includes zeros. Average surplus also includes
+zeros. Thus we get correct average EV by including zeros. We also note that we do not have
+bounds. With discrete choice the income effects are not important so the integral gives exact
+EV.
+
+
+
+
+                                              34
+10     References
+
+Allcott, H., B. B. Lockwood, and D. Taubinsky (2019): "Should we tax soda? an overview of
+theory and evidence," Journal of Economic Perspectives 33 (2).
+    Arellano, M. and S. Bonhomme (2012), "Identifying Distributional Characteristics in Ran-
+dom Coefficients Panel Data Models," Review of Economic Studies 79, 987--1020.
+    Belloni, A., V. Chernozhukov, D. Chen, C. Hansen (2012): "Sparse Models and Methods for
+Optimal Instruments With an Application to Eminent Domain," Econometrica 80, 2369-2429.
+    Belloni, A., V. Chernozhukov, C. Hansen (2013): "Inference on Treatment Effects after
+Selection among High-Dimensional Controls," The Review of Economic Studies 81, 608--650,
+    Bhattacharya, D. (2015): "Nonparametric Welfare Analysis for Discrete Choice," Economet-
+rica 83, 617--649.
+    Blomquist, S. and W.K. Newey (2002): "Nonparametric Estimation with Nonlinear Budget
+Sets," Econometrica 70, 2455-2480.
+    Blomquist, S., A Kumar, Che-Yuan Liang, and W.K. Newey (2014): "Individual Hetero-
+geneity, Nonlinear Budget Sets, and Taxable Income," CEMMAP working paper 21/14.
+    Blundell, R., A. Duncan, and K. Pendakur (1998): "Semiparametric Estimation and Con-
+sumer Demand", Journal of Applied Econometrics 13, 435-462.
+    Blundell, R. and J.M. Robin (2000): "Latent Separability: Grouping Goods without weak
+Separability," Econometrica 68, 53-84.
+    Blundell, R. and J.L. Powell (2003): "Endogeneity in Nonparametric and Semiparametric
+Regression Models," in M. Dewatripont, L.P. Hansen and S.J. Turnovsky, eds. Advances in
+Economics and Econonometrics: Theory and Applications, Eighth World Congress, Vol. II,
+Cambridge: Cambridge University Press.
+    Blundell, R., D. Kristensen, and R. Matzkin (2014): "Bounding Quantile Demand Functions
+Using Revealed Preference Inequalities," Journal of Econometrics 179, 112--127.
+    Blundell, R. and R. Matzkin (2014): "Control Functions in Nonseparable Simultaneous
+Equations Models," Quantitative Economics 5, 271--295.
+    Burda, M., M. Harding, J.A. Hausman (2008): "A Bayesian Mixed Logit Probit model for
+Multinomial Choice," Journal of Econometrics 147, 232-246.
+    Burda, M., M. Harding, J.A. Hausman (2012): "A Poisson Mixture Model of Discrete
+Choice," Journal of Econometrics 166, 184-203.
+    Burtless, G. and J.A. Hausman (1978): "The Effect of Taxation on Labor Supply: Evaluating
+the Gary Negative Income Tax Experiments," Journal of Political Economy 86, 1103-1130.
+    Chamberlain, G. (1982): "Multivariate Regression Models for Panel Data," Journal of
+Econometrics 18, 5-46.
+    Chamberlain, G. (1984): "Panel Data," in Handbook of Econometrics, Volume 2, eds. Z.
+Griliches and M. Intriligator,Amsterdam: North-Holland, 1984, 1247--1318.
+
+                                             35
+    Chamberlain, G. (1992): "Efficiency Bounds for Semiparametric Regression," Econometrica
+60, 567-596.
+    Chernozhukov, V., I. Fernandez-Val, J. Hahn, W. Newey (2013): "Average and Quantile
+Effects in Nonseparable Panel Models," Econometrica 81, 535--580.
+    Chernozhukov, V., I. Fernandez-Val, S. Hoderlein, H. Holzmann, and W.K. Newey (2015):
+"Quantile Derivatives and Panel Data," Journal of Econometrics 188, 378-392.
+    Chernozhukov, V., I. Fernandez-Val, and W.K. Newey (2017): "Nonseparable Multinomial
+Choice Models in Cross-Section and Panel Data," Journal of Econometrics, forthcoming.
+    Chernozhukov, V., W.K. Newey, and J. Robins (2018): "Double/De-Biased Machine Learn-
+ing Using Regularized Riesz Representers," https://arxiv.org/abs/1802.08667.
+    Chernozhukov, V., W.K. Newey, and R. Singh (2018): "Learning L2-Continuous Regression
+Functionals via Regularized Riesz Representers," https://arxiv.org/pdf/1809.05224.
+    Deaton, A. and J. Muellbauer (1980): "Economics of Consumer Behavior," Cambridge:
+Cambridge University Press.
+    Dette, H., S. Hoderlein, and N. Neumayer (2016): "Testing Multivariate Economic Re-
+strictions Using Quantiles: The Example of Slutsky Negative Semidefiniteness," Journal of
+Econometrics 191, 129-144.
+    Dubois, P., R. Griffith, and M. O'Connell (2019): "How well targeted are soda taxes?"
+working paper.
+    Gorman, W.M. (1959): "Separable Utility and Aggregation," Econometrica 27, 469-481.
+    Gorman, W.M. (1981): "Some Engel Curves," in Essays in the Theory and Measurement
+of Consumer Behaviour in Honor of Sir Richard Stone, ed. by Angus Deaton. Cambridge:
+Cambridge University Press.
+    Graham, B and J.L. Powell (2012): "Identification and Estimation of Average Partial Effects
+in "Irregular" Correlated Random Coefficient Panel Data Models," Econometrica 80, 2105-2152.
+    Griliches, Z. and J.A. Hausman (1986): "Errors in Variables in Panel Data," Journal of
+Econometrics 31, 93-118.
+    Harding, M. and M. Lovenheim (2017): "The Effect of Prices on Nutrition: Comparing the
+Impact of Product-and Nutrient-Specific Taxes," Journal of Health Economics 53, 53-71.
+    Hausman, J.A. (1981): "Exact Consumer Surplus and Deadweight Loss," American Eco-
+nomic Review 71, 662-676.
+    Hausman, J.A., G. Leonard, and J.D. Zona (1994): "Competitive Analysis with Differenti-
+ated Products," Annales d'Économie et de Statistique 34, 159-180
+    Hausman, J.A. and W. K. Newey (1995): "Nonparametric Estimation of Exact Consumer
+Surplus and Deadweight Loss," Econometrica 63, 1445-1476.
+    Hausman, J.A. and E. Leibtag (2007): "Consumer benefits from increased competition in
+shopping outlets: Measuring the effect of Wal-Mart," Journal of Applied Econometrics 22, 1157-
+
+
+                                              36
+1177.
+    Hausman, J.A., S. Morisi, and M. Rainey (2010): "Unilateral Effects of Mergers with General
+Linear Demand," working paper.
+    Hausman, J.A. and W.K. Newey (2016): "Individual Heterogeneity and Average Welfare,"
+Econometrica 84, 1225-1248.
+    Hoderlein, S. and A. Lewbel (2012): "Regressor Dimension Reduction with Economic Con-
+straints: The Example of Demand Systems with Many Goods," Econometric Theory 28, 1087-
+1120.
+    Hoderlein, S. and J. Stoye (2014): "Revealed Preferences in a Heterogeneous Population,"
+Review of Economics and Statistics 96, 197-213.
+    Imbens, G.W. and W.K. Newey (2009): "Identification and Estimation of Triangular Simul-
+taneous Equations Models Without Additivity," Econometrica 77, 1481--1512.
+    Kitamura, Y. and J. Stoye (2018): "Nonparametric Analysis of Random Utility Models,"
+Econometrica 86, 1883-1909.
+    Lewbel, A. (2001): "Demand Systems With and Without Errors," American Economic Re-
+view 91, 611-618.
+    Masten, M. A., and A. Torgovitsky (2016): "Identification of Instrumental Variable Corre-
+lated Random Coefficients Models," Review of Economics and Statistics 98, 1001--5.
+    McFadden, D.L. (2005): "Revealed Stochastic Preference: A Synthesis," Economic Theory
+26, 245-264.
+    McFadden, D.L. and M. Richter (1991): "Stochastic Rationality and Revealed Stochastic
+Preference," in J. Chipman, D. McFadden, and M. Richter (eds.) Preferences, Uncertainty and
+Optimality: Essays in Honour of Leonid Hurwicz. Boulder, Co.: Westview Press.
+    Newey, W.K. (1994): "The Asymptotic Variance of Semiparametric Estimators," Economet-
+rica 62, 1349-1382.
+    Newey, W.K. and D.L. McFadden: (1994): "Large Sample Estimation and Hypothesis Test-
+ing," in R. Engel and D. McFadden, Handbook of Econometrics Vol 4., Amsterdam: North-
+Holland.
+    Pesaran, H. and R.P. Smith (1995): "Estimating Long-Run Relationships from Dynamic
+Heterogeneous Panels," Journal of Econometrics 68, 79-113.
+    Press, S.J. (1982): Applied Multivariate Analysis, New York: Dover Publications.
+    Wooldridge, J.M. (2002): Econometric Analysis of Cross Section and Panel Data, Cam-
+bridge, MA: MIT Press.
+    Wooldridge, J.M. (2005): "Fixed Effects and Related Estimators for Correlated Random-
+Coefficient and Treatment Effect Panel Data Models," Review of Economics and Statistics 87,
+385-390.
+    Wooldridge, J.M. (2018): "Correlated Random Effects Models with Unbalanced Panels,"
+
+
+                                              37
+Journal of Econometrics, forthcoming.
+
+
+
+
+                                        38
+

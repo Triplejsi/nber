@@ -1,0 +1,2848 @@
+                               NBER WORKING PAPER SERIES
+
+
+
+
+                          ONLINE ESTIMATION OF DSGE MODELS
+
+                                         Michael D. Cai
+                                        Marco Del Negro
+                                        Edward P. Herbst
+                                          Ethan Matlin
+                                           Reca Sarfati
+                                        Frank Schorfheide
+
+                                       Working Paper 26826
+                               http://www.nber.org/papers/w26826
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                    March 2020
+
+
+
+
+We thank participants at various conferences and seminars for helpful comments. Schorfheide
+acknowledges financial support from the National Science Foundation under Grant SES 1851634.
+The views expressed in this paper are those of the authors and do not necessarily reflect the
+position of the Federal Reserve Bank of New York, the Federal Reserve Board, the Federal
+Reserve System, or the National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Michael D. Cai, Marco Del Negro, Edward P. Herbst, Ethan Matlin, Reca Sarfati, and
+Frank Schorfheide. All rights reserved. Short sections of text, not to exceed two paragraphs, may
+be quoted without explicit permission provided that full credit, including © notice, is given to the
+source.
+Online Estimation of DSGE Models
+Michael D. Cai, Marco Del Negro, Edward P. Herbst, Ethan Matlin, Reca Sarfati, and Frank
+Schorfheide
+NBER Working Paper No. 26826
+March 2020
+JEL No. C11,C32,C53,E32,E37,E52
+
+                                         ABSTRACT
+
+This paper illustrates the usefulness of sequential Monte Carlo (SMC) methods in approximating
+DSGE model posterior distributions. We show how the tempering schedule can be chosen
+adaptively, document the accuracy and runtime benefits of generalized data tempering for
+"online" estimation (that is, re-estimating a model as new data become available), and provide
+examples of multimodal posteriors that are well captured by SMC methods. We then use the
+online estimation of the DSGE model to compute pseudo-out-of-sample density forecasts and
+study the sensitivity of the predictive performance to changes in the prior distribution. We find
+that making priors less informative (compared to the benchmark priors used in the literature) by
+increasing the prior variance does not lead to a deterioration of forecast accuracy.
+
+Michael D. Cai                                  Ethan Matlin
+Northwestern University                         Federal Reserve Bank of New York
+Department of Economics                         Research and Statistics Group
+2211 Campus Dr.                                 33 Liberty Street, 4th Floor
+Evanston, IL 60208                              New York, NY 10045
+michaelcai@u.northwestern.edu                   ethanmatlin@gmail.com
+
+Marco Del Negro                                 Reca Sarfati
+Federal Reserve Bank of New York                Federal Reserve Bank of New York
+Research and Statistics Group                   Research and Statistics Group
+33 Liberty Street, 4th Floor                    33 Liberty Street, 4th Floor
+New York, NY 10045                              New York, NY 10045
+marco.delnegro@ny.frb.org                       reca_sarfati@alumni.brown.edu
+
+Edward P. Herbst                                Frank Schorfheide
+Board of Governors of the                       University of Pennsylvania
+Federal Reserve System                          Department of Economics
+20th Street and Constitution Avenue N.W.        The Ronald O. Perelman Center for
+Washington, DC 20551                            Political Science and Economics
+edward.p.herbst@frb.gov                         133 South 36th Street
+                                                Philadelphia, PA 19104-6297
+                                                and NBER
+                                                schorf@ssc.upenn.edu
+
+
+Replication files are available at
+https://github.com/FRBNY-DSGE/Replication-of-Online-Estimation-of-DSGE-Models
+                                                                                           1
+
+
+1    Introduction
+
+The goal of this paper is to provide a framework for performing "online" estimation of
+Bayesian dynamic stochastic general equilibrium (DSGE) models using sequential Monte
+Carlo (SMC) techniques. We borrow the term online estimation from the statistics and
+machine-learning literature to describe the task of re-estimating a model frequently as new
+data become available. This is standard practice in central bank settings, where models may
+be re-estimated every one to three months for each policy-briefing cycle or after each data
+release. The conventional approach--to run a completely new estimation to update the model
+with new information--is time-consuming and can require considerable user supervision.
+Moreover, as macroeconomic models become more complex, e.g., the current vintage of
+heterogeneous-agent New Keynesian models, even seemingly generous time constraints may
+become binding. Online estimation is also important for academic research, where economists
+often compare predictions from a variety of models in pseudo-out-of-sample forecast exercises
+that require recursive estimation.
+
+    In both policy and academic settings, then, there is a need for reliable and efficient
+estimation algorithms. In this paper, we propose a generic SMC algorithm for online estima-
+tion which minimizes computational time but maintains the ability to handle complex--i.e.,
+multimodal--posterior distributions with minimal user monitoring. In an empirical section,
+we verify the properties of the algorithm by estimating a suite of DSGE models. In an appli-
+cation prototypical for both policy institutions and academic research, we use the algorithm
+to generate recursive forecasts using these DSGE models.
+
+    In online estimation applications of SMC methods, parameter estimates based on data
+available in the previous period will be adjusted to capture the additional information con-
+tained in the observations from the current period. However, a similar technique can be used
+to transform estimates of, say, a linearized DSGE model, into estimates of a version of the
+model that has been solved with nonlinear techniques and shares the same set of parame-
+ters. Thus, our framework should be of value to anyone interested in estimating complex
+models in a stepwise fashion, either by sequentially increasing the sample information or by
+mutating preliminary estimates from a relatively simple (linear dynamics, heterogeneous-
+agent models with a coarse approximation) model, which can be computed quickly, into
+estimates of a more complex model (nonlinear dynamics, heterogeneous-agent models with
+a finer approximation), which would take a long time to compute from scratch.
+                                                                                               2
+
+
+    SMC methods have been traditionally used to solve nonlinear filtering problems, an
+example being the bootstrap particle filter of Gordon et al. (1993). Subsequently, Chopin
+(2002) showed how to adapt particle filtering techniques to conduct posterior inference for a
+static parameter vector. The first paper that applied SMC techniques to posterior inference
+for the parameters of a (small-scale) DSGE model was Creal (2007). Subsequent work by
+Herbst and Schorfheide (2014, 2015) fine-tuned the algorithm so that it could be used for
+the estimation of medium- and large-scale models.
+
+    In order to frame the paper's contributions, a brief summary of how SMC works is in
+order. SMC algorithms approximate a target posterior distribution by creating intermediate
+approximations to a sequence of bridge distributions, indexed in this paper by n. At each
+stage, the current bridge distribution is represented by a swarm of so-called particles. Each
+particle is composed of a value and a weight. Weighted averages of the particle values
+converge to expectations under the stage-n distribution. The transition from stage n - 1 to
+n involves changing the particle weights and values so that the swarm adapts to the new
+distribution. Typically, these bridge distributions are composed either using the full-sample
+likelihood (likelihood tempering)--generated by raising this likelihood function to the power
+of n , where n increases from zero to one--or by sequentially adding observations to the
+likelihood function (data tempering). While the data tempering approach seems most natural
+for an online estimation algorithm, previous work (Herbst and Schorfheide, 2015) has shown
+that it may perform poorly relative to likelihood tempering.
+
+    This paper makes three main contributions. First, under likelihood tempering, we replace
+a predetermined (or fixed) tempering schedule {n } for the DSGE model likelihood function
+by a schedule that is constructed adaptively. The adaptive tempering schedule chooses
+the amount of information that is added to the likelihood function in stage n to achieve a
+particular variance of the particle weights. While adaptive tempering schedules have been
+used in the statistics literature before, e.g., Jasra et al. (2011), their use for the estimation
+of DSGE model parameters is new. This kind of adaptation is an important prerequisite for
+efficient online estimation, as it avoids unnecessary computations. Our adaptive schedules
+are calibrated by a single tuning parameter that controls the desired variance of the particle
+weights. We assess how this tuning parameter affects the accuracy-runtime trade-off for the
+algorithm.
+
+    Second, we modify the SMC algorithm so that the initial particles are drawn from a previ-
+ously computed posterior distribution instead of the prior distribution. This initial posterior
+can result from estimating the model on a shorter sample or a simpler version of the same
+                                                                                                        3
+
+
+model (e.g., linear versus non-linear, as discussed above) on the full sample. In the former
+case, our approach can be viewed as a form of generalized data tempering. Our approach is
+more general in that it allows users to add information from fractions of observations and ac-
+commodates data revisions, which are pervasive in macro applications. When combined with
+adaptive tempering, this generalized approach avoids the pitfalls associated with standard
+data tempering. This is because in the periods in which the new observation(s) are quite
+informative and shift the posterior distribution substantially, the algorithm will use a larger
+number of intermediate stages to reach the new posterior to maintain accuracy. Whereas in
+other periods where the posterior distribution remains essentially unchanged, the number of
+intermediate stages are kept small to reduce runtime.
+
+       Third, we contribute to the literature that assesses the real-time pseudo-out-of-sample
+forecast performance of DSGE models. Here real-time means that for a forecast using a sam-
+ple ending at time t, the data vintage used to estimate the model is one that would have been
+available to the econometrician at the time. Pseudo-out-of-sample means that the forecasts
+were produced ex-post.1 We use the proposed SMC techniques to conduct online estimation
+of the Smets and Wouters (2007) model and a version of this model with financial frictions.
+Our forecast evaluation exercises extend previous results in Del Negro and Schorfheide (2013)
+and Cai et al. (2019) which were conducted with parameter estimates from the widely-used
+random walk Metropolis Hastings (RWMH) algorithm. In particular, we study the effects of
+reducing the informativeness of the prior distribution on forecasting performance. Despite
+the emergence of multiple modes in the posterior distribution, our SMC-based results show
+that the large increase in the prior standard deviation has surprisingly small effects on fore-
+casting accuracy, thereby debunking the notion that priors in DSGE models are chosen to
+improve the model's predictive ability.
+
+       The remainder of this paper is organized as follows. In Section 2 we outline the basic
+structure of an SMC algorithm designed for posterior inference on a time-invariant parameter
+vector . We review different tempering approaches and present an algorithm for the adaptive
+choice of the tempering schedule. Section 3 provides an overview of the DSGE models that
+are estimated in this paper. In Section 4 we study various dimensions of the performance
+of SMC algorithms: we assess the accuracy and runtime tradeoffs of adaptive tempering
+schedules, we document the benefits of generalized data tempering for online estimation,
+and we demonstrate the ability of SMC algorithms to accurately approximate multimodal
+   1
+       Cai et al. (2019) provide a genuine real-time forecast evaluation that uses the NY Fed DSGE model's
+forecasts.
+                                                                                              4
+
+
+posteriors. Section 5 contains various pseudo-out-of-sample forecasting assessments for mod-
+els that are estimated by SMC. Finally, Section 6 concludes. An Online Appendix provides
+further details on model specifications, prior distributions, and computational aspects. It
+also contains additional empirical results.
+
+
+
+2     Adaptive SMC Algorithms for Posterior Inference
+
+SMC techniques to generate draws from posterior distributions of a static parameter  are
+emerging as an attractive alternative to MCMC methods. SMC algorithms can be easily
+parallelized and, properly tuned, may produce more accurate approximations of posterior
+distributions than MCMC algorithms. Chopin (2002) showed how to adapt particle filtering
+techniques to conduct posterior inference for a static parameter vector. Textbook treatments
+of SMC algorithms are provided, for instance, by Liu (2001) and Capp´
+                                                                    e et al. (2005). This
+section reviews the standard SMC algorithm (Section 2.1), contrasts our generalized tem-
+pering approach with existing alternatives (Section 2.2), and finally describes our adaptive
+tempering algorithm (Section 2.3).
+
+    The first paper that applied SMC techniques to posterior inference in a small-scale DSGE
+models was Creal (2007). Herbst and Schorfheide (2014) develop the algorithm further,
+provide some convergence results for an adaptive version of the algorithm building on the
+theoretical analysis of Chopin (2004), and show that a properly tailored SMC algorithm
+delivers more reliable posterior inference for large-scale DSGE models with a multimodal
+posterior than the standard RWMH algorithm. Creal (2012) provides a recent survey of
+SMC applications in econometrics. Durham and Geweke (2014) show how to parallelize a
+flexible and self-tuning SMC algorithm for the estimation of time series models on graphical
+processing units (GPU). The remainder of this section draws heavily from the more detailed
+exposition in Herbst and Schorfheide (2014, 2015).
+
+
+2.1    SMC Algorithms for Posterior Inference
+
+SMC combines features of classic importance sampling and modern MCMC techniques. The
+                                                                                          N 
+starting point is the creation of a sequence of intermediate or bridge distributions {n ()}n=0
+that converge to the target posterior distribution, i.e., N () =  (). At any stage the
+                                                                                                5
+
+                                                                                   i    i N
+(intermediate) posterior distribution n () is represented by a swarm of particles {n , Wn }i=1
+in the sense that the Monte Carlo average
+                                           N
+                             ¯ n,N = 1
+                             h                    i
+                                                 Wn
+                                                             a.s.
+                                                    h(i ) - En [h(n )]                        (1)
+                                     N     i=1
+
+as N - , for each n = 0, . . . , N . The bridge distributions are posterior distributions
+constructed from stage-n likelihood functions:
+
+                                                   pn (Y |)p()
+                                    n () =                                                    (2)
+                                                   pn (Y |)p()d
+
+with the convention that p0 (Y |) = 1, i.e., the intial particles are drawn from the prior, and
+pN (Y |) = p(Y |). The actual form of the likelihood sequences depend on the tempering
+approach and will be discussed in Section 2.2 below. We adopt the convention that the
+         i
+weights Wn are normalized to average to one.
+
+    The SMC algorithm proceeds iteratively from n = 0 to n = N . Starting from stage
+                 i       i    N
+n - 1 particles {n -1 , Wn-1 }i=1 each stage n of the algorithm targets the posterior n and
+consists of three steps: correction, that is, reweighting the stage n - 1 particles to reflect the
+density in iteration n; selection, that is, eliminating a highly uneven distribution of particle
+weights (degeneracy) by resampling the particles; and mutation, that is, propagating the
+particles forward using a Markov transition kernel to adapt the particle values to the stage
+n bridge density.
+
+Algorithm 1 (Generic SMC Algorithm).
+
+                                                                                   i           iid
+  1. Initialization. (n = 0 and 0 = 0.) Draw the initial particles from the prior: 1 
+               i
+      p() and W1 = 1, i = 1, . . . , N .
+
+  2. Recursion. For n = 1, . . . , N ,
+
+       (a) Correction. Reweight the particles from stage n - 1 by defining the incremental
+           weights
+                                                                  i
+                                                   i      pn (Y |n  -1 )
+                                                 w
+                                                 ~n    =            i
+                                                                                              (3)
+                                                         pn-1 (Y |n   -1 )
+
+           and the normalized weights
+                                                   i  i
+                                  ~ni            w
+                                                 ~n  Wn -1
+                                  W   =    1      N
+                                                                    ,   i = 1, . . . , N.     (4)
+                                                        w
+                                                        ~ni Wi
+                                           N      i=1        n-1
+                                                                                             6
+
+
+      (b) Selection (Optional). Resample the swarm of particles, {n        i      ~i N
+                                                                             -1 , Wn }i=1 , and
+          denote resampled particles by {^i , W i }N , where W i = 1 for all i.
+                                             n       n i=1                 n
+
+       (c) Mutation. Starting from    ^i , propagate the particles {^i , W i } via NM H steps
+                                       n                             n    n
+           of a Metropolis-Hastings (MH) algorithm with transition density Kn (|    ~; n ) and
+           stationary distribution n (). Note that the weights are unchanged, and denote
+                                     i    i N
+           the mutated particles by {n , Wn }i=1 .
+
+     An approximation of En [h()] is given by
+                                                       N
+                                      ¯ n,N = 1
+                                      h                      i
+                                                           h(n   i
+                                                               )Wn .                       (5)
+                                              N      i=1
+
+
+  3. For n = N (N = 1) the final importance sampling approximation of E [h()] is
+     given by:
+                                                 N
+                                     ¯ N ,N =
+                                     h                   i
+                                                       h(N    i
+                                                            )WN  .                         (6)
+                                                                
+                                                 i=1
+
+    Because we are using a proper prior, we initialize the algorithm with iid draws from the
+prior density p(). The correction step is a classic importance sampling step, in which the
+particle weights are updated to reflect the stage n distribution n (). The selection step is
+optional. On the one hand, resampling adds noise to the Monte Carlo approximation, which
+is undesirable. On the other hand, it equalizes the particle weights, which increases the
+accuracy of subsequent importance sampling approximations. The decision of whether or
+not to resample is typically based on a threshold rule for the variance of the particle weights
+which can be transformed into an effective particle sample size:
+                                                       N
+                                                 1            ~ i )2
+                               ESS n = N                     (W n      .                   (7)
+                                                 N     i=1
+
+If the particles have equal weights, then ESS n = N . If one particle has weight N and all
+other particles have weight 0, then ESS n = 1. These are the upper and lower bounds for the
+effective sample size. To balance the trade-off between adding noise and equalizing particle
+weights, the resampling step is typically executed if ESS n falls below a threshold N , e.g.,
+N/2 or N/3. An overview of specific resampling schemes is provided, for instance, in the
+books by Liu (2001) or Capp´
+                           e et al. (2005) (and references cited therein). We are using
+systematic resampling in the applications below.
+    The mutation step changes the particle values. In the absence of the mutation step, the
+particle values would be restricted to the set of values drawn in the initial stage from the
+                                                                                                7
+
+
+prior distribution. This would clearly be inefficient, because the prior distribution is typically
+a poor proposal distribution for the posterior in an importance sampling algorithm. As the
+algorithm cycles through the N stages, the particle values successively adapt to the shape
+of the posterior distribution. This is the key difference between SMC and classic importance
+sampling. The transition kernel Kn (|      ~; n ) is designed to have the following invariance
+property:
+                              n (n ) =      Kn (n |^n ; n )n (^n )d^n .                       (8)
+
+Thus, if ^i is a draw from n , then so is i . The mutation step can be implemented by
+          n                               n
+using one or more steps of a MH algorithm. The probability of mutating the particles can
+be increased by blocking the elements of the parameter vector  or by iterating the MH
+algorithm over multiple steps. The vector n summarizes the tuning parameters of the MH
+algorithm.
+    The SMC algorithm produces as a by-product an approximation of the marginal likeli-
+hood. Note that
+             N
+       1             i ~ i     pn (Y |)          pn-1 (Y |)p()             pn (Y |)p()d
+                   w
+                   ~n Wn-1                                      d =                      .    (9)
+       N     i=1
+                              pn-1 (Y |)         pn-1 (Y |)p()d           pn-1 (Y |)p()d
+
+Thus, it can be shown that the approximation
+                                           N          N
+                                                  1           i  i
+                                 p
+                                 ^(Y ) =                    w
+                                                            ~n  Wn -1                        (10)
+                                           n=1
+                                                  N   i=1
+
+converges almost surely to p(Y ) as the number of particles N - ; see, for instance,
+Herbst and Schorfheide (2014).
+
+
+2.2    Likelihood, Data, and Generalized Tempering
+
+The stage-n likelihood functions are generated in different ways. Under likelihood tempering,
+one takes power transformations of the entire likelihood function:
+
+                                pn (Y |) = [p(Y |)]n ,          n  1,                        (11)
+
+The advantage of likelihood tempering is that one can make, through the choice of n ,
+consecutive posteriors arbitrarily "close" to one another. Under data tempering, sets of
+observations are gradually added to the likelihood function, that is,
+
+                               pn (Y |) = p(y1:    n T    |),    n  1,                       (12)
+                                                                                                       8
+
+
+where x is the largest integer that is less or equal to x. Data tempering is particularly
+attractive in time series applications. But because individual observations are not divisible,
+the data tempering approach is less flexible. Though the data tempering approach might
+seem well suited for online estimation, in practice it performs poorly because adding an
+observation can change the posterior substantially. Moreover, conventional data tempering
+is not easily adapted to revised data.
+      Our approach generalizes both likelihood and data tempering as follows. Imagine one
+has draws from the posterior
+                                             ~ ()  p
+                                                     ~ |)p(),
+                                                   ~(Y                                               (13)
+where the posterior ~ () differs from the posterior  () because either the sample (Y versus
+~ ), or the model (p(Y |) versus p
+Y                                     ~ |)), or both are different.2 We define the stage-n
+                                    ~(Y
+likelihood function as:
+
+                               pn (Y |) = [p(Y |)]n [~ ~ |)]1-n ,
+                                                     p(Y                  n  1.                      (14)
+
+                       ~(·) = 1, then (14) is identical to likelihood tempering. Second, suppose
+    First, if one sets p
+         ~(·) = p(·), Y = y1:T , and Y
+one sets p                             ~ = y1:T1 where T > T1 . Then, tempering this likelihood
+allows for a gradual transition from p(y1:T1 |) to p(y1:T |) as n increases from 0 to 1. This
+leads to a generalized version of data tempering in which we can add informational content
+to the likelihood that corresponds to a fraction of an observation yt . This may be important
+if the additional sample yT1 +1:T substantially affects the likelihood (e.g., yT1 +1:T includes the
+Great Recession).
+                                          ~ , we can accommodate data revisions between time
+      Third, by allowing Y to differ from Y
+T1 and T . For online estimation, one can use the most recent estimation to jump-start a
+new estimation on revised data, without starting from scratch. Finally, by allowing p(·) and
+~(·) to differ, one can transition between the posterior distribution of two models that share
+p
+the same parameters, e.g., DSGE models solved by a first- and second-order perturbation
+method. We will evaluate the accuracy of the generalized tempering approach in Section 4
+and use it in the real-time forecast evaluation of Section 5.
+
+
+2.3       Adaptive Algorithms
+
+The implementation of the SMC algorithm requires the choice of several tuning constants.
+First, the user has to choose the number of particles N . As shown in Chopin (2004),
+  2
+      It is straightforward to generalize our approach to also encompass differences in the prior.
+                                                                                                    9
+
+
+Monte Carlo averages computed from the output of the SMC algorithm satisfy a CLT as
+the number of particles increases to infinity. This means that the variance of the Monte
+Carlo approximation decreases at the rate 1/N . Second, the user has to determine the
+tempering schedule n and the number of bridge distributions N . Third, the threshold
+level N for ESS n needs to be set to determine whether the resampling step should be
+executed in iteration n. Finally, the implementation of the mutation step requires the choice
+of the number of MH steps, NM H , the number of blocks into which the parameter vector
+ is partitioned, Nblocks , and the parameters n that control the Markov transition kernel
+Kn (n |^i ; n ).
+         n
+
+     Our implementation of the algorithm starts from a choice of N , N , NM H , and Nblocks . The
+remaining features of the Algorithm are determined adaptively. As in Herbst and Schorfheide
+(2015), we use a RWMH algorithm to implement the mutation step. The proposal density
+takes the form N (^i , c2 , ~ n ). The scaling constant c and the covariance matrix ~ n can be
+                        n
+easily chosen adaptively; see Herbst and Schorfheide (2015, Algorithm 10). Based on the
+MH rejection frequency, c can be adjusted to achieve a target rejection rate of approximately
+25-40%. For ~ n one can use an approximation of the posterior covariance matrix computed
+at the end of the stage n correction step.
+
+     In the current paper, we will focus on the adaptive choice of the tempering schedule,
+building on work by Jasra et al. (2011), Del Moral et al. (2012), Sch¨
+                                                                     afer and Chopin (2013),
+Geweke and Frischknecht (2014), and Zhou et al. (2015). The key idea is to choose n to
+                                                                          
+target a desired level ESS n . Roughly, the closer the desired ESS n to the previous ESS n-1 ,
+the smaller the increment n - n-1 and therefore the information increase in the likelihood
+function. In order to formally describe the choice of n , we define the functions:
+                                                                                      N
+ i             i      -n-1     ~ i () =       wi ()Wn
+                                                    i
+                                                      -1                          1          ~ i ())2
+w () = [p(Y   |n -1 )]     ,   W n            N
+                                                                 ,   ESS () = N             (W n
+                                          1               i
+                                                                                  N
+                                          N
+                                                    wi ()Wn -1
+                                                                                      i=1
+                                              i=1
+
+We will choose  to target a desired level of ESS:
+
+                               f () = ESS () - ESS n-1 = 0,                                      (15)
+
+where  is a tuning constant that captures the targeted reduction in ESS. For instance, if
+ = 0.95, then the algorithm allows for a 5 percent reduction in the effective sample size at
+each stage. The algorithm can be summarized as follows:
+                                                                                                               10
+
+
+Algorithm 2 (Adaptive Tempering Schedule).
+
+
+    1. If f (1)  0, then set n = 1.
+
+    2. If f (1) < 0, let n  (n-1 , 1) be the smallest value of n such that f (n ) = 0.
+
+        It is important to note that Algorithm 2 is guaranteed to generate a "well-formed"--
+monotonically increasing--tempering schedule. To see this, suppose that n-1 < 1. First,
+note that f (n-1 ) = (1 - )ESS n-1 > 0. Second, if f (1)  0, we set n = 1 > n-1 and
+the algorithm terminates. Alternatively, if f (1) < 0, then by continuity of f () and the
+compactness of the interval [n-1 , 1], there exists at least one root of f () = 0. We define n
+to be the smallest one. The formulation in Algorithm 2 is also attractive because the values
+of the likelihood function used in (15) have already been stored in memory. This means that
+even exhaustive root-finding methods will typically find n quickly.3
+
+
+
+3         DSGE Models
+
+In the subsequent applications we consider three DSGE models. The precise specifications
+of these models, including their linearized equilibrium conditions, measurement equations,
+and prior distributions, are provided in Section B of the Online Appendix.
+
+        The first model is a small-scale New Keynesian DSGE model that has been widely
+studied in the literature (see Woodford, 2003, or Gal´
+                                                     i, 2008, for textbook treatments). The
+particular specification used in this paper is based on the one in An and Schorfheide (2007);
+henceforth, AS. The model economy consists of final goods producing firms, intermediate
+goods producing firms, households, a central bank, and a fiscal authority. Labor is the only
+factor of production. Intermediate goods producers act as monopolistic competitors and
+face downward sloping demand curves for their products. They face quadratic costs for
+adjusting their nominal prices, which generates price rigidity and real effects of changes in
+monetary policy. The model solution can be reduced to three key equations: a consumption
+Euler equation, a New Keynesian Phillips curve, and a monetary policy rule. Fluctuations
+are driven by three exogenous shocks and the model is estimated based on output growth,
+inflation, and federal funds rate data.
+    3
+        A refined version of Algorithm 2 that addresses potential numerical challenges in finding the root of f ()
+is provided in Section A.2 of the Online Appendix.
+                                                                                                       11
+
+
+        The second model is the Smets and Wouters (2007) model, henceforth SW, which is
+based on earlier work by Christiano et al. (2005) and Smets and Wouters (2003), and is the
+prototypical medium-scale New Keynesian model. In the SW model, capital is a factor of
+intermediate goods production and in addition to price stickiness, the model also features
+nominal wage stickiness. In order to generate a richer autocorrelation structure, the model
+includes investment adjustment costs, habit formation in consumption, and partial dynamic
+indexation of prices and wages to lagged values. The SW model is estimated using the
+following seven macroeconomic time series: output growth, consumption growth, investment
+growth, real wage growth, hours worked, inflation, and the federal funds rate.4
+
+        The third DSGE model, SWFF, is obtained by extending the SW model in two dimen-
+sions. First, building on work by Bernanke et al. (1999b), Christiano et al. (2003), De Graeve
+(2008), and Christiano et al. (2014) we add financial frictions to the SW model. Banks col-
+lect deposits from households and lend to entrepreneurs who use these funds as well as their
+own wealth to acquire physical capital, which is rented to intermediate goods producers.
+Entrepreneurs are subject to idiosyncratic disturbances that affect their ability to manage
+capital. Their revenue may thus be too low to pay back the bank loans. Banks protect them-
+selves against default risk by pooling all loans and charging a spread over the deposit rate.
+This spread varies exogenously due to changes in the riskiness of entrepreneurs' projects and
+endogenously as a function of the entrepreneurs' leverage. In estimating the model we use
+the Baa-10-year Treasury spread as the observable corresponding to this spread. Second,
+we include a time-varying target inflation rate to capture low frequency movements of in-
+flation. To anchor the estimates of the target inflation rate, we include long-run inflation
+expectations into the set of observables.5
+
+
+
+4         SMC Estimation at Work
+
+We now illustrate various dimensions of the performance of the SMC algorithm. Section 4.1
+documents the shape of the adaptive tempering schedule as well as speed-versus-accuracy
+trade-offs when tuning the adaptive tempering. Section 4.2 uses generalized tempering for
+    4
+        To generate forecasts between 2009 and 2015 that do not violate the zero lower bound constraint on
+nominal interest rates, we add anticipated monetary policy shocks to the interest rate feedback rules and
+include (survey) expectations of future interest rates at the forecast origin as observables.
+   5
+     Del Negro and Schorfheide (2013) showed that introducing a time-varying inflation target into the SW
+model improves inflation forecasts.
+                                                                                         12
+
+
+the online estimation of DSGE models and document its runtime advantages. Finally, in
+Section 4.3 we show that the SMC algorithm is able to reveal multimodal features of DSGE
+model posteriors.
+
+
+4.1       Adaptive Likelihood Tempering
+
+We described in Section 2.3 how the tempering schedule for the SMC algorithm can be
+generated adaptively. The tuning parameter  controls the desired level of reduction in ESS
+in (15). The closer  is to one, the smaller the desired ESS reduction, and therefore the
+smaller the change in the tempering parameter and the larger the number of tempering steps.
+We will explore the shape of the adaptive tempering schedule generated by Algorithm 2, the
+runtime of SMC Algorithm 1, and the accuracy of the resulting Monte Carlo approximation
+as a function of . Rather than reporting results for individual DSGE model parameters,
+we consider the standard deviation of the log marginal data density (MDD) defined in (10),
+computed across multiple runs of the SMC algorithm, as a measure of accuracy of the Monte
+Carlo approximation.
+
+                  Table 1: Configuration of SMC Algorithm for Different Models
+
+
+                                                AS                   SW
+                 Number of particles            N = 3, 000           N = 12, 000
+                 Fixed tempering schedule       N = 200,  = 2 N = 500,  = 2.1
+                 Mutation                       Nblocks = 3          Nblocks = 3
+                 Selection/Resampling           N = N/2              N = N/2
+
+
+
+      We consider the AS and SW models, estimated based on data from 1966:Q4 to 2016:Q3.6
+In addition to the adaptive tempering schedule, we also consider a fixed tempering schedule
+of the form
+                                                           
+                                                     n
+                                             n =              .                         (16)
+                                                     N
+This schedule has been used in the SMC applications in Herbst and Schorfheide (2014) and
+Herbst and Schorfheide (2015). The user-specified tuning parameters for the SMC algorithm
+are summarized in Table 1.
+  6
+      For the estimation of both models, we use a pre-sample from 1965:Q4 to 1966:Q3.
+                                                                                                     13
+
+
+          Table 2: AS Model: Fixed and Adaptive Tempering Schedules, NM H = 1
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1032.60     -1034.21    -1032.48    -1032.07    -1031.92
+            StdD log(MDD)             0.76        1.48        0.61        0.32        0.22
+            Schedule Length         200.00      112.17      218.80      350.06      505.46
+            Resamples                14.63       15.37       15.03       14.99       14.00
+            Runtime [Min]             1.29        0.88        1.53        2.21        3.13
+
+Notes: Results are based on Nrun = 400 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+
+
+
+          Table 3: SW Model: Fixed and Adaptive Tempering Schedules, NM H = 1
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1178.43     -1186.23    -1180.04    -1178.31    -1177.72
+            StdD log(MDD)             1.34        3.07        1.53        1.03        1.01
+            Schedule Length         500.00      200.53      389.75      618.53      887.42
+            Resamples                26.75       28.09       27.25       26.33       25.09
+            Runtime [Min]            80.23       31.36       61.29       97.79      139.99
+
+Notes: Results are based on Nrun = 200 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+
+
+    Results for the AS model based on adaptive likelihood tempering, see (11), are summa-
+rized in Table 2. We also report results for the fixed tempering schedule (16) in the second
+column of the table. For now we set NM H = 1. The remaining columns show results for
+the adaptive schedule with different choices of the tolerated ESS reduction . The adaptive
+schedule length is increasing from approximately 112 stages for  = 0.90 to 506 stages for
+ = 0.98. As mentioned above, the closer  is to one, the smaller is the increase in n .
+This leads to a large number of stages which, in turn, increases the precision of the Monte
+Carlo approximation. The standard deviation of log p
+                                                   ^(Y ) is 1.54 for  = 0.9 and 0.21 for
+ = 0.98. The mean of the log MDD is increasing as the precision increases. This is the
+result of Jensen's inequality. MDD approximations obtained from SMC algorithms tend to
+be unbiased, which means that log MDD approximations exhibit a downward bias.
+                                                                                                                                                                 14
+
+
+                                                      Figure 1: Tempering Schedules, NM H = 1.
+
+
+                                           AS Model                                                                             SW Model
+                                           Tempering Schedules                                                                  Tempering Schedules
+                          1.00                                                                                 1.00
+  Tempering Parameter n
+
+
+
+
+                                                                                       Tempering Parameter n
+                          0.75                                                                                 0.75
+
+
+
+
+                          0.50                                                                                 0.50
+
+
+
+
+                          0.25                                                                                 0.25
+                                                                          Fixed                                                                       Fixed
+                                                                          Adaptive                                                                    Adaptive
+
+
+                          0.00                                                                                 0.00
+                                 0   100      200             300   400          500                                  0   200         400       600   800
+                                                    Stage n                                                                           Stage n
+
+
+
+Notes: The figure depicts (pointwise) median n values across Nrun = 400 for AS and Nrun = 200 for SW.
+The solid lines represent the fixed schedule, parameterized according to Table 1. The dashed lines represent
+a range of adaptive schedules:  = 0.9, 0.95, 0.97, 0.98.
+
+
+                          The runtime of the algorithm increases approximately linearly in the number of stages
+since each stage takes approximately the same amount of time. The number of times that the
+selection step is executed ("resamples" in the table) is approximately constant as a function
+of . However, because N is increasing, the fraction of stages at which the particles are
+resampled decreases from 14% to 3%.7
+
+                          In addition to the AS model, we also evaluate the posterior of the SW model using
+the SMC algorithm with adaptive likelihood tempering. Results are provided in Table 3.
+Because the dimension of the parameter space of the SW model is much larger than that of
+the AS model, we are using more particles and multiple blocks in the mutation step when
+approximating its posterior (see Table 1). For a given , the log MDD approximation for SW
+is less accurate than for AS, which is consistent with the SW model having more parameters
+that need to be integrated out and a less regular likelihood surface. In general, the results
+for the SW are qualitatively similar to the ones reported for the AS model in Table 2.
+
+                          In Figure 1 we plot the fixed and adaptive tempering schedules for both models. All of the
+adaptive schedules are convex. Very little information, less than under the fixed schedule, is
+added to the likelihood function in the early stages, whereas a large amount of information is
+added during the later stages. This is consistent with the findings in Herbst and Schorfheide
+(2014, 2015) who examined the performance of the SMC approximations under the fixed
+           7
+                     Dividing the number of resamples by schedule length.
+                                                                                                                                                                      15
+
+
+Figure 2: Trade-Off Between Runtime and Accuracy ­ Multiple Metropolis-Hastings Steps
+
+
+                                               AS Model                                                                                    SW Model
+                  1.5    0.9
+                                                                                                              3.5
+                                                                               N_MH = 1                                                                            N_MH = 1
+                                                                               N_MH = 3                       3.0    0.9                                           N_MH = 3
+                                                                               N_MH = 5                                                                            N_MH = 5
+
+                                                                                                              2.5
+  StdD log(MDD)
+
+
+
+
+                                                                                              StdD log(MDD)
+                  1.0
+                                                                                                              2.0
+
+                                    0.95
+                                                                                                              1.5          0.95
+                                                                                                                              0.9
+                  0.5                                                                                                              0.9
+                                   0.9
+                                         0.9                                                                  1.0               0.97 0.98
+                                                                                                                                       0.95     0.97
+                                                                                                                                               0.95
+                                               0.97                                                                                                         0.97
+                                                                                                                                                         0.98
+                                                0.95      0.98
+                                                       0.95                                                   0.5                                                     0.98
+                                                            0.97   0.97 0.98
+                                                                               0.98
+                  0.0                                                                                         0.0
+                     0         1             2      3        4                 5          6                      0                  100         200       300       400
+                                           Average Runtime [Min]                                                                          Average Runtime [Min]
+
+
+Notes: AS results are based on Nrun = 400 and SW results are based on Nrun = 200 runs of the SMC
+algorithm.
+
+
+schedule (16) for various values of . A primary advantage of using an adaptive tempering
+schedule rather than fixed is the savings in "human-time" corresponding to fewer tuning
+parameters. While there may be an "optimal" fixed schedule for any given model and data,
+to find the best choice of the number of stages N and the tempering schedule shape  would
+require a great deal of experimentation.
+
+                  Figure 2 graphically depicts time-accuracy curves for the two models. The curves for
+NM H = 1 are constructed from the standard deviation and runtime numbers reported in
+Tables 2 and 3. The curves are convex for both models. For NM H = 1, reducing  from 0.95
+to 0.9 leads to a drastic reduction in the accuracy of the MDD approximation, while the
+time savings are only modest. The accuracy-runtime pairs for the fixed tempering schedules
+(not shown in the figure) essentially lie on the curves. For the AS model it is on the segment
+between  = 0.9 and  = 0.95, whereas for the SW model it is on the segement between
+ = 0.95 and  = 0.97.
+
+                  In addition to NM H = 1, Figure 2 also shows accuracy-runtime curves for NM H = 3 and
+NM H = 5. Recall that the mutation step in the SMC algorithm is necessary for particle values
+to adapt to each intermediate bridge distribution. In principle, one step of a Metropolis-
+Hastings algorithm is sufficient, because prior to the mutation, the particle swarm already
+represents the stage-n distribution. Nonetheless, there is a potential benefit to raising the
+number of MH steps: it increases the probability that the particle values do change during
+                                                                                                          16
+
+
+the mutation. Unfortunately, it also increases the runtime.
+
+       According to Figure 2 the gain from increasing NM H is limited. While the trade-off
+curves for the two models do shift, for every desirable point on the NM H = 3 and NM H = 5
+curves (runtimes between 1 and 3 minutes), there is a point on the NM H = 1 curve that
+delivers a similar performance in terms of speed and accuracy. Consider the AS model. The
+combination of NM H = 1 and  = 0.98 delivers roughly the same performance as N M H = 3
+and  = 0.97. For the former setting we have on average 505 bridge distributions, whereas
+under the latter setting we have only 301 bridge distributions. Because the mutation step
+is executed for each bridge distribution, adding bridge distributions facilitates the change in
+particle values and therefore is to some extent a substitute for increasing the number of MH
+steps. For both models, raising NM H from 3 to 5 leads in fact to a (slight) deterioration of
+performance.8 In the remainder of the paper we set NM H = 1 and  = 0.98 unless otherwise
+noted.
+
+
+4.2        Generalized Tempering for Online Estimation
+
+To provide a timely assessment of economic conditions and to produce accurate forecasts
+and policy projections, econometric modelers at central banks re-estimate their DSGE mod-
+els regularly. A key impediment to online estimation of DSGE models with the RWMH
+algorithm is that any amendment to the previously-used dataset requires a full re-estimation
+of the DSGE model, which can be quite time-consuming and often requires supervision.9
+SMC algorithms that are based on data tempering, on the other hand, allow for efficient
+online estimation of DSGE models. This online estimation entails combining the adaptive
+tempering schedule in Algorithm 2 with the generalized tempering in (14). As mentioned
+above, our algorithm is also amenable to data revisions.
+
+Scenario 1. In the following illustration, we partition the sample into two subsamples:
+t = 1, . . . , T1 and t = T1 + 1, . . . , T , and allow for data revisions by the statistical agencies
+between periods T1 + 1 and T . We assume that the second part of the sample becomes
+available after the model has been estimated on the first part of the sample using the data
+   8
+       Holding  fixed, one would expected that raising NM H from 1 to 3, say, would approximately triple the
+runtime because the number of likelihood evaluations increases by a factor of three. Based on Figure 2, that
+is not the case. Due to the specifics of the parallelization of the algorithm, each NM H = 3 stage takes only
+1.8 times as long as each NM H = 1 stage.
+   9
+     This is particularly true when the proposal covariance matrix is constructed from the Hessian of the log
+likelihood function evaluated at the global mode, which can be very difficult to find.
+                                                                                             17
+
+
+vintage available at the time, y
+                               ~1:T1 . Thus, in period T we already have a swarm of particles
+ i      i N
+{T 1
+     , WT }
+         1 i=1
+               that approximates the posterior
+
+                                          p(|y
+                                             ~1:T1 )  p(~
+                                                        y1:T1 |)p().
+
+                                 ~ =y
+Following (14) with Y = y1:T and Y  ~1:T1 , we define the stage (n) posterior as
+
+                                                         y1:T1 |)1-n p()
+                                            p(y1:T |)n p(~
+                                 n () =                                   .
+                                                         y1:T1 |)1-n p()d
+                                            p(y1:T |)n p(~
+
+We distinguish notationally between y and y
+                                          ~ because some observations in the t = 1, . . . , T1
+sample may have been revised. The incremental weights are given by
+
+                                 w
+                                 ~ni
+                                     () = p(y1:T |)n -n-1 p(~
+                                                            y1:T1 |)n-1 -n
+
+and it can be verified that
+                            N
+                       1           i  i                       y1:T1 |)1-n p()d
+                                                 p(y1:T |)n p(~
+                                 w
+                                 ~n  Wn -1                                       .         (17)
+                       N   i=1
+                                                              y1:T1 |)1-n-1 p()d
+                                               p(y1:T |)n-1 p(~
+
+Now define the conditional marginal data density (CMDD)
+                                                 N         N
+                                                       1           i     i
+                                  CMDD2|1 =                      w
+                                                                 ~(  n) W(n-1)             (18)
+                                                n=1
+                                                       N   i=1
+
+                             i
+with the understanding that W(0) = WT1 . Because the product of the terms in (17) simplify,
+and because N = 1 and 1 = 0, we obtain:
+
+                                                p(y1:T |)p()d    p(y1:T )
+                                 CMDD2|1                       =           .               (19)
+                                                  y1:T1 |)p()d
+                                                p(~              p(~
+                                                                   y1:T1 )
+
+Note that in the special case of no data revisions (~
+                                                    y1:T1 = y1:T1 ) the expression simplifies to
+CMDD2|1  p(yT1 +1:T |y1:T1 ). We consider this case in our simulations below.
+
+      We assume that the DSGE model has been estimated using likelihood tempering based
+on the sample y1:T1 , where t = 1 corresponds to 1966:Q4 and t = T1 corresponds to 2007:Q1.
+The second sample, yT1 +1:T , starts in 2007:Q2 and ends in 2016:Q3.10 We now consider
+two ways of estimating the log MDD log p(y1:T ). Under full-sample estimation, we ignore
+the existing estimate based on y1:T1 and use likelihood tempering based on the full-sample
+likelihood p(y1:T |). Under generalized tempering, we start from the existing posterior based
+ 10
+      We use a recent data vintage and abstract from data revisions in this exercise.
+                                                                                                         18
+
+
+                     Table 4: AS Model: Generalized Tempering, NM H = 1
+
+
+                                          =0.90        =0.95       =0.97        =0.98
+                   Mean log(MDD)         -1033.95     -1032.54    -1032.06     -1031.93
+                   StdD log(MDD)              1.37        0.61         0.32         0.24
+                   Schedule Length           24.33       47.12        75.74      106.50
+                   Runtime [Min]              0.25        0.48         0.69         0.98
+
+Notes: Results are based on Nrun = 400 runs of the SMC algorithm, starting from particles that represent
+p(|Y1:T1 ). We report averages across runs for the runtime, schedule length, and number of resampling steps.
+
+                     Table 5: SW Model: Generalized Tempering, NM H = 1
+
+
+                                          =0.90        =0.95       =0.97        =0.98
+                   Mean log(MDD)         -1188.93     -1182.08    -1180.05     -1178.90
+                   StdD log(MDD)              3.10        1.83         1.11         1.06
+                   Schedule Length           56.60      115.73      194.01       290.74
+                   Runtime [Min]             16.32       33.64        56.79       85.01
+
+Notes: Results are based on Nrun = 200 runs of the SMC algorithm, starting from particles that represent
+p(|Y1:T1 ). We report averages across runs for the runtime, schedule length, and number of resampling steps.
+
+
+on y1:T1 and use generalized data tempering to compute CMDD2|1 in (18). We then calculate
+log p(y1:T1 ) + log CMDD2|1 .
+
+    Note that our choice of the sample split arguably stacks the cards against the generalized
+tempering approach relative to starting from scratch. This is because the second period is
+quite different from the first (and therefore the posterior changes quite a bit), as it includes
+the Great Recession, the effective lower bound constraint on the nominal interest rate, and
+unconventional monetary policy interventions such as large-scale asset purchases and forward
+guidance.
+
+    We begin with the following numerical illustration for the AS model. For each of the
+Nrun = 400 runs of SMC, we first generate the estimate of log p(y1:T1 |) by likelihood temper-
+ing and then continue with generalized tempering to obtain log CMDD2|1 . The two numbers
+are added to obtain an approximation of log p(y1:T ) that can be compared to the results from
+the full-sample estimation reported in Table 2. The results from the generalized tempering
+approach are reported in Table 4. Comparing the entries in both tables, note that the mean
+                                                                                                                                             19
+
+
+                                       Figure 3: Trade-Off Between Runtime and Accuracy, NM H = 1
+
+
+                                             AS Model                                                          SW Model
+                  1.5                                                                   3.5
+                                 0.9
+                        0.9
+                                                                                        3.0 0.9 0.9
+
+                                                                                        2.5
+  StdD log(MDD)
+
+
+
+
+                                                                        StdD log(MDD)
+                  1.0
+                                                                                        2.0
+                                                                                                0.95
+                                                                                        1.5             0.95
+                         0.95              0.95
+                  0.5
+                                                                                        1.0            0.97     0.980.97    0.98
+                              0.97                0.97
+                                  0.98                     0.98                         0.5
+
+                  0.0                                                                   0.0
+                     0                 1          2         3       4                      0           50            100         150   200
+                                            Average Runtime [Min]                                             Average Runtime [Min]
+
+
+Notes: AS results are based on Nrun = 400 and SW results are based on Nrun = 200 runs of the SMC
+algorithm. Yellow squares correspond to generalized tempering and blue circles correspond to full sample
+estimation.
+
+
+and standard deviations (across runs) of the log MDDs are essentially the same. The main
+difference is that generalized tempering reduces the schedule length and the runtime by a
+factor of roughly 2/3 because it starts from the posterior distribution p(|y1:T1 ).
+
+                  In Figure 3 we provide scatter plots of average runtime versus the standard deviation
+of the log MDD for the AS model and the SW model. The blue circles correspond to full
+sample estimation and are identical to the blue circles in Figure 2. The yellow squares
+correspond to generalized tempering. As in Table 4, the runtime does not reflect the time it
+took to compute p(|y1:T1 ) because the premise of the analysis is that this posterior has been
+computed in the past and is available to the user at the time when the estimation sample
+is extended by the observations yT1 +1:T . For both models, the accuracy of the log MDD
+approximation remains roughly the same for a given  when using generalized tempering,
+but the reduction in runtime is substantial. To put it differently, generalized tempering shifts
+the SMC time-accuracy curve to the left, which of course is the desired outcome.
+
+Scenario 2. Rather than adding observations in a single block, we now add four observations
+at a time. This corresponds to a setting in which the DSGE model is re-estimated once a
+year, which is a reasonable frequency in central bank environments. More formally, we
+partition the sample into the subsamples y1:T1 , yT1 +1:T2 , yT2 +1:T3 , . . ., where Ts - Ts-1 = 4.
+After having approximated the posterior based on observations y1:T1 , we use generalized
+tempering to compute the sequence of densities p(y1:Ts ) for s = 2, . . . , S . At each step s we
+                                                                                                            20
+
+
+                 Figure 4: AS Model: Log MDD Increments log(p(yTs-1 +1:Ts |y1:Ts-1 ))
+
+
+                    Mean log(MDD)                                            StdD log(MDD)
+
+                                                              0.125
+    -20
+
+
+
+                                                              0.100
+    -25
+
+
+                                                              0.075
+    -30
+
+
+                                                              0.050
+    -35
+
+                                                              0.025
+
+    -40
+          1995        2000        2005     2010     2015              1995    2000     2005   2010   2015
+                                 Year                                                 Year
+
+
+
+
+Notes: Results are based on Nrun = 200 runs of the SMC algorithm with NM H = 1 and  = 0.98.
+
+
+initialize the SMC algorithm with the particles that represent the posterior p(|y1:Ts-1 ). To
+assess the accuracy of this computation, we repeat it Nrun = 200 times. We fix the tuning
+parameter for the adaptive construction of the tempering schedule at  = 0.98. The first
+sample, y1:T1 ranges from 1966:Q4 to 1991:Q3, and the last sample ends in 2016:Q3.
+
+    Figure 4 depicts the time series of the mean and the standard deviation of the log MDD
+increments
+                                 ^(yTs-1 +1:Ts |y1:Ts-1 ) = log p
+                             log p                              ^(y1:Ts ) - log p
+                                                                                ^(y1:Ts-1 )
+
+across the 200 SMC runs. The median (across time) of the average (across repetitions) log
+MDD increment is -17.6. The median standard deviation of the log MDD increments is 0.02,
+and the median of the average run time is 0.11 minutes or 7 seconds. The largest deviation
+from these median values occurred during the Great Recession when we added the 2009:Q4
+to 2010:Q3 observations to the sample. During this period the log MDD increment was only
+-40.5 and the standard deviation jumped up to 0.14 because these four observations lead to
+a substantial shift in the posterior distribution. In this period, the run-time of the SMC
+algorithm increased to 0.58 minutes, or 35 seconds.
+
+    Figure 5 depicts the evolution of posterior means and coverage intervals for two param-
+eters,  and R (the inverse intertemporal elasticity of substitution and and the standard
+deviation of shocks to the interest rate, respectively.) The  sequence exhibits a clear blip in
+2009, which coincides with the increased run time of the algorithm. Most of the posteriors
+exhibit drifts rather than sharp jumps and the time-variation in the posterior mean is gen-
+                                                                                                        21
+
+
+             Figure 5: AS Model: Evolution of Posterior Means and Coverage Bands
+
+
+                                                                               R
+      4.5
+                                                        0.36
+
+
+                                                        0.34
+      4.0
+
+                                                        0.32
+
+
+      3.5                                               0.30
+
+
+                                                        0.28
+
+      3.0
+                                                        0.26
+
+
+                                                        0.24
+      2.5
+
+              1995   2000      2005   2010   2015              1995     2000       2005   2010   2015
+
+
+
+
+Notes: Sequence of posterior means (red line) and 90% coverage bands black lines. The dashed line indicates
+the temporal average of the posterior means. We use NM H = 1 and  = 0.98 for the SMC algorithm.
+
+
+erally small compared to the overall uncertainty captured by the coverage bands. Overall,
+generalized tempering provides a framework for online estimation of DSGE models that is
+substantially more acccurate than simple data tempering, at little additional computational
+cost, even when the additional data substantially change the posterior. Importantly, gener-
+alized tempering can also seemlessly handle the data revisions inherent in macroeconomic
+time series.
+
+
+4.3         Exploring Multimodal Posteriors
+
+An important advantage of SMC samplers over standard RWMH samplers is their ability to
+characterize multimodal posterior distributions. Multimodality may arise because the data
+are not informative enough to be able to disentangle internal versus external propagation
+mechanisms, e.g., Calvo price and wage stickiness and persistence of exogenous price and
+wage markup shocks. Herbst and Schorfheide (2014) provided an example of a multimodal
+posterior distribution obtained in a SW model that is estimated under a diffuse prior distri-
+bution. Below, we document that a multimodal posterior may also arise if the SW model is
+estimated on a shorter sample with the informative prior used by Smets and Wouters (2007)
+originally. Capturing this bimodality correctly will be important for the accurate computa-
+tion of predictive densities that are generated as part of the real-time forecast applications
+in Section 5.
+                                                                                                                                                                         22
+
+
+                     Figure 6: SW Model: Posterior Contours for Selected Parameter Pairs
+
+
+                                            Standard Prior                                                                           Diffuse Prior
+                                                                                         p and f
+                               1.5                                                                                     1.5
+
+
+
+
+                               1.0                                                                                     1.0
+                                                                                              Color
+                                                                                                                                                                 Color
+              rho_{lambda_f}
+
+
+
+
+                                                                                                      rho_{lambda_f}
+                                                                                                6
+                                                                                                                                                                  10
+                                                                                                5
+                                                                                                                                                                  8
+                               0.5                                                                                     0.5
+                                                                                                4
+                                                                                                                                                                  6
+                                                                                                3
+                                                                                                                                                                  4
+                                                                                                2
+                               0.0                                                                                     0.0                                        2
+                                                                                                1
+                                                                                                                                                                  0
+                                                                                                0
+
+
+                               -0.5                                                                                    -0.5
+                                      0.0   0.2      0.4            0.6          0.8    1.0                                   -0.5   0.0     0.5     1.0   1.5
+
+                                                           iota_p                                                                          iota_p
+
+
+
+
+                                                                                             p and gz
+                               1.0                                                                                     1.5
+
+
+
+
+                               0.8
+
+                                                                                                                                                                 Color
+                                                                                              Color                    1.0
+                               0.6                                                                                                                                5
+              eta_{gz}
+
+
+
+
+                                                                                                      eta_{gz}
+
+
+
+
+                                                                                                4
+                                                                                                                                                                  4
+                                                                                                3
+                                                                                                                                                                  3
+                               0.4                                                              2
+                                                                                                                       0.5                                        2
+                                                                                                1
+                                                                                                                                                                  1
+                               0.2                                                              0
+                                                                                                                                                                  0
+
+
+
+                               0.0                                                                                     0.0
+                                  0.00        0.25          0.50          0.75         1.00                                  -0.5    0.0    0.5      1.0   1.5
+
+                                                           iota_p                                                                          iota_p
+
+
+
+
+                                                                                             h and f
+                               1.5                                                                                     1.5
+
+
+
+
+                               1.0                                                                                     1.0
+              rho_{lambda_f}
+
+
+
+
+                                                                                                      rho_{lambda_f}
+
+
+
+
+                                                                                              Color
+                                                                                                                                                                 Color
+                                                                                               10.0
+                                                                                                                                                                  15
+                               0.5                                                             7.5                     0.5
+                                                                                                                                                                  10
+                                                                                               5.0
+                                                                                                                                                                  5
+                                                                                               2.5
+                               0.0                                                                                     0.0                                        0
+                                                                                               0.0
+
+
+
+
+                               -0.5                                                                                    -0.5
+                                      0.4   0.5      0.6            0.7      0.8       0.9                                    0.0    0.2     0.4     0.6   0.8
+
+                                                             h                                                                               h
+
+
+
+
+Notes: Estimation sample is 1960:Q1 to 1991:Q3. We use NM H = 1 and  = 0.98 for the SMC algorithm.
+Plots show a two-dimensional visualization of the full-dimension joint posterior.
+
+
+       Figure 6 depicts various marginal bivariate posterior densities for parameters of the SW
+model estimated based on a sample from 1960:Q1 to 1991:Q3.11 The plots in the left column
+  11
+       For these results we match the sample used in Section 5, where we discuss the predictive ability of the
+various DSGE models. See footnote 13 for a description of why the samples used in Sections 4.1 and 4.2
+                                                                                                          23
+
+
+of the figure corresponds to the "standard" prior for the SW model. The joint posteriors for
+the parameters p and f (weight on the backward-looking component in the New Keynesian
+price Phillips curve and persistence of price markup shock) on the one hand, and h and f
+(the former determines the degree of habit formation in consumption) on the other hand,
+exhibit clear bimodal features, albeit one mode dominates the other. For the parameter
+pair p and gz (the loading of government spending on technology shock innovations), the
+bimodality is less pronounced.
+
+    The right column of Figure 6 shows posteriors for the same estimation sample but the
+"diffuse" prior of Herbst and Schorfheide (2014). This prior is obtained by increasing the
+standard deviations for parameters with marginal Normal and Gamma distributions by a
+factor of three and using uniform priors for parameters defined on the unit interval.12 Under
+the diffuse prior, the multimodal shapes of the bivariate posteriors are more pronounced and
+for the first two parameter pairs both modes are associated with approximately the same
+probability mass. Thus, using a sampler that correctly captures the non-elliptical features of
+the posterior is essential for valid Bayesian inference and allows researchers to estimate DSGE
+models under less informative priors that have been traditionally used in the literature. In
+Section 5.3 we will examine the forecasting performance of the SW model under the diffuse
+prior.
+
+
+
+5        Predictive Density Evaluations
+
+In this section we compare the forecast performance of two DSGE models, one without
+(SW) and one with (SWFF) financial frictions. We focus on log predictive density scores, a
+widely-used criterion to compare density forecasts across models (see Del Negro et al., 2016,
+and Warne et al., 2017, in the context of DSGE model forecasting), rather than root-mean-
+squared errors, the standard metric for point forecast evaluation used in the literature. We
+add to the existing literature by studying these models' predictive ability under a prior that
+is much more diffuse than the one typically used. For density forecast evaluation an accurate
+characterization of the posterior distribution is even more important than for point forecasts.
+It is clear from the results in Section 4.3 that SMC techniques are necessary for this task,
+differ slightly from the sample in Section 5.
+  12
+     The prior on the shock standard deviations is the same for the diffuse and standard prior, as this prior
+is already very loose under the standard specification (an inverse Gamma with only 2 degrees of freedom).
+Table A-2 of the Online Appendix describes in detail both the standard and the diffuse priors.
+                                                                                                              24
+
+
+given the severe multimodalities present in the posterior especially under the diffuse prior.
+We therefore apply the generalized tempering approach to SMC described in Section 4.2
+when estimating recursively these models using real-time data.
+
+
+5.1       Real-Time Dataset and DSGE Forecasting Setup
+
+This section provides a quick overview of the data series used for the DSGE model estimation,
+the process of constructing a real-time dataset, which follows the approach of Edge and
+G¨
+ urkaynak (2010a) and Del Negro and Schorfheide (2013, Section 4.1), as well as the forecast
+setup. Since much of this information is also provided in Cai et al. (2019), we refer to
+that paper and to Section B.4 of the Online Appendix for a more detailed discussion. As
+mentioned before, the SW model is estimated using data on the growth rate of aggregate
+output, consumption, investment, the real wage, hours worked, GDP deflator inflation, and
+the Federal funds rate. The SWFF model is estimated on these same observables plus long-
+run inflation expectations and the Baa-10-year Treasury spread. All data series start in
+1960:Q1 or the first quarter in which the series becomes available.13
+
+       The forecast evaluation is based on forecast origins that range from January 1992 (this
+is the beginning of the sample used in Edge and G¨
+                                                 urkaynak, 2010a, and Del Negro and
+Schorfheide, 2013) to January 2017, the last quarter for which eight period-ahead forecasts
+could be evaluated against realized data. For each forecast origin, we construct a real-time
+dataset that starts in 1960:Q1, using data vintages available on the 10th of January, April,
+July, and October of each year, which we obtain from the St. Louis Fed's ALFRED database.
+Our convention, which follows Del Negro and Schorfheide (2013), is to call the end of the
+estimation sample T . This is the last quarter for which we have NIPA data, that is, GDP,
+the GDP deflator, et cetera. For instance, we use T = 2010:Q4 for forecasts generated using
+data available on April 10, 2011. Even though 2011:Q1 has passed, the Q1 NIPA data are
+not yet available. We re-estimate the DSGE model parameters once a year with observations
+ranging from 1960:Q1 to T , using the January vintages. Because financial data is published
+in real-time, we use T + 1 financial information to sharpen our inference on the T + 1 state
+  13
+       A careful reader will notice this sample start-date is different than the one used in Sections 4.1 and 4.2
+(1964:Q1). In Sections 4.1 and 4.2, we matched the sample used in Herbst and Schorfheide (2014) so that
+all series are non-missing. This is required to optimize the Kalman filter algorithm so that it is feasible to
+run a large number of estimations; see Herbst (2015). However, in Sections 4.3 and 5 we match the sample
+used in Cai et al. (2019), which starts in 1960:Q1.
+                                                                                                         25
+
+
+of the economy when generating the forecasts. However, the T + 1 financial information is
+excluded from the parameter estimation.
+
+       We focus on projections that are conditional on external interest rate forecasts follow-
+ing Del Negro and Schorfheide (2013, Section 5.4). In order to construct the conditional
+projections, we augment the measurement equations by
+
+                            e
+                           RT +k|T = R + ET [RT +k ],              k = 1, . . . , K
+
+       e
+where RT +k|T is the observed k -period-ahead interest rate forecast, ET [RT +k ] is the model-
+implied interest rate expectation, and R is the steady-state interest rate. The interest rate
+                          e                 e
+expectations observables RT +1|T , . . . , RT +K |T come from the Blue Chip Financial Forecasts
+(BCFF) forecast released in the first month of quarter T + 1. In order to provide the model
+with the ability to accommodate federal funds rate expectations, the policy rule in the
+model is augmented with anticipated policy shocks; see Section B in the Online Appendix
+for additional details.14
+
+       The projections discussed below are also conditional on nowcasts--that is, forecasts
+of the current quarter, which we obtain from the Blue Chip Economic Indicators (BCEI)
+consensus forecasts--of GDP growth and the GDP deflator inflation. We treat the nowcast
+for T + 1 as a perfect signal of yT +1 . Finally, the forecasts are evaluated using the latest data
+vintage, following much of the existing literature on DSGE forecast evaluation. Specifically,
+for the results shown below we use the vintage downloaded on April 18, 2019. The predictive
+densities for real GDP growth are computed on per capita data.
+
+
+5.2        Log Predictive Density Scores with Standard Prior
+
+Figure 7 shows the logarithm of the predictive densities for real GDP growth, GDP deflator
+inflation, and both variables jointly (left, middle, and right column, respectively) computed
+over the full and the post-recession samples for the two DSGE models we are considering:
+SW (blue solid lines) and SWFF (red solid lines). Both models are estimated using what we
+have referred to as the "standard" prior, that is, the prior used in previous work, which for
+most parameters amounts to the prior used in Smets and Wouters, 2007. For each forecast
+origin T , the predictive densities for model m are computed for h = 2, 4, 6, and 8 quarters
+  14
+       As in Del Negro and Schorfheide (2013), but differently from Cai et al. (2019), we do not use the
+expanded dataset containing interest rate forecasts in the estimation of the model's parameters beginning in
+2008:Q4--the start of the ZLB period.
+                                                                                                                                     26
+
+
+                       Figure 7: Average Log Predictive Scores for SW vs SWFF
+                                                           Full Sample
+                                             -0.5
+-1.6
+-1.8                                         -1.0                                                 -3
+
+-2.0
+                                             -1.5
+                                                                                                  -4
+-2.2
+                                             -2.0
+-2.4
+                                                                                                  -5
+-2.6                                         -2.5
+-2.8
+                                             -3.0                                                 -6
+     2         4         6            8           2           4           6                8         2         4         6         8
+  N = 101   N = 101   N = 101      N = 101     N = 101     N = 101     N = 101          N = 101   N = 101   N = 101   N = 101   N = 101
+
+
+
+                                                    Post-Recession Sample
+                                             -0.5
+-1.6
+-1.8                                         -1.0                                                 -3
+
+-2.0
+                                             -1.5
+                                                                                                  -4
+-2.2
+                                             -2.0
+-2.4
+                                                                                                  -5
+-2.6                                         -2.5
+-2.8
+                                             -3.0                                                 -6
+    2         4         6             8          2           4             6              8          2        4         6         8
+  N = 21    N = 21    N = 21        N = 21     N = 21      N = 21        N = 21         N = 21     N = 21   N = 21    N = 21    N = 21
+
+
+
+               GDP                                       GDP Deflator                              GDP and GDP Deflator
+
+Note : These panels compare the log predictive densities from the SW DSGE Model (blue diamonds) with the SWFF DSGE
+model (red diamonds) averaged over two, four, six, and eight quarter horizons for output growth and inflation individually, and
+for both together. The forecasts associated with these predictive densities are generated conditioning on nowcasts and FFR
+expectations. In the top row forecast origins from January 1992 to January 2017 only are included in these calculations. In the
+bottom row forecast origins from April 2011 to April 2016 only are included in these calculations.
+
+
+
+ahead, using the aforementioned information set Itm that includes interest rate projections,
+T + 1 nowcasts and T + 1 financial variables.
+
+       Before commenting on the results a few details on the computation of the predictive
+densities are in order. The objects being forecasted are the h-period averages of the variables
+of interest j ,
+                                                                           h
+                                                                   1
+                                                    y
+                                                    ¯j ;T +h,h   =                yj ;T +s .
+                                                                   h   s=1
+
+While the previous literature on forecasting with DSGE models generally focused on h-period
+ahead forecasts of yj ;T +h , we choose to focus on averages as they arguably better capture
+the relevant object for policy-makers: accurately forecasting inflation behavior over the next
+two years is arguably more important than predicting inflation eight quarters ahead. The
+time t h-period-ahead posterior predictive density for model m is approximated by
+                                                                     N
+                                               m             1
+                                  yj ;T +h,h |IT
+                                p(¯              , Mm )    =                 yj ;T +h,h |i , IT
+                                                                           p(¯                m
+                                                                                                , Mm ),
+                                                             N       i=1
+                                                                                             27
+
+
+                                             yj ;T +h,h |i , IT
+where N is the number of SMC particles and p(¯                m
+                                                                , Mm ) is the predictive density
+conditional on the particle i (Section A.1 in the Online Appendix provides the computational
+details). The objects plotted in Figure 7 are average of the time T log predictive densities
+across the sample [T0 , T1 ], namely
+                                        T1
+                                1                                 m
+                                                     yj ;T +h,h |IT
+                                               log p(¯              , Mm ).
+                             T1 - T0   T =T0
+
+
+    The top row of Figure 7 show that over the full sample the SWFF model performs better
+than the SW model regardless of the variable being forecasted, and for any forecast horizon
+higher than two quarters (since we are conditioning on nowcasts, the predictive densities for
+2 quarters ahead are virtually indistinguishable). Quantitatively, the gaps between the two
+models shown in the first row are non-negligible for GDP growth at longer horizons, but very
+small for inflation and for inflation and GDP growth jointly. If we convert the difference
+in log predicitive densities as posterior odds ratios for the two models, a gap of 2 implies
+that model SWFF is about seven times more likely than model SW. If we focus on the post-
+recession sample--the sample studied in Cai et al. (2019), which starts in April 2011 and
+ends in April 2016--we see that the gap between the two models in terms of output growth
+forecasts becomes larger than 4 for any horizon greater than two (see bottom row), implying
+posterior odds ratios above fifty to one. In fact, the time series of the log predictive scores
+(see Section C.2 of the Online Appendix) shows that the superior forecasting performance
+of SWFF is due to better forecasting accuracy from the Great Recession onward.
+
+    In Cai et al. (2019) we explain these results in terms of (i) the failure of the SW model
+to explain the Great Recession, which affects its forecasting performance thereafter, and
+(ii) the so-called "forward guidance puzzle" (Del Negro et al., 2012; Carlstrom et al., 2015).
+The latter refers to the fact that rational expectations representative agent models tend to
+overestimate the impact of forward guidance policies, an issue particularly severe for the SW
+model, leading to projections that were overoptimistic when forward guidance was in place.
+
+
+5.3    Log Predictive Density Scores with Diffuse Priors
+
+As illustrated in Section 4.3, the prior used in the estimation of DSGE models is often quite
+informative, in the sense that it affects the posterior distribution. From an econometric
+point of view, informative priors are not necessarily problematic. They may incorporate a
+priori information gleaned from other studies; see for instance the discussion in Del Negro
+                                                                                                  28
+
+
+and Schorfheide (2008). However, in cases in which the information embedded in the priors
+is controversial, the use of informative priors has been criticized; see, for instance, Romer
+(2016)'s critique of the priors used in Smets and Wouters (2007).
+
+    In view of this criticism, it is interesting to examine the effect of relaxing a relatively tight
+prior on the forecasting performance of the model. We therefore compute the log predictive
+scores also under the diffuse prior described in Section 4.3. We previously only considered a
+diffuse prior for the SW model. For parameters that are common to the SW and the SWFF
+model we adopt the same diffuse prior as previously used for the SW model. For parameters
+that are unique to the SWFF model, we leave the priors unchanged with the exception that
+we replace the prior for the autocorrelation of the financial shock by a uniform distribution;
+see Table A-2 in the Online Appendix for details.
+
+    From a frequentist perspective, increasing the prior variance reduces the bias of the Bayes
+estimator while increasing its variability. The net effect on the mean-squared estimation
+(and hence forecast) error is therefore ambiguous. In models for which not all parameters
+are identified, the prior serves as a "tie-breaker," and introduces curvature into the posterior
+in directions in which the likelihood function is flat. If a prior mainly adds information
+where the likelihood is uninformative and parameters are not identified based on the sample
+information, then making the prior more diffuse will not have a noticeable effect on the
+forecasting performance of DSGE models because it mainly selects among parameterizations
+that track the data equally well.
+
+    Figure 8 compares the average log predictive scores obtained with the standard (solid
+line) and the diffuse (dashed line) prior for the SW (blue, top row) and SWFF (red, bottom
+row) DSGE models. The panels in Figure 8 show that the differences in average log predic-
+tive scores between the standard and the diffuse prior are generally small, with the largest
+differences arising in the SW model. For this model the inflation forecast deteriorates as the
+prior becomes more diffuse, while the GDP forecast improves. This result is consistent with
+previous findings in the literature. A tight prior on the constant inflation target around 2%
+in the SW model is key for estimating a target that is consistent with the low inflation in
+the latter part of the sample. If the prior variance is increased, then the posterior mean
+shifts closer to the average inflation rate during the estimation period, which is substantially
+larger than inflation during and after the mid 1990s.
+
+    For the SWFF model replacing the standard prior by the diffuse prior does not lead to
+a deterioration of inflation forecasts. The reason for this result is unrelated to the financial
+                                                                                                                             29
+
+
+            Figure 8: Comparison of Predictive Densities under Standard and Diffuse Priors
+
+                                                                    SW
+                                            -0.5
+-1.6
+-1.8                                        -1.0                                         -3
+
+-2.0
+                                            -1.5
+                                                                                         -4
+-2.2
+                                            -2.0
+-2.4
+                                                                                         -5
+-2.6                                        -2.5
+-2.8
+                                            -3.0                                         -6
+     2           4         6         8           2           4          6         8         2         4         6          8
+  N = 101     N = 101   N = 101   N = 101     N = 101     N = 101    N = 101   N = 101   N = 101   N = 101   N = 101    N = 101
+
+
+
+                                                               SWFF
+                                            -0.5
+-1.6
+-1.8                                        -1.0                                         -3
+
+-2.0
+                                            -1.5
+                                                                                         -4
+-2.2
+                                            -2.0
+-2.4
+                                                                                         -5
+-2.6                                        -2.5
+-2.8
+                                            -3.0                                         -6
+     2           4         6         8           2           4          6         8         2         4         6          8
+  N = 101     N = 101   N = 101   N = 101     N = 101     N = 101    N = 101   N = 101   N = 101   N = 101   N = 101    N = 101
+
+
+
+                 GDP                                    GDP Deflator                      GDP and GDP Deflator
+Note : These panels compare the predictive densities estimated with the standard (solid line) and the diffuse (dashed line)
+prior for the SW (blue, top row) and SWFF (red, bottom row) DSGE models. The predictive densities are averaged over two,
+four, six, and eight quarter horizons for output growth and inflation individually, and for both together. Forecast origins from
+January 1992 to January 2017 only are included in these calculations. The forecasts associated with these predictive densities
+are generated conditioning on nowcasts and FFR expectations.
+
+
+
+frictions. It is due to the introduction of the time-varying inflation target which adapts to
+the drop of inflation in the 1980s and therefore generates inflation forecasts in the 1990s
+and 2000s that are not contaminated by the high inflation rates in the 1960s and 1970s.
+Overall, the density forecast accuracy of the SWFF is essentially the same under the two
+prior distributions.
+
+       We conclude this section with a word of caution. The result that the prior specification
+has no influence on the forecasting performance, does not imply that the two versions of
+the model deliver the same policy predictions and historical shock decompositions. To the
+extent that a tighter prior amplifies and downweights competing modes in the likelihood
+function--which is apparent from the multi-modal posterior densities plotted in Figure 6--
+posterior inference on the relative importance of the endogenous and exogenous propagation
+mechanism can be very different. In turn, this can lead to different impulse response func-
+tions for structural shocks and the predicted effect of policy interventions may vary across
+estimations.
+                                                                                       30
+
+
+6      Conclusion
+
+As the DSGE models used by central banks and researchers become more complex, improved
+algorithms for Bayesian computations are necessary. This paper provides a framework for
+performing online estimation of DSGE models using SMC techniques. Rather than starting
+from scratch each time a DSGE model must be re-estimated, the SMC algorithm makes it
+possible to mutate and re-weight posterior draws from an earlier estimation so that they
+approximate a new posterior based on additional observations that have become available
+since the previous estimation. The algorithm minimizes computational time, requires little
+user supervision, and can handle the irregular distributions common in the posteriors of
+DSGE model parameters. The same approach could also be used to transform posterior
+draws for one model into posterior draws for another model that shares the same parameter
+space, e.g., a linear and a nonlinear version of a DSGE model.
+
+
+
+References
+
+An, Sungbae and Frank Schorfheide, "Bayesian Analysis of DSGE Models," Economet-
+ ric Reviews, 2007, 26 (2-4), 113­172.
+Bernanke, Ben, Mark Gertler, and Simon Gilchrist, "The Financial Accelerator
+ in a Quantitative Business Cycle Framework," in John Taylor and Michael Woodford,
+ eds., Handbook of Macroeconomics, Vol. 1, Amsterdam: North Holland, 1999, chapter 21,
+ pp. 1341­1393.
+Bernanke, Ben S., Mark Gertler, and Simon Gilchrist, "The Financial Accelerator
+ in a Quantitative Business Cycle Framework," in John B. Taylor and Michael Woodford,
+ eds., Handbook of Macroeconomics, Vol. 1C, Amsterdam: North-Holland, 1999, chapter 21,
+ pp. 1341­93.
+Cai, Michael, Marco Del Negro, Marc P. Giannoni, Abhi Gupta, Pearl Li, and
+ Erica Moszkowski, "DSGE Forecasts of the Lost Recovery," International Journal of
+ Forecasting, 2019, 35 (4), 1770­1789.
+Capp´ e, Olivier, Eric Moulines, and Tobias Ryden, Inference in Hidden Markov Mod-
+ els, Springer Verlag, New York, 2005.
+Carlstrom, Charles T., Timothy S. Fuerst, and Matthias Paustian, "Inflation and
+ Output in New Keynesian Models with a Transient Interest Rate Peg," Journal of Mone-
+ tary Economics, December 2015, 76, 230­243.
+Chopin, Nicolas, "A Sequential Particle Filter for Static Models," Biometrika, 2002, 89
+ (3), 539­551.
+    , "Central Limit Theorem for Sequential Monte Carlo Methods and its Application to
+    Bayesian Inference," Annals of Statistics, 2004, 32 (6), 2385­2411.
+                                                                                       31
+
+
+Christiano, Lawrence J., Martin Eichenbaum, and Charles L. Evans, "Nominal
+ Rigidities and the Dynamic Effects of a Shock to Monetary Policy," Journal of Political
+ Economy, 2005, 113, 1­45.
+  , Roberto Motto, and Massimo Rostagno, "The Great Depression and the Friedman-
+  Schwartz Hypothesis," Journal of Money, Credit and Banking, 2003, 35, 1119­1197.
+  , , and , "Financial Factors in Economic Fluctuations," Manuscript, Northwestern
+  University and European Central Bank, 2009.
+  ,   , and   , "Risk Shocks," American Economic Review, 2014, 104 (1), 27­65.
+Creal, Drew, "Sequential Monte Carlo Samplers for Bayesian DSGE Models," Manuscript,
+ University Chicago Booth, 2007.
+  , "A Survey of Sequential Monte Carlo Methods for Economics and Finance," Econometric
+  Reviews, 2012, 31 (3), 245­296.
+Del Negro, Marco and Frank Schorfheide, "Forming Priors for DSGE Models (and
+ How it Affects the Assessment of Nominal Rigidities)," Journal of Monetary Economics,
+ 2008, 55 (7), 1191­1208.
+   and , "DSGE Model-Based Forecasting," in Graham Elliott and Allan Timmermann,
+  eds., Handbook of Economic Forecasting, Volume 2, Elsevier, 2013.
+  , Marc P. Giannoni, and Christina Patterson, "The Forward Guidance Puzzle,"
+  FRBNY Staff report, 2012.
+Durham, Garland and John Geweke, "Adaptive Sequential Posterior Simulators for
+ Massively Parallel Computing Environments," in Ivan Jeliazkov and Dale Poirier, eds.,
+ Advances in Econometrics, Vol. 34, Emerald Group Publishing Limited, West Yorkshire,
+ 2014, chapter 6, pp. 1­44.
+Edge, Rochelle and Refet G¨    urkaynak, "How Useful Are Estimated DSGE Model Fore-
+ casts for Central Bankers," Brookings Papers of Economic Activity, 2010, 41 (2), 209­259.
+   and , "How Useful Are Estimated DSGE Model Forecasts for Central Bankers," Brook-
+  ings Papers of Economic Activity, 2010, p. forthcoming.
+Gal´
+   i, Jordi, Monetary Policy, Inflation, and the Business Cycle: An Introduction to the
+ New Keynesian Framework, Princeton University Press, 2008.
+Geweke, John and B. Frischknecht, "Exact Optimization By Means of Sequentially
+ Adaptive Bayesian Learning," Mimeo, 2014.
+Gordon, Neil, D.J. Salmond, and Adrian F.E. Smith, "Novel Approach to
+ Nonlinear/Non-Gaussian Bayesian State Estimation," Radar and Signal Processing, IEE
+ Proceedings F, 1993, 140 (2), 107­113.
+Graeve, Ferre De, "The External Finance Premium and the Macroeconomy: US Post-
+ WWII Evidence," Journal of Economic Dynamics and Control, 2008, 32 (11), 3415 ­
+ 3440.
+Greenwood, Jeremy, Zvi Hercowitz, and Per Krusell, "Long-Run Implications of
+ Investment-Specific Technological Change," American Economic Review, 1998, 87 (3),
+ 342­36.
+Herbst, Edward, "Using the "Chandrasekhar Recursions" for Likelihood Evaluation of
+ DSGE Models," Computational Economics, 2015, 45 (4), 693­705.
+                                                                                          32
+
+
+   and Frank Schorfheide, "Sequential Monte Carlo Sampling for DSGE Models," Journal
+  of Applied Econometrics, 2014, 29 (7), 1073­1098.
+   and    , Bayesian Estimation of DSGE Models, Princeton University Press, 2015.
+Jasra, Ajay, David A. Stephens, Arnaud Doucet, and Theodoros Tsagaris, "Infer-
+  ence for Levy-Driven Stochastic Volatility Models via Adaptive Sequential Monte Carlo,"
+  Scandinavian Journal of Statistics, 2011, 38, 1­22.
+Laseen, Stefan and Lars E.O. Svensson, "Anticipated Alternative Policy-Rate Paths in
+  Policy Simulations," International Journal of Central Banking, 2011, 7 (3), 1­35.
+Liu, Jun S, Monte Carlo Strategies in Scientific Computing, Springer Verlag, New York,
+  2001.
+Moral, Pierre Del, Arnaud Doucet, and Ajay Jasra, "An Adaptive Sequential Monte
+ Carlo Method for Approximate Bayesian Computation," Statistical Computing, 2012, 22,
+ 1009­1020.
+Negro, Marco Del, Raiden B Hasegawa, and Frank Schorfheide, "Dynamic predic-
+ tion pools: an investigation of financial frictions and forecasting performance," Journal of
+ Econometrics, 2016, 192 (2), 391­405.
+Romer, Paul, "The trouble with macroeconomics," The American Economist, 2016, 20,
+ 1­20.
+Sch¨
+   afer, Christian and Nicolas Chopin, "Sequential Monte Carlo on Large Binary
+  Sampling Spaces," Statistical Computing, 2013, 23, 163­184.
+Smets, Frank and Raf Wouters, "An Estimated Dynamic Stochastic General Equilibrium
+ Model of the Euro Area," Journal of the European Economic Association, 2003, 1 (5), 1123
+ ­ 1175.
+   and , "Shocks and Frictions in US Business Cycles: A Bayesian DSGE Approach,"
+  American Economic Review, 2007, 97 (3), 586 ­ 606.
+Warne, Anders, G¨ unter Coenen, and Kai Christoffel, "Marginalized Predictive Like-
+ lihood Comparisons of Linear Gaussian State-Space Models with Applications to DSGE,
+ DSGE-VAR, and VAR Models," Journal of Applied Econometrics, 2017, 32 (1), 103­119.
+Woodford, Michael, Interest and Prices: Foundations of a Theory of Monetary Policy,
+ Princeton University Press, 2003.
+Zhou, Yan, Adam M. Johansen, and John A.D. Aston, "Towards Automatic Model
+ Comparison: An Adaptive Sequential Monte Carlo Approach," arXiv Working Paper,
+ 2015, 1303.3123v2.
+Online Appendix                                                                                 0
+
+
+                           Online Appendix
+
+A      Computational Details
+
+A.1     Predictive Density Formulas
+
+This Appendix focuses on the computation of h-step predictive densities p(yt:t+h |Itm
+                                                                                    -1 , Mm )
+as well as their average over time, p(yt:t+h |Mm ). The starting point is the state-space
+representation of the DSGE model. The transition equation
+
+                             st = T ()st-1 + R() t ,     t    N (0, Q)                       (A-1)
+
+summarizes the evolution of the states st . The measurement equation:
+
+                                       yt = Z ()st + D(),                                    (A-2)
+
+maps the states onto the vector of observables yt , where D() represents the vector of steady
+states for these observables. To simplify the notation we omit model superscripts/subscripts
+and we drop Mm from the conditioning set. We assume that the forecasts are based on the
+It-1 information set. Let  denote the vector of DSGE model parameters. For each draw i ,
+i = 1, . . . , N , from the posterior distribution p(|It-1 ), execute the following steps:
+
+   1. Evaluate
+      T (), R(), Z (), D().
+
+   2. Run the Kalman filter to obtain st-1|t-1 and Pt-1|t-1 .
+
+   3. Compute s                    ^t|t-1 = Pt|I as
+              ^t|t-1 = st|It-1 and P            t-1
+
+
+                                                          ^t|t-1 = T Pt-1|t-1 T + RQR .
+                                    ^t|t-1 = T st-1|t-1 , P
+       (a) Unconditional forecasts: s
+       (b) Semiconditional forecasts (using time t spreads, and FFR): after computing s ^t|t-1
+               ^t|t-1 using the "unconditional" formulas, run time t updating step of Kalman
+           and P
+           filter using a measurement equation that only uses time t values of these two
+           observables.
+       (c) Conditional forecasts (using GDP, GDP deflator, time t spreads, and FFR): after
+           computing s^t|t-1 and P^t|t-1 using the "unconditional" formulas, run time t up-
+           dating step of Kalman filter using a measurement equation that only uses time t
+           values of these four observables.
+Online Appendix                                                                                                       1
+
+
+                                                                                      ^t+j |t-1 =
+                                                          ^t+j |t-1 = T st+j -1|t-1 , P
+      4. Compute recursively for j = 1, .., h the objects s
+         T Pt+j -1|t-1 T + RQR and construct the matrices
+                                                                              
+                                                      s
+                                                      ^t|t-1
+                                                         .
+                                                         .
+                                                                              
+                                      s
+                                      ^t:t+k|t-1 =       .                    
+                                                                              
+                                                    s
+                                                    ^t+k|t-1
+         and                                                                                        
+                                         ^t|t-1
+                                         P          ^t|t-1 T
+                                                    P                      ...        ^t|t-1 T k
+                                                                                      P
+                                                                                                    
+                                        TP^t|t-1    ^t+1|t-1
+                                                    P                          ^t+1|t-1 T k-1
+                                                                           ... P                    
+                       ^t:t+k|t-1
+                       P            =
+                                     
+                                                                                                    .
+                                                                                                    
+                                            .
+                                            .           .
+                                                        .                  ...        .
+                                                                                      .
+                                     
+                                            .           .                             .             
+                                                                                                    
+                                         k ^       k-1 ^                          ^t+k|t-1
+                                        T Pt|t-1 T     Pt+1|t-1            ...    P
+
+         This leads to: st:t+h |(, It-1 )  N (^            ^t:t+h|t-1 ).
+                                              st:t+h|t-1 , P
+
+                                      ~ +Z
+      5. The distribution of yt:t+h = D  ~st:t+h is
+
+                                                    ~ +Z
+                              yt:t+h |(, It-1 )  N (D  ~s             ~P
+                                                         ^t:t+h|t-1 , Z            ~ ),
+                                                                        ^t:t+h|t-1 Z
+
+               ~ = Ih+1  Z and D
+         where Z               ~ = 1h+1  D (note I1 = 11 = 1)
+
+      6. Compute
+                            o                       o       ~   ~ ^t:t+h|t-1 , Z
+                                                                               ~P^t:t+h|t-1 Z
+                                                                                            ~ ),
+                         p(yt :t+h |, It-1 ) = pN (yt:t+h ; D + Z s                                               (A-3)
+                o
+         where yt :t+h are the actual observations and pN (x; µ, ) is the probability density func-
+         tion of a N (µ, ).
+
+      7. For linear functions F yt:t+h (e.g., four quarter averages, etc.) where F is a matrix of
+         fixed coefficients the predictive density becomes
+                    o
+               p(F yt                         o         ~
+                      :t+h |, It-1 ) = pN (F yt:t+h ; F D + F Z s
+                                                                               ~P
+                                                              ~ ^t:t+h|t-1 , F Z            ~ F ).
+                                                                                 ^t:t+h|t-1 Z                     (A-4)
+
+                                                                                                          h
+                                                                                                     1
+       In the application we choose the matrix F such that F yt:t+h = y
+                                                                      ¯t+h,h                       =            yt+j and
+                                                                                                     h   j =1
+let
+                                                           N
+                                   o                  1             o       i
+                                  yt
+                                p(¯  +h,h |It-1 )   =            p(¯
+                                                                   yt +h,h | , It-1 ).                            (A-5)
+                                                      N    i=1
+
+       Further, we show these densities averaged over a time horizon from T0 to T .
+                                                           T
+                                       o             1              o
+                                    p(¯
+                                      yt +h,h )   =                yt
+                                                                 p(¯  +h,h |It-1 ).                               (A-6)
+                                                    NT    t=T0
+Online Appendix                                                                             2
+
+
+A.2      Adaptive Tempering Schedule with Incremental Upper Bounds
+
+One practical concern is the roots of the function in the early stages of SMC are located
+very close to the lower bound of the proposed interval. This makes the algorithm inefficient
+at finding a root, depending on the specified tolerance of convergence. One amendment we
+can make to the adaptive algorithm is to find a smart way of proposing "incremental" upper
+bounds for this interval so that the roots are more equidistant from each interval bound and
+are thus more easily discoverable by the root-finding algorithm.
+
+Algorithm 1 Adaptive Tempering Schedule (with incremental upper bounds)
+ 1: j = 2, n = 2
+ 2: 1 = 0
+ 3: ~ = 1
+ 4: ^ = {^1 , ...^N -1 , ^N }                                      Where ^1 = 0 and ^N = 1.
+ 5: while n < 1 do
+ 6:      f () = ESS () - ESSn-1
+ 7:      while f (~)  0 and j  N do
+ 8:         ~=
+              ^j
+ 9:          j =j+1
+         end
+10:      if f (~) < 0 then
+11:         n = root(f, [n-1 , ~])
+12:      else
+13:         n = 1.
+         end
+14:      n=n+1
+      end
+
+
+Notation:
+^ is the grid of "proposed bounds".
+
+j is the index of the current "proposed bound".
+N is the number of elements in the grid of "proposed bounds".
+~ is the current proposed upper bound.
+
+
+      In this algorithm, we generate a grid of proposed bounds, ^, which could be either a
+uniform grid from (0, 1], or some other kind of grid, e.g. a fixed schedule generated from
+some N and  for a similar model/dataset. A bound,      ~, is valid if f (~) < 0. Starting from
+Online Appendix                                                                                       3
+
+
+the previous valid upper bound         ~=   ^j , the inner loop finds the next valid upper bound for
+the interval [n-1 , ~] in {^j +1 , ..., ^N }.  ~ could remain unchanged (   ~=   ^j ) if the bound still
+remains valid (so the loop will never be entered) or could increment however many times is
+necessary for ~=   ^k for some k > j to be a valid upper bound.
+
+    The reason for the last conditional "if f ( ~) < 0" is if j > N , then there are no more
+elements of the grid that are valid to propose as an upper bound, i.e.  ~=  ^N = 1. However,
+it could still be the case that there are valid upper bounds between ~=^N -1 and ~=^N = 1
+that would cause ESS = .
+Online Appendix                                                                           4
+
+
+
+B       DSGE Model Descriptions
+
+This section of the appendix contains the model specifications for AS, SW, and SWFF,
+along with a description of how we construct our data, and a table with the priors on the
+parameters of the various models.
+
+
+B.1     An-Schorfheide Model (AS)
+
+B.1.1    Equilibrium Conditions
+
+We write the equilibrium conditions of the three equation model from An and Schorfheide
+(2007), by expressing each variable in terms of percentage deviations from its steady state
+value. Let x
+           ^t = ln(xt /x) and write
+                                                      ^
+                        1 =  Et e- c      ^t +Rt -z
+                                   ^t+1 + c       ^t+1 -^t+1
+                                                                                      (A-7)
+                                                     1            1
+                        0 =      e^t
+                                     -1         1-       e ^t
+                                                              +                       (A-8)
+                                                    2            2
+                                                       - c          yt+1 -y
+                               - Et e  ^t+1
+                                                  -1 e   ^t+1 + c
+                                                                ^t +^     ^t +^
+                                                                              t+1
+
+                                 1-
+                               +       1 - e c^t
+                                  2
+                    ^t -y              2 g            2
+                   ec   ^t
+                             = e-g
+                                 ^t
+                                    -       e ^t - 1                                  (A-9)
+                                       2
+                      ^t
+                      R           ^
+                             = R Rt-1 + (1 - R )1    ^t                              (A-10)
+                                +(1 - R )2 (^
+                                            yt - g
+                                                 ^t ) +        R,t
+
+                       g
+                       ^t = g g
+                              ^t-1 +      g,t                                        (A-11)
+                       z
+                       ^t = z z
+                              ^t-1 +      z,t .                                      (A-12)
+
+The equilibrium law of motion of consumption, output, interest rates, and inflation has to
+satisfy the expectational difference equations (A-7) to (A-12).
+
+    Log-linearization and straightforward manipulation of Equations (A-7) to (A-9) yield the
+following representation for the consumption Euler equation, the New Keynesian Phillips
+Online Appendix                                                                            5
+
+
+curve, and the monetary policy rule:
+                                    1 ^
+                 y        yt+1 ] -
+                 ^t = Et [^             Rt - Et [^
+                                                 t+1 ] - Et [^
+                                                             zt+1 ]                   (A-13)
+                                   
+                         gt - Et [^
+                        +^        gt+1 ]
+                ^t =  Et [^        yt - g
+                          t+1 ] + (^    ^t )
+                ^ t = R R
+                R       ^ t-1 + (1 - R )1 ^t + (1 - R )2 (^
+                                                          yt - g
+                                                               ^t ) +      R,t
+
+
+where
+                                                1-
+                                         =          .                                 (A-14)
+                                                 2 
+
+
+B.1.2   Measurement Equation
+
+The AS model is estimated using quarterly output growth, and annualized CPI inflation and
+nominal federal funds rate, whose measurement equations are given below:
+
+
+                        Output growth =  + 100(yt - yt-1 + zt )
+                        CPI                =  + 400t                                  (A-15)
+                        FFR                = R + 400Rt
+
+where all variables are measured in percent.  and R measure the steady-state levels of net
+inflation and short term nominal interest rates, respectively. They are treated as parameters
+in the estimation.
+
+
+B.2     Smets-Wouters Model (SW)
+
+We include a brief description of the log-linearized equilibrium conditions of the Smets and
+Wouters (2007) model to establish the foundation for explaining the later models. We de-
+viate from the original Smets-Wouters specification by detrending the non-stationary model
+variables by a stochastic rather than a deterministic trend. This is done in order to express
+the equilibrium conditions in a flexible manner that accommodates both trend-stationary
+and unit-root technology processes. The model presented below is the model referred to in
+the paper as the SW model.
+   Let z
+       ~t be the linearly detrended log productivity process, defined here as:
+
+
+                              z
+                              ~t = z z
+                                     ~t-1 + z    z,t ,   z,t    N (0, 1)              (A-16)
+Online Appendix                                                                                       6
+
+
+                                                                 t+     1 z
+                                                                          ~
+    All non-stationary variables are detrended by Zt = e              1 -  t , where  is the steady-
+state growth rate of the economy. The growth rate of Zt in deviations from  , which is
+denoted by zt , follows the process:
+
+                                                 1                1
+                     zt = ln(Zt /Zt-1 ) -  =       (z - 1)~
+                                                          zt-1 +    z            z,t            (A-17)
+                                                1-               1-
+    All of the variables defined below will be given in log deviations from their non-stochastic
+steady state, where the steady state values will be denoted by *-subscripts.
+
+
+B.2.1      Equilibrium Conditions
+
+The optimal allocation of consumption satisfies the following Euler equation:
+
+
+           (1 - he- )                                    he-
+  ct = -                ( Rt - Et [  t +1 ] + b t ) +            (ct-1 - zt )
+           c (1 + he- )                               (1 + he- )
+                            1                               (c - 1) w L
+                    +         -
+                                    Et [ct+1 + zt+1 ] +                       (Lt - Et [Lt+1 ]) . (A-18)
+                      (1 + he )                           c (1 + he- ) c
+where ct is consumption, Lt denotes hours worked, Rt is the nominal interest rate, and t is
+inflation. The exogenous process bt drives a wedge between the intertemporal ratio of the
+marginal utility of consumption and the riskless real return, Rt - Et [t+1 ], and follows an
+AR(1) process with parameters b and b . The parameters c and h capture the relative
+degree of risk aversion and the degree of habit persistence in the utility function, respectively.
+The optimal investment decision comes from the optimality condition for capital producers
+and satisfies the following relationship between the level of investment it and the value of
+          k
+capital, qt , both measured in terms of consumption:
+
+
+
+                                         1                         e(1-c )
+   k
+  qt = S e2 (1+e(1-c ) ) it -                    ( it-1 - zt ) -             Et [it+1 + zt+1 ] - µt
+                                     1 + e(1-c )                 1 + e(1-c )
+                                                                                                   (A-19)
+
+This relationship is affected by investment adjustment costs (S is the second derivative of
+the adjustment cost function) and by the marginal efficiency of investment µt , an exogenous
+process which follows an AR(1) with parameters µ and µ , and that affects the rate of
+transformation between consumption and installed capital (see Greenwood et al. (1998)).
+Online Appendix                                                                              7
+
+
+The installed capital, which we also refer to as the capital stock, evolves as:
+
+                 ¯t =      i       ¯t-1 - zt + i it + i S e2 (1 + e(1-c ) )µt
+                 k      1- ¯       k           ¯      ¯                                 (A-20)
+                           k                   k      k
+
+       i
+where ¯ is the steady-state ratio of investment to capital. The parameter  captures the
+       k
+intertemporal discount rate in the utility function of the households.
+
+The arbitrage condition between the return to capital and the riskless rate is:
+               k
+              r            k          1-            k         k
+           k
+                      Et [rt +1 ] + k          Et [qt +1 ] - qt = Rt + bt - Et [t+1 ]   (A-21)
+          r + (1 -  )              r + (1 -  )
+
+       k                                 k
+where rt is the rental rate of capital, r  its steady-state value, and  the depreciation rate.
+                         ¯t and the effective capital rented out to firms kt is given by:
+The relationship between k
+
+                                                      ¯t-1 .
+                                       kt = ut - zt + k                                 (A-22)
+
+
+where capital is subject to variable capacity utilization, ut .
+
+The optimality condition determining the rate of capital utilization is given by:
+                                           1- k
+                                             r = ut .                                   (A-23)
+                                             t
+
+where  captures the utilization costs in terms of foregone consumption.
+
+From the optimality conditions of goods producers it follows that all firms have the same
+capital-labor ratio :
+                                                   k
+                                        kt = wt - rt + Lt .                             (A-24)
+
+Real marginal costs for firms are given by:
+
+                                                        k
+                                    mct = (1 - ) wt +  rt .                             (A-25)
+
+
+where  is the income share of capital (after paying markups and fixed costs) in the produc-
+tion function.
+
+All of the equations mentioned above have the same form regardless of whether or not
+technology has a unit root or is trend-stationary. A few small differences arise for the
+following two equilibrium conditions.
+Online Appendix                                                                               8
+
+
+The production function under trend stationarity is:
+                                                                            1
+                    yt = p (kt + (1 - )Lt ) + I{z < 1}(p - 1)                 z
+                                                                              ~t .       (A-26)
+                                                                           1-
+
+                        1
+The last term (p - 1)       z
+                            ~t drops out if technology has a stochastic trend because then
+                      1-
+one must assume that the fixed costs are proportional to the trend.
+The resource constraint is:
+                                    c     i    r k k            1
+                        yt = gt +     ct + it +  ut - I{z < 1}    z
+                                                                  ~t ,                   (A-27)
+                                    y     y      y             1-
+
+            1
+The term -     z
+               ~t disappears if technology follows a unit root process.
+          1-
+Government spending, gt , is assumed to follow the exogenous process:
+
+                                    gt = g gt-1 + g   g,t   + gz z   z,t                 (A-28)
+
+The price and wage Phillips curves respectively are:
+
+
+              (1 - p e(1-c ) )(1 - p )
+  t =                                      mct
+         (1 + p e(1-c ) )p ((p - 1) p + 1)
+                                            p                e(1-c )
+                                    +               t-1 +               Et [t+1 ] + f,t (A-29)
+                                      1 + p e(1-c )       1 + p e(1-c )
+
+
+             (1 - w e(1-c ) )(1 - w )
+  wt =                                         w h - wt
+         (1 + e(1-c ) )w ((w - 1) w + 1) t
+                     1 + w e(1-c )                 1
+                  -             -
+                                         t +             (wt-1 - zt - w t-1 )
+                       1 + e (1    c )       1 + e(1-c )
+                                                e(1-c )
+                                            +             Et [wt+1 + zt+1 + t+1 ] + w,t (A-30)
+                                              1 + e(1-c )
+
+where p , p , and   p   are the Calvo parameter, the degree of indexation, and the curvature pa-
+rameters in the Kimball aggregator for prices, with the equivalent parameters with subscript
+w corresponding to wages.
+              h
+The variable wt corresponds to the household's marginal rate of substitution between con-
+sumption and labor and is given by:
+                             1            -z             -z              h
+                                  c t - he   c t - 1 + he   zt + l Lt = wt .             (A-31)
+                         1 - he-z
+Online Appendix                                                                                              9
+
+
+where l is the curvature of the disutility of labor (equal to the inverse of the Frisch elasticity
+in the basence of wage rigidities).
+The mark-ups f,t and w,t follow exogenous ARMA(1, 1) processes:
+
+                            f,t = f f,t-1 + f             f,t   + f f           f ,t-1                  (A-32)
+
+                          w,t = w w,t-1 + w               w,t     + w w          w ,t-1                 (A-33)
+
+Lastly, the monetary authority follows a policy feedback rule :
+                                       f              f              f         m
+ Rt = R Rt-1 + (1 - R ) 1 t + 2 (yt - yt ) + 3 (yt - yt ) - (yt-1 - yt -1 ) + rt (A-34)
+
+                                      f
+where the flexible price/wage output yt is obtained from solving the version of the model
+                                                                                   m
+absent nominal ridigities (without equations (3)-(12) and (15)), and the residual rt follows
+an AR(1) process with parameters rm and rm .
+                                            m
+The exogenous component of the policy rule rt evolves according to the following process:
+                                                                  K
+                                   m           m          R             R
+                                  rt   =   rm rt -1   +   t   +         k,t-k                           (A-35)
+                                                                  k=1
+
+        R                                                               R
+where   t   is the usual contemporaneous policy shock and               k,t-k   is a policy shock that is known
+to agents at time t - k , but affects the policy rule k periods later--that is, at time t. As
+outlined in Laseen and Svensson (2011), these anticipated policy shocks allow us to capture
+the effects of the zero lower bound on nominal interest rates, as well as the effects of forward
+guidance in monetary policy.
+
+
+B.2.2    Measurement Equations
+
+The SW model is estimated using seven quarterly macroeconomic time series, whose mea-
+surement equations are given below:
+
+
+                      Output growth              =  + 100(yt - yt-1 + zt )
+                      Consumption growth =  + 100(ct - ct-1 + zt )
+                      Investment growth          =  + 100(it - it-1 + zt )
+                      Real Wage growth           =  + 100(wt - wt-1 + zt )
+                                                                                                        (A-36)
+                      Hours                      = ¯
+                                                   l + 100lt
+                      Inflation                  =  + 100t
+                      FFR                        = R + 100Rt
+                      FFRe
+                         t,t+j                   = R + Et [Rt+j ], j = 1, ..., 6
+Online Appendix                                                                               10
+
+
+where all variables are measured in percent,  and R measure the steady-state levels of
+net inflation and short term nominal interest rates, respectively, and ¯
+                                                                       l represents the mean
+of the hours (this variable is measured as an index).
+      The priors for the DSGE model parameters are the same as in Smets and Wouters (2007)
+and are summarized in Panel I of the priors table listed in the SW++ section.
+
+
+B.3      Smets-Wouters Model with Financial Frictions (SWFF)
+
+Financial frictions are incorporated into the SW model following the work of Bernanke et
+al. (1999a) and Christiano et al. (2009).
+
+
+B.3.1     Equilibrium Conditions
+
+SWFF replaces (A-21) with the following equation for the excess return on capital --that is,
+the spread between the expected return on capital and the riskless rate--and the definition
+                          ~ k , respectively:
+of the return on capital, Rt
+
+
+
+                                                       ¯t - nt ) + 
+                          ~ k - Rt = -bt + sp,b (q k - k
+                       Et R                                        ~,t                    (A-37)
+                            t+1                   t
+
+and                                    k
+                      ~ k - t =       r        k     (1 -  )   k    k
+                      R t          k
+                                              rt + k          qt - qt -1                  (A-38)
+                                  r + (1 -  )     r + (1 -  )
+      ~ k is the gross nominal return on capital for entrepreneurs, nt is entrepreneurial equity,
+where R t
+and ~,t captures mean-preserving changes in the cross-sectional dispersion of ability across
+entrepreneurs (see Christiano et al. (2009)) and follows an AR(1) process with parameters
+ and  .
+The following equation outlines the evolution of entrepreneurial net worth :
+
+
+
+             ~k                                  k     ¯                   n,
+ n       ~ k Rt - t - n,R
+ ^ t = n,R              ~ k (Rt-1 - t ) + n,qK (qt-1 + kt-1 ) + n,n nt-1 -     ~,t-1 (A-39)
+           t              t                                                sp,
+
+                                                        
+Moreover, we introduce a time-varying inflation target, t , that allows us to capture the
+dynamics of inflation and interest rates in the estimation sample. The inflation target evolves
+according to
+                                           
+                                    t =    t -1 +          ,t                             (A-40)
+Online Appendix                                                                               11
+
+
+                                                    
+where 0 <  < 1 and         ,t   is an i.i.d. shock. t is a stationary process, although the prior
+on  forces this process to be highly persistent.
+
+
+B.3.1.1    Measurement Equations
+
+SWFF's additional measurement equation for the spread (given below) augments the stan-
+dard set of SW measurement equations (A-36) along with (A-42).
+
+
+                                                    ~t
+                                Spread = SP + 100Et R k
+                                                       +1 - Rt                            (A-41)
+
+where SP measures the steady-state spread. Priors are specified for the parameters SP ,
+                                ¯ and  (the steady-state default probability and the
+sp,b ,  ,  , and the parameters F
+survival rate of entrepreneurs, respectively), are fixed.
+
+Moreover, there is an additional measurement equation for 10-year inflation expectations
+that augments (A-36), given by
+
+                                                                  39
+                                                              1
+                       10y Infl. Expectations =  + Et                    t+j              (A-42)
+                                                             40   j =0
+
+
+
+
+B.4     Data
+
+Data on nominal GDP (GDP), the GDP deflator (GDPDEF), nominal personal consumption
+expenditures (PCEC), and nominal fixed private investment (FPI) are produced at a quar-
+terly frequency by the Bureau of Economic Analysis, and are included in the National Income
+and Product Accounts (NIPA). Average weekly hours of production and non-supervisory
+employees for total private industries (AWHNONAG), civilian employment (CE16OV), and
+the civilian non-institutional population (CNP16OV) are produced by the Bureau of Labor
+Statistics (BLS) at a monthly frequency. The first of these series is obtained from the Estab-
+lishment Survey, and the remaining from the Household Survey. Both surveys are released
+in the BLS Employment Situation Summary. Since our models are estimated on quarterly
+data, we take averages of the monthly data. Compensation per hour for the non-farm busi-
+ness sector (COMPNFB) is obtained from the Labor Productivity and Costs release, and
+produced by the BLS at a quarterly frequency.
+Online Appendix                                                                                          12
+
+
+       The federal funds rate (henceforth FFR) is obtained from the Federal Reserve Board's
+H.15 release at a business day frequency. Long-run inflation expectations (average CPI
+inflation over the next 10 years) are available from the SPF from 1991:Q4 onward. Prior
+to 1991:Q4, we use the 10-year expectations data from the Blue Chip survey to construct a
+long time series that begins in 1979:Q4.15 Since the BCEI and the SPF measure inflation
+expectations in terms of the average CPI inflation and we instead use the GDP deflator
+and/or core PCE inflation as observables for inflation, as in Del Negro and Schorfheide
+(2013) we subtract 0.5 from the survey measures, which is roughly the average difference
+between CPI and GDP deflator inflation across the whole sample. We measure interest-rate
+spreads as the difference between the annualized Moody's Seasoned Baa Corporate Bond
+Yield and the 10-Year Treasury Note Yield at constant maturity. Both series are available
+from the Federal Reserve Board's H.15 release.
+       The data are transformed following Smets and Wouters (2007), with the exception of the
+civilian population data, which are filtered using the Hodrick-Prescott (HP) filter to remove
+jumps around census dates.16 For each financial variable, we take quarterly averages of the
+annualized daily data and divide by four. Let  denote the temporal difference operator.
+Then:
+ GDP growth                    = 100  LN ((GDP/GDP DEF )/CN P 16OV )
+ Consumption growth            = 100  LN ((P CEC/GDP DEF )/CN P 16OV )
+ Investment growth             = 100  LN ((F P I/GDP DEF )/CN P 16OV )
+ Real wage growth              = 100  LN (COM P N F B/GDP DEF )
+ Hours worked                  = 100  LN ((AW HN ON AG  CE 16OV /100)/CN P 16OV )
+ GDP deflator inflation = 100  LN (GDP DEF )
+ FFR                           = (1/4)  FEDERAL FUNDS RATE
+ FFRe
+    t+k|t                      = (1/4)  BLUE CHIP k -QUARTERS AHEAD FFR FORECAST
+ 10y inflation exp             = (10-year average CPI inflation forecast - 0.50)/4
+ Spread                        = (1/4)  (Baa Corporate - 10 year Treasury)
+
+       In the long-term inflation expectation transformation, 0.50 is the average difference be-
+tween CPI and GDP annualized inflation from the beginning of the sample to 1992.
+  15
+       Since the Blue Chip survey reports long-run inflation expectations only twice a year, we treat these
+expectations in the remaining quarters as missing observations and adjust the measurement equation of the
+Kalman filter accordingly.
+ 16
+    For each real-time vintage, we use the HP filter on the population data observations available as of the
+forecast date. This smooths out spikes in the population series resulting from Census Bureau revisions (as
+pointed out by Edge and G¨
+                         urkaynak (2010b)).
+Online Appendix                                                                          13
+
+
+   Hourly wage vintages are only available on ALFRED beginning in 1997; we use pre-1997
+vintages from Edge and G¨
+                        urkaynak (2010a). The GDP, GDP deflator, investment, hours,
+and employment series have vintages available for the entire sample. The financial variables
+and the population series are not revised.
+
+   As mentioned in the main text, in order to provide the model with the ability to ac-
+commodate federal funds rate expectations, the policy rule in the model is augmented with
+anticipated policy shocks. For example, for T = 2008:Q4, we use the January 2009 BCFF
+forecasts of interest rates. We use K = 6 anticipated shocks, which is the maximum number
+of BCFF forecast quarters (excluding the observed quarterly average that we impute in the
+first forecast period). Because the BCFF survey is released during the first few days of the
+month, the BCFF forecasters have no information about quarter T + 1.
+
+
+B.5    Prior Specifications
+
+We estimate the model using Bayesian techniques. This requires the specification of a
+prior distribution for the model parameters. For most parameters common with Smets
+and Wouters (2007), we use the same marginal prior distributions. As an exception, we
+favor a looser prior than Smets and Wouters (2007) for the quarterly steady-state inflation
+rate  ; it is centered at 0.75% and has a standard deviation of 0.4%. Regarding the fi-
+nancial frictions, we specify priors for the parameters SP , sp,b ,  , and  , while we fix
+the parameters corresponding to the steady-state default probability and the survival rate
+of entrepreneurs, respectively. In turn, these parameters imply values for the parameters
+of (A-39). Information on the priors is provided in the subsequent tables.
+
+                        Table A-1: Priors for An-Schorfheide Model
+
+                 Type   Mean   Std Dev                    Type   Mean   Std Dev
+           eR     -     0.45     0.00                g     U     0.50        0.29
+            ey    -     0.12     0.00                z     U     0.50        0.29
+            e     -     0.29     0.00                R     IG    0.40        4.00
+           rA     G     0.50     0.50                g     IG    1.00        4.00
+           Q      N     0.40     0.20                z     IG    0.50        4.00
+                  U     0.50     0.29                      G     2.00        0.50
+                  G     7.00     2.00                1     G     1.50        0.25
+           R      U     0.50     0.29                2     G     0.50        0.25
+  Note : The table shows the prior specifications of each of the model parameters in the An and Schorfheide (2007, AS) model.
+  The table specifies the parameter name, the distribution type, where B, N, G, and IG stand for Beta, Normal, Gamma, Inverse
+  Gamma, and the parameter means and standard deviations (written in parentheses). The Inverse Gamma prior is characterized
+  by the mode and degrees of freedom.
+
+
+              Table A-2: Standard and Diffuse Priors for Medium Scale DSGE Models
+
+                                          Standard Prior                                        Diffuse Prior
+
+ Parameter       Type           SW            Common            SWFF                SW            Common             SWFF
+
+                                                           Policy
+    1              N                        1.500 (0.250)                                       1.500 (0.750)
+    2              N                        0.120 (0.050)                                       0.120 (0.150)
+    3              N                        0.120 (0.050)                                       0.120 (0.150)
+                   B                        0.750 (0.100)                                       0.500 (0.289)
+    rm             B                        0.500 (0.200)                                       0.500 (0.289)
+    rm             IG                       0.100 (2.000)                                       0.100 (2.000)
+                                                    Nominal Rigidities
+     p             B                        0.500 (0.100)                                       0.500 (0.289)
+     p             B                        0.500 (0.150)                                       0.500 (0.289)
+     p              -                      10.000                                              10.000
+    w              B                        0.500 (0.100)                                       0.500 (0.289)
+     w             B                        0.500 (0.150)                                       0.500 (0.289)
+    w               -                      10.000                                              10.000
+                                 Other Endogenous Propagation and Steady State
+   100             N                        0.400 (0.100)                                       0.400 (0.300)
+                   N                        0.300 (0.050)                                       0.300 (0.150)
+100( -1 - 1)       G                        0.250 (0.100)                                       0.250 (0.300)
+     c             N                        1.500 (0.370)                                       1.500 (1.110)
+     h             B                        0.700 (0.100)                                       0.500 (0.289)
+     l             N                        2.000 (0.750)                                       2.000 (2.250)
+                    -                       0.025                                               0.025
+                   N                        1.250 (0.120)                                       1.250 (0.360)
+    S              N                        4.000 (1.500)                                       4.000 (4.500)
+                   B                        0.500 (0.150)                                       0.500 (0.289)
+     ¯
+     L             N                       -45.00 (5.00)                                        -45.00(15.00)
+    w               -                       1.500                                               1.500
+                   G       0.620 (0.100)                    0.750 (0.400)      0.620 (0.300)                    0.750 (0.400)
+     g              -                       0.180                                               0.180
+Online Appendix                                                                                                      15
+
+
+               Table A-2: Standard and Diffuse Priors for Medium Scale DSGE Models
+
+                                           Standard Prior                                        Diffuse Prior
+
+  Parameter       Type             SW          Common            SWFF                  SW          Common             SWFF
+
+                                           Financial Frictions (SWFF Only)
+
+    F ( )            -                                       0.030                                               0.030
+    spr             G          -                             2.000 (0.100)                                       2.000 (0.100)
+     spb            B          -                             0.050 (0.005)                                       0.050 (0.005)
+                     -                                       0.990                                               0.990
+                                                    Exogenous Process
+      g             B                        0.500 (0.200)                                       0.500 (0.289)
+      b             B                        0.500 (0.200)                                       0.500 (0.289)
+     µ              B                        0.500 (0.200)                                       0.500 (0.289)
+      z             B                        0.500 (0.200)                                       0.500 (0.289)
+      f             B                        0.500 (0.200)                                       0.500 (0.289)
+      w             B                        0.500 (0.200)                                       0.500 (0.289)
+      f             B                        0.500 (0.200)                                       0.500 (0.289)
+     w              B                        0.500 (0.200)                                       0.500 (0.289)
+     g              IG                       0.100 (2.000)                                       0.100 (2.000)
+      b             IG                       0.100 (2.000)                                       0.100 (2.000)
+     µ              IG                       0.100 (2.000)                                       0.100 (2.000)
+     z              IG                       0.100 (2.000)                                       0.100 (2.000)
+      f             IG                       0.100 (2.000)                                       0.100 (2.000)
+      w             IG                       0.100 (2.000)                                       0.100 (2.000)
+     gz             B                        0.500 (0.200)                                       0.500 (0.289)
+                               Financial Frictions Exogenous Process (SWFF Only)
+
+                    B          -                             0.750 (0.150)         -                             0.500 (0.289)
+                     -                                       0.990                                               0.990
+                    IG         -                             0.050 (4.000)                                       0.050 (4.000)
+                    IG         -                             0.030 (6.000)                                       0.030 (6.000)
+   Note : The table shows the prior specifications of each of the model parameters in the SW and SWFF models for both a
+   "standard prior" and "diffuse prior". The diffuse priors specification follows Herbst and Schorfheide (2014) Table A-3. The
+   table specifies the parameter name, the distribution type, where B, N, G, and IG stand for Beta, Normal, Gamma, Inverse
+   Gamma, and the parameter means and standard deviations (written in parentheses). The Inverse Gamma prior is characterized
+   by the mode and degrees of freedom. The priors for the parameters that are common across models are listed under the
+   "Common" column.
+Online Appendix                                                                                      16
+
+
+
+C      Additional Results
+
+This section contains additional details relating to the results reported in the main paper.
+In Section C.1 we show summary tables for the performance of the SMC algorith on the AS
+and SW models for NMH = 3 and NMH = 5. In Section C.2 we show the evolution of log
+predictive scores over time.
+
+
+C.1     Summary Statistics for NMH = 3 and NMH = 5
+
+                       Table A-3: AS Model: 3 MH Steps Per Mutation
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1032.00     -1032.44    -1032.01    -1031.84    -1031.76
+            StdD log(MDD)             0.28        0.46        0.23        0.15        0.11
+            Schedule Length         200.00      106.52      197.56      300.72      413.46
+            Resamples                12.98       14.75       13.75       12.73       11.04
+            Runtime [Min]             2.25        1.35        2.31        3.22        4.34
+
+Notes: Results are based on Nrun = 400 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+
+
+
+                       Table A-4: AS Model: 5 MH Steps Per Mutation
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1032.03     -1032.44    -1032.07    -1031.94    -1031.89
+            StdD log(MDD)             0.24        0.41        0.21        0.14        0.11
+            Schedule Length         200.00      104.36      190.29      286.06      389.48
+            Resamples                12.06       14.11       13.00       12.00       10.93
+            Runtime [Min]             3.08        1.73        2.90        3.98        5.34
+
+Notes: Results are based on Nrun = 400 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+Online Appendix                                                                                      17
+
+
+                       Table A-5: SW Model: 3 MH Steps Per Mutation
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1176.76     -1179.65    -1177.76    -1176.99    -1176.65
+            StdD log(MDD)             0.75        1.35        0.87        0.84        0.65
+            Schedule Length         500.00      191.58      355.68      547.25      760.71
+            Resamples                24.59       26.95       25.03       23.33       21.15
+            Runtime [Min]           207.66       73.59      137.32      211.64      293.92
+
+Notes: Results are based on Nrun = 200 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+
+
+
+                       Table A-6: SW Model: 5 MH Steps Per Mutation
+
+
+                                    Fixed      =0.90       =0.95       =0.97       =0.98
+            Mean log(MDD)        -1176.70     -1179.04    -1177.52    -1176.89    -1176.62
+            StdD log(MDD)             0.50        1.27        0.80        0.73        0.51
+            Schedule Length         500.00      188.14      346.19      525.90      721.36
+            Resamples                23.27       26.23       24.20       22.33       20.04
+            Runtime [Min]           324.15      110.10      202.83      311.21      424.92
+
+Notes: Results are based on Nrun = 200 runs of the SMC algorithm. We report averages across runs for the
+runtime, schedule length, and number of resampling steps.
+Online Appendix                                                                                                                            18
+
+
+C.2        Log Predictive Scores Over Time
+
+                Figure A-1: GDP Log Predictive Scores Over Time for SW vs SWFF
+                           Horizon = 2                                                        Horizon = 4
+
+     -2                                                                 -2
+
+
+
+
+     -4                                                                 -4
+
+
+
+
+     -6                                                                 -6
+
+
+
+
+     -8                                                                 -8
+
+
+     1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015   1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+                           Horizon = 6                                                        Horizon = 8
+
+     -2                                                                 -2
+
+
+
+
+     -4                                                                 -4
+
+
+
+
+     -6                                                                 -6
+
+
+
+
+     -8                                                                 -8
+
+
+     1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015   1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+Note : The four panels show the predictive density comparisons across time for the SW (blue line) and SWFF (red line) DSGE
+models averaged over 2, 4, 6, and 8 quarter horizons for output growth. Forecast origins from January 1992 to January 2017
+only are included in these calculations. The x-axis shows the quarter in which the forecasts were generated (time T + 1 in the
+parlance of section 5.1).
+Online Appendix                                                                                                                              19
+
+
+
+
+          Figure A-2: GDP Deflator Log Predictive Scores Over Time for SW vs SWFF
+                            Horizon = 2                                                         Horizon = 4
+      0                                                                   0
+
+
+
+
+     -1                                                                  -1
+
+
+
+
+     -2                                                                  -2
+
+
+
+
+     -3                                                                  -3
+
+
+
+
+     -4                                                                  -4
+      1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015    1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+                            Horizon = 6                                                         Horizon = 8
+      0                                                                   0
+
+
+
+
+     -1                                                                  -1
+
+
+
+
+     -2                                                                  -2
+
+
+
+
+     -3                                                                  -3
+
+
+
+
+     -4                                                                  -4
+      1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015    1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+Note : The four panels show the predictive density comparisons across time for the SW (blue line) and SWFF (red line) DSGE
+models averaged over 2, 4, 6, and 8 quarter horizons for inflation. Forecast origins from January 1992 to January 2017 only are
+included in these calculations. The x-axis shows the quarter in which the forecasts were generated (time T + 1 in the parlance
+of section 5.1).
+Online Appendix                                                                                                                              20
+
+
+
+
+           Figure A-3: GDP Deflator Log Predictive Scores Over Time for SW vs SWFF
+                           Horizon = 2                                                          Horizon = 4
+
+     -2                                                                  -2
+
+
+
+     -4                                                                  -4
+
+
+
+     -6                                                                  -6
+
+
+
+     -8                                                                  -8
+
+
+
+     -10                                                                 -10
+
+
+      1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015    1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+                           Horizon = 6                                                          Horizon = 8
+                                                                          0
+
+     -2
+
+
+                                                                         -1
+     -4
+
+
+
+     -6                                                                  -2
+
+
+
+     -8
+                                                                         -3
+
+
+     -10
+
+                                                                         -4
+      1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015    1991 1993 1995 1997 1999 2001 2003 2005 2007 2009 2011 2013 2015
+
+
+
+
+Note : The four panels show the predictive density comparisons across time for the SW (blue line) and SWFF (red line) DSGE
+models averaged over 2, 4, 6, and 8 quarter horizons for output growth and inflation. Forecast origins from January 1992 to
+January 2017 only are included in these calculations. The x-axis shows the quarter in which the forecasts were generated (time
+T + 1 in the parlance of section 5.1).
+
