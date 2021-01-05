@@ -52,7 +52,7 @@ def citation_density(df):
     # log scale
     df['log_total_cites'] = df.apply(lambda x: np.log(x['cites']), axis=1)
     df['log_cited_by'] = df.apply(lambda x: np.log(x['cited_by']), axis=1)
-    
+
     # visualize
     fig, ax = plt.subplots(figsize=(15, 5))
     # must be > 0 otherwise error appears
@@ -60,12 +60,15 @@ def citation_density(df):
     sns.kdeplot(df[df['log_cited_by'] > 0]['log_cited_by'], shade=True, color='blue')
 
     # show median values
-    ax.axvline(statistics.median(df['log_total_cites']), color='red')
-    ax.axvline(statistics.median(df['log_cited_by']), color='blue')
+    log_total_cites_median = np.median(df['log_total_cites'][~np.isnan(df['log_total_cites'])])
+    log_cited_by_median = np.median(df['log_cited_by'][~np.isnan(df['log_cited_by'])])
     
+    ax.axvline(log_total_cites_median, color='red')
+    ax.axvline(log_cited_by_median, color='blue')
+
     # exponentiate median values
-    total_cites = np.exp(statistics.median(df['log_total_cites']))
-    cited_by = np.exp(statistics.median(df['log_cited_by']))
+    total_cites = np.exp(log_total_cites_median)
+    cited_by = np.exp(log_cited_by_median)
 
     caption = f"Vertical lines show median citations: \n \tTotal cites: {total_cites} \n \tTotal cited by: {cited_by}"
     plt.title('Distributions of citations in NBER (log scale)')
