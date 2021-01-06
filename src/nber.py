@@ -227,7 +227,7 @@ def main(start, end, interval):
             content = raw.content()
             paper = Paper(content, raw.nber_id)
             paper.save()
-            print(f'[SUCCEED \U00002705]: {raw.url()}.\n[SLEEP \U0001F634]: {_interval} seconds')
+            print(f'[SUCCEED \U00002705]: {raw.url()}\n[SLEEP \U0001F634]: {_interval} seconds')
             end_timestamp = avg.current_timestamp()
             timestamp.append(avg.subtract(start_timestamp, end_timestamp))
             sleep(_interval)

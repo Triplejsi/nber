@@ -12,6 +12,9 @@ from random import uniform, randint
 from time import sleep
 
 class Proxy:
+    '''
+    This class returns a string of proxy when making a request.
+    '''
 
     def __init__(self):
         self.proxy_user = os.environ['PROXY_USER']
@@ -20,89 +23,19 @@ class Proxy:
         self.proxy_port = os.environ['PROXY_PORT']
 
     def get_server(self):
-        server = [
-            'tia',
-            'eze',
-            'bne',
-            'mel',
-            'per',
-            'syd',
-            'vie',
-            'bru',
-            'gig',
-            'gru',
-            'sof',
-            'yul',
-            'tor',
-            'yvr',
-            'scl',
-            'bog',
-            'sjo',
-            'zag',
-            'prg',
-            'cph',
-            'tll',
-            'hel',
-            'bod',
-            'mrs',
-            'par',
-            'fra',
-            'ath',
-            'bud',
-            'rkv',
-            'bom',
-            'del',
-            'dub',
-            'tlv',
-            'lin',
-            'nrt',
-            'sel',
-            'rix',
-            'lux',
-            'kul',
-            'gdl',
-            'kiv',
-            'ams',
-            'akl',
-            'los',
-            'osl',
-            'lim',
-            'waw',
-            'lis',
-            'otp',
-            'beg',
-            'sin',
-            'bts',
-            'lju',
-            'jnb',
-            'mad',
-            'vlc',
-            'sto',
-            'zrh',
-            'tpe',
-            'iev',
-            'dxb',
-            'iad',
-            'atl',
-            'bos',
-            'clt',
-            'chi',
-            'dal',
-            'den',
-            'hou',
-            'las',
-            'lax',
-            'mia',
-            'msy',
-            'nyc',
-            'phx',
-            'sjc',
-            'sea'
-        ]
+        '''
+        Returns a  server
+        '''
+        server = os.environ['SERVER']
+        server = server.split('\n')
+        server = [x for x in server if x != '']
 
         return server
 
     def get_proxy(self):
+        '''
+        Returns a proxy
+        '''
         server = self.get_server()
         index = randint(0, len(server) - 1)
         proxy = f'socks5://{self.proxy_user}:{self.proxy_password}@{server[index]}.{self.proxy_host}:{self.proxy_port}'
@@ -129,7 +62,7 @@ class RePEc:
         elif 100 <= self.nber_id < 1000: return f'0{self.nber_id}'
         else: return str(self.nber_id)
 
-    def citation(self, xml_find):
+    def citation(self):
         '''
         Returns either numbers of citations or numbers of being cited if any, otherwise returns nothing.
         '''
@@ -137,16 +70,15 @@ class RePEc:
         while status_code != 200:
             try:
                 url = f'{self.url}{self.string_id()}'
-                response = requests.get(url, proxies={'http': self.proxy, 'https': self.proxy})
+                response = requests.get(url, proxies={'http': self.proxy})
                 status_code = response.status_code
                 xml = et.fromstring(response.text)
-                # either cites or citedBy
-                xml = int(xml.find(xml_find).text)
                 if status_code == 200:
                     try: return xml
                     except UnboundLocalError: return None
             except et.ParseError: return None
-            except AttributeError: sys.exit(0)
+            except AttributeError: pass
+            except ConnectionError: pass
             except Exception as err:
                 print(traceback.print_exc())
                 print(f'{err}: {self.nber_id}')
@@ -160,7 +92,7 @@ class RePEc:
         while status_code != 200:
             try:
                 url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
-                response = requests.get(url, proxies={'http': self.proxy, 'https': self.proxy})
+                response = requests.get(url, proxies={'http': self.proxy})
                 status_code = response.status_code
                 parser = et.XMLParser(encoding='utf-8')
                 xml = et.fromstring(response.text, parser=parser)
@@ -171,7 +103,8 @@ class RePEc:
                     except UnboundLocalError: return None
                     except IndexError: return None
             except et.ParseError: return None
-            except AttributeError: sys.exit(0)
+            except AttributeError: pass
+            except ConnectionError: pass
             except Exception as err:
                 print(traceback.print_exc())
                 print(f'{err}: {self.nber_id}')
@@ -181,11 +114,12 @@ class RePEc:
         '''
         Save the paper using JSON format.
         '''
-
+        # either cites or citedBy
+        xml = self.citation()
         data = {
             'id': self.nber_id,
-            'cites': self.citation('cites'),
-            'cited_by': self.citation('citedBy'),
+            'cites': int(xml.find('cites').text),
+            'cited_by': int(xml.find('citedBy').text),
             'reference': self.reference()
         }
 
@@ -215,7 +149,6 @@ class AverageTime:
         '''
         Prints the average scraping time for each paper in second.
         '''
-
         timestamp = round((sum(timestamp) / len(timestamp)), 3) if timestamp != [] else 0
         print(f'On average, the operation takes {timestamp} second(s).')
 
@@ -231,10 +164,12 @@ def main(start, end, interval):
             print(f'[DOWNLOAD \U0001F4BE]: {repec.url}{repec.string_id()}')
             start_timestamp = avg.current_timestamp()
             repec.save()
-            print(f'[SUCCEED \U00002705]: {repec.url}{repec.string_id()}.\n[SLEEP \U0001F634]: {_interval} seconds')
+            print(f'[SUCCEED \U00002705]: {repec.url}{repec.string_id()}\n[SLEEP \U0001F634]: {_interval} seconds')
             end_timestamp = avg.current_timestamp()
             timestamp.append(avg.subtract(start_timestamp, end_timestamp))
             sleep(_interval)
+            if sum(timestamp) >= 10800:
+                break
         else:
             print(f'[IGNORE \U0001F4C1]: {repec.url}{repec.string_id()}')
         start += 1
