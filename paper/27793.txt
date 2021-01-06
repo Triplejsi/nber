@@ -1,0 +1,2505 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+  AN OPTIMAL TEST FOR STRATEGIC INTERACTION IN SOCIAL AND ECONOMIC
+         NETWORK FORMATION BETWEEN HETEROGENEOUS AGENTS
+
+                                         Andrin Pelican
+                                        Bryan S. Graham
+
+                                      Working Paper 27793
+                              http://www.nber.org/papers/w27793
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                   September 2020
+
+
+
+
+We thank seminar participants at the University of California - Berkeley, the University of
+Cambridge, ITAM, Jinan University, Yale University, Microsoft Research and the World
+Congress of the Econometric Society for feedback and suggestions. We also thank Kaïla A.
+Munro, Daniele Ballinari, Gabriel Okasa, Enrico De Giorgi, Piotr Lukaszuk and Yi Zhang for
+their generous feedback and input. A special thanks to Winfried Hochstättler for continuously
+pointing out the connection to the discrete mathematics literature and to Michael Jannson for help
+and insight into the nature of our testing problem. All the usual disclaimers apply. Financial
+support from NSF grant SES #1357499 is gratefully acknowledged by the second author. This
+paper is a revised version of the co-authored chapter "Testing Strategic Interaction in Networks"
+which appeared in Pelican's 2019 doctoral dissertation at the University of St. Gallen. The views
+expressed herein are those of the authors and do not necessarily reflect the views of the National
+Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Andrin Pelican and Bryan S. Graham. All rights reserved. Short sections of text, not to
+exceed two paragraphs, may be quoted without explicit permission provided that full credit,
+including © notice, is given to the source.
+An Optimal Test for Strategic Interaction in Social and Economic Network Formation between
+Heterogeneous Agents
+Andrin Pelican and Bryan S. Graham
+NBER Working Paper No. 27793
+September 2020
+JEL No. C31
+
+                                          ABSTRACT
+
+We introduce a test for whether agents' preferences over network structure are interdependent.
+Interdependent preferences induce strategic behavior since the optimal set of links directed by
+agent i will vary with the configuration of links directed by other agents.
+
+Our model also incorporates agent-specific in- and out-degree heterogeneity and homophily on
+observable agent attributes. This introduces 2N+K^2 nuisance parameters (N is number of agents
+in the network and K the number of possible agent attribute configurations).
+
+Under the null equilibrium is unique, but our hypothesis is nevertheless a composite one as the
+degree heterogeneity and homophily nuisance parameters may range freely across their parameter
+space. Under the alternative our model is incomplete; there may be multiple equilibrium network
+configurations and our test is agnostic about which one is selected.
+
+Motivated by size control, and exploiting the exponential family structure of our model under the
+null, we restrict ourselves to conditional tests. We characterize the exact null distribution of a
+family of conditional tests and introduce a novel Markov Chain Monte Carlo (MCMC) algorithm
+for simulating this distribution.
+
+We also characterize the locally best test. The form of this test depends upon the gradient of the
+likelihood with respect to the strategic interaction parameter in the neighborhood of the null.
+Remarkably, this gradient, and consequently the form of the locally best test statistic, does not
+depend on how an equilibrium is selected. Exploiting this lack of dependence, we outline a
+feasible version of the locally best test.
+
+We present two illustrative applications. First, we test for whether nations behave strategically
+when choosing locations for overseas diplomatic missions. Second, we test for whether firms
+prefer to sell to firms with richer customer bases (i.e., whether firms value "indirect customers").
+Some Monte Carlo experiments explore the size and power properties of our test in practice.
+
+Andrin Pelican
+Rofna
+7418 Domleschg
+Switzerland
+pelicanandrin@gmail.com
+
+Bryan S. Graham
+University of California - Berkeley
+530 Evans Hall #3880
+Berkeley, CA 94720-3880
+and NBER
+bgraham@econ.berkeley.edu
+    Network data feature in many areas of economic research. Examples include buyer-
+supplier networks or supply-chains (e.g., Atalay et al., 2011), research and development
+(R&D) and other types of strategic partnerships across firms (e.g., K¨  onig et al., 2019), pat-
+terns of trade among nations (e.g., Tinbergen, 1962), the structure of friendships between
+adolescents (e.g., Calv´o-Armengol et al., 2009), and interbank lending and borrowing (e.g.,
+Boss et al., 2004). Jackson et al. (2017) present many other examples. Such data abound in
+the other social sciences as well (e.g., Apicella et al., 2012).
+    One approach to modelling networks proceeds pairwise, or dyad-by-dyad. In this approach
+(the realization of) each possible link in a network is independent of all others. Importantly
+this independence may only hold conditional on latent agent-specific attributes; such latent
+attributes may induce dependence across links unconditionally. Gravity models of trade,
+with exporter and importer fixed effects, provide a familiar illustration (Anderson, 2011).
+Stochastic block models (SBMs), widely studied in statistics, also fall into this category
+(Airoldi et al., 2008; Bickel et al., 2013; Gao et al., 2015).
+    A second approach views a network as an equilibrium outcome of a large N -player game.
+In this approach agents' preferences over links may vary with the presence or absence of links
+elsewhere in the network. For example agents' may prefer reciprocated to unreciprocated
+links. Alternatively they may attach extra utility to links which induce transitive closure
+(Granovetter, 1973). In such settings small, local, re-wirings of a network may induce a
+cascade of additional link updates which can, at least in principle, change the global topology
+of a network. Multiple equilibria may also arise. In strategic models, stable networks need
+not be efficient as agents fail to account for the costs and benefits of links they form on
+others. The two classes of network formation models, in addition to being scientifically
+distinct, generate different policy implications (Goyal, 2009).
+    Graham (2017) and de Paula et al. (2018) represent two recent attempts to actualize,
+respectively the dyad-by-dyad and strategic approaches, into workable econometric mod-
+els.1 In this paper we take a first step toward integrating these two econometric modelling
+approaches. We study a model of network formation which simultaneously incorporates
+rich agent-level unobserved heterogeneity, homophily, and interdependent preferences. We
+are aware of no prior attempt to incorporate these three features into a single econometric
+model. Incorporating heterogeneity and homophily into the null model is important because
+these factors provide alternative explanations for the types of network microstructure often
+associated with strategic behavior.
+    In our model the importance of preference interdependencies is indexed by a parameter
+(or vector of parameters). Our goal is to test whether this parameter equals zero. Testing the
+  1
+      Graham (2020) surveys the larger econometric literature on network formation.
+
+
+                                                     1
+null of no strategic interaction in an interesting baseline model is a natural point of departure
+for empirical work. In some settings (e.g., international trade, friendship formation), strategic
+behavior may be plausibly second order. In such situations our test provides researchers with
+a useful specification check. When strategic interaction is suspected to be central, a rejection
+of our test would confirm these priors.
+    Our null model can match any network in- and out-degree sequence, as well as rich
+patterns of homophilous linking. Heavy-tailed degree distributions characterize many real
+world networks, as does homophily (e.g., Barab´     asi, 2016; McPherson et al., 2001). Degree
+heterogeneity and homophily also generate local network structures often associated with
+strategic behavior, such as reciprocity, transitivity and degree assortativity. Our test is able
+to discriminate between, for example, clustering due to homophilous sorting and that due to
+a structural taste for transitivity in relationships. Relatedly our null model is not a universal
+"strawman"; our test will not "always reject".
+    Admittedly, we are unable to offer any direct guidance as to how to proceed in the event
+of a rejection. While a small collection of papers outline methods of set identification for
+parameters in strategic network formation models (e.g., Sheng, 2014; Menzel, 2016; de Paula
+et al., 2018), no existing approach allows for unobserved agent-specific effects in addition to
+strategic behavior. It is possible that some of the ideas which appear below could be re-
+purposed for set identification; but such re-purposing is not direct. We leave this for future
+research.
+    In constructing our test we faced several challenges.
+
+  1. Our nuisance parameter is high dimensional. Our null model includes 2N agent-
+     specific (incidental) degree heterogeneity parameters as well as K 2 homophily coef-
+     ficients (where K equals the number of observed agent types). Because these nuisance
+     parameters can range freely across their parameter space under the null, avoiding size
+     distortion is difficult. This problem famously arises in instrumental variables models,
+     where the size properties of common tests may vary with instrument strength (c.f.,
+     Moreira, 2009; Andrews et al., 2019).
+
+  2. Our model is incomplete under the alternative (cf., de Paula, 2013). When preferences
+     are inter-dependent multiple equilibrium networks may occur. We leave the mechanism
+     which selects the observed equilibrium unspecified. Because the alternative is incom-
+     plete it is not obvious how to choose a test statistic with good power. A likelihood ratio
+     test, for example, would require a complete specification of the equilibrium selection
+     under the alternative.
+
+  3. We characterize the exact distribution of our test statistic under the null. Practical
+
+                                               2
+                  Figure 1: Pharmaceutical Buyer-Supplier Network, 2015
+
+
+
+
+Source: Compustat and authors' calculations.
+Notes: 2015 buyer-supplier relationships among publicly traded firms in NAICS industry
+3254 (pharmaceuticals). The head of each arc denotes the buying firm. Firms in each of the
+six-digit sub-sectors are shaded differently (see the legend). The largest weakly-connected
+component is shown.
+
+
+     application of this result, however, requires a feasible simulation algorithm.
+
+    Section 1 presents our model of strategic network formation. We begin by defining agent
+preferences and characterizing equilibrium networks. With this foundation we are able to
+write down a likelihood function for the network. Since there may exist multiple equilibrium
+networks, this likelihood depends on an unknown (and unmodelled) equilibrium selection
+mechanism. Although well-defined (see Theorem 1.1 below), our likelihood function cannot
+be numerically evaluated in practice.
+    Section 2 outlines our approach to testing and derives the form of the locally best test
+statistic. We characterize the exact distribution of our test statistic under the null. However,
+for reasons of practically, we approximate the exact null distribution by simulation. Section 3
+outlines a new Markov Chain Monte Carlo (MCMC) algorithm for generating random draws
+from the required null distribution. Our algorithm may be of independent interest to those
+familiar with binary matrix simulation and counting problems arising in machine learning,
+ecology and other fields (e.g., Sinclair, 1993).
+    Section 4 presents two small applications of our test. First we test for whether nations
+behave strategically when choosing locations for their diplomatic missions. In particular, we
+focus on whether nations value transitivity in diplomatic ties. We might posit, for example,
+that the value of a diplomatic mission in the People's Republic China (PRC) increased for
+
+                                               3
+many countries after President Carter's decision to formally recognize the PRC in 1978 (cf.,
+Kinne, 2014). If prior to 1978 many countries had diplomatic relations with the United
+States, but not the PRC, directing an arc to the PRC after the US did so would generate a
+transitive triad.
+    In a second application, we test for whether firms value indirect customers (i.e., do they
+prefer to sell to firms which themselves sell to many other firms). For this illustration we use
+three Buyer-Supplier networks that we constructed from Compustat data.2 Specifically we
+look at the vehicle, computer and pharmaceutical manufacturing industries. Figure 1 plots
+the pharmaceutical and medicine buyer-supplier network.
+    Section 4 also reports on a small number of Monte Carlo experiments we conducted to
+verify the theoretical size and power properties of our test. Section 5 finishes with a short
+discussion of some possible areas for additional research.
+    While our focus is on strategic interaction in the context of a single network (with many
+agents), our results are also applicable to settings where the econometrician observes many
+independent games, each with a small number of players (e.g., market entry decisions by rival
+firms across many markets). Chen et al. (2018) and Kaido and Zhang (2019) are two recent
+examples of attempts to extend likelihood-ratio ideas to this type of setting. The test we
+introduce below is an analogous to a score-type test, complementing these likelihood-based
+approaches.
+
+
+1         Model of network formation
+Here we outline a model of strategic network formation. In this model N heterogenous agents
+form a directed network (or digraph). We begin by establishing some basic notation. We
+then introduce agent preferences over the form of the network, discuss equilibrium networks
+and, finally, develop a likelihood function for the observed network.
+
+
+1.1         Notation
+A directed graph G(N , A) consists of a set of nodes (agents) N = {1, . . . , N } and a set of
+ordered pairs of nodes A = {(i, j ), (k, l), . . .} for i = j , k = l, and i, j, k, l  N . The elements
+of A correspond to those arcs, or directed links, present in G(N , A).
+   In what follows we typically work with the adjacency matrix D = [Dij ] where
+
+                                                     1 if ij  A
+                                           Dij =                 .                                 (1)
+                                                     0 otherwise
+    2
+        Atalay et al. (2011) constructed a similar network also using data from Compustat.
+
+                                                        4
+Since we rule out self-links, as might arise in, for example, citation networks, the diagonal of
+D consists of structural zeros.
+    Let G - ij denote the network obtained by deleting link ij from G (if present), and G + ij
+the network one gets after adding this link (if absent). Let D ± ij denote the adjacency matrix
+associated with the network obtained by adding/deleting link ij from G. Let DN denote the
+set of all 2N (N -1) possible adjacency matrices and IJ the set of all possible J -dimensional
+binary vectors.
+    Associated with each agent in the network is the triple (Ai , Bi , Xi ) . Here Ai and Bi are,
+as explained further below, agent-level out- and in-degree heterogeneity terms unobserved by
+the econometrician. In contrast Xi is a K × 1 vector of group membership indicators that is
+observed by the econometrician. These indicators might reflect the industrial classification of
+a firm, the gender or race of an individual, or the broad geographic location of a nation. More
+generally Xi enumerates the support points of a collection of (observed) discrete regressors.
+    We leave the joint distribution of (Ai , Bi , Xi ) unrestricted.3 This implies, for example,
+that the unobserved degree heterogeneity (Ai , Bi ) may be correlated with the observed co-
+variates Xi , as in fixed effects panel data analyses (see also Graham (2017), Dzemski (2018),
+Jochmans (2018) and Yan et al. (2018)).
+
+
+1.2        Preferences
+We assume that agents care about the shape of the network. Let d  DN be a feasible
+N -player network. Agent utility varies with the configuration of this network. The utility
+agent i gets from some feasible network wiring d is assumed equal to
+
+                     i (di , d-i ; U) =       dij [Ai + Bj + Xi 0 Xi + 0 sij (d) - Uij ],              (2)
+                                          j
+
+Here di = (di1 , . . . , dii-1 , dii+1 , . . . , diN ) corresponds the set of links that agent i chooses to
+form (or not), while d-i equals the links that the other N - 1 agents in the network choose
+to form (or not). In the language of game theory, di corresponds to a pure strategy.
+    Agent i's utility varies with number and nature of those links she chooses to send, or
+direct, towards others. The utility associated with i directing a link to j is increasing in the
+heterogeneity terms Ai and Bj . Agents with high values of out-degree heterogeneity Ai get
+a large amount of baseline utility from any link they send. In a social network context high
+Ai agents are "extroverts". High Bj agents, in contrast, are especially attractive targets for
+links sent by others. In a social network high Bj agents are "prestigious".
+   3
+       This distribution does have implications for test power, as will become apparent below.
+
+
+
+                                                       5
+    In a buyer-supplier context high Ai firms might especially value a diverse customer base
+or supply a "critical" input used in the production processes of many other firms. High Bj
+firms correspond to especially attractive customers. For example, national big box retail
+chains with many retail locations, like Walmart and Target, may have high Bj values since
+their purchases are less sensitive to local economic shocks.
+                  def
+    The Xi 0 Xj  Wij 0 term allows for assortative matching on agent attributes.4 The
+elements of the K × K matrix  = [kl ] parameterize the systematic utility generated by
+links, say, from group k to group l. This allows, for example, the utility generated by links
+across agents belonging to different groups to systematically differ from that generated by
+within-group links. In the buyer-supply context, arcs between firms with particular industrial
+classifications may generate greater surplus. In a social network girls might, all things equal,
+prefer other girls as friends. The 0 matrix parameterizes homophily (or heterophily) of
+these types.
+    Network generating processes where link utility varies with agent-level degree heterogene-
+ity and observable dyad attributes ­ the first three terms in (2) ­ can successfully match many
+features of real world networks (Graham, 2017). The third term in (2) ­ sij (d) ­ enriches
+this baseline model to allow agent preferences over links to vary with the presence or absence
+of links elsewhere in the network. de Paula et al. (2018) call preferences of this type "in-
+terdependent". It is the dependence of utility on sij (d) that makes the model "strategic":
+agent i's optimal action may vary with the configuration of links directed by others.
+    For now the only restriction we place on sij (d) is that
+
+                                 sij (d) = sij (d - ij ) = sij (d + ij ).                         (3)
+
+If existence of a pure strategy equilibrium is additionally desired, then additional restrictions
+on sij (d) may be needed. Although we emphasize pure strategy equilibria in our discussion
+and examples, all of our results allow for mixed strategy equilibria as well. Consequently, in
+practice, sij (d) may be specified quite freely, although our test may have low power for some
+choices.
+    One feature of sij (d), which will prove central to our analysis, is that is has finite range.
+To see this observe that since the set of all networks DN is finite, the strategic interaction
+term sij (d) also takes only a finite number of values. Let S = {s, s1 , . . . , sM , s} be the set of
+possible values for sij (d), ordered from smallest to largest.
+  4
+      We define Wij = (Xi  Xj ) and  = vec ( ).
+
+
+
+
+                                                    6
+   An example illustrates. Let sij (d) equal
+
+                                          sij (d) = dji ,                                    (4)
+
+as would be appropriate when agents have a taste for reciprocated links. In this case S =
+{0, 1}. If agents prefer transitive links (i.e., they prefer to direct friendships to "friends of
+friends"), then we might set
+                                       sij (d) =     dik dkj ,                                (5)
+                                                    k
+
+which implies that S = {0, 1, . . . , N - 1}. Finiteness of the cardinality of S (for a given N )
+plays an important role in our analysis, as will become apparent below.
+    The final component of agent utility is idiosyncratic; we assume that the {Uij }i=j are in-
+dependent and identically distributed (iid) logistic random variables. The logistic assumption
+is also important: it generates exponential family structure which we exploit when forming
+our test.
+
+
+1.3    Equilibrium networks
+Throughout we assume that the observed network D coincides with an equilibrium outcome
+of an N -player complete information game. Each agent (i) observes {(Ai , Bi , Xi )}N  i=1 and
+{Uij }i=j and then (ii) decides which, out of N - 1 other agents, to send links to. Agents may
+play mixed strategies.
+    Any feasible network configuration d  DN coincides with a pure strategy combination.
+We assume that the observed network corresponds to a pure strategy contained in a (possibly
+mixed strategy) Nash equilibrium (NE). In practice most (common) choices of sij (d) are
+monotonic, which ensures (by Tarski fixed point theorem), the existence of an equilibrium in
+pure strategies. We emphasize this special case in most of what follows, but nothing essential
+hinges upon it and our results apply to equilibria in mixed strategies as well.
+    In the analysis of undirected networks, the pairwise stability equilibrium concept intro-
+duced by Jackson and Wolinsky (1996) plays a prominent role. The use of NE, however, is
+standard in the context of directed networks. For example, Bala and Goyal (2000) and Dutta
+and Jackson (2000) study the efficiency properties of pure strategy NE directed networks.
+
+
+
+
+                                                7
+Pure strategy equilibria
+
+A pure strategy NE corresponds to a pure strategy combination d where, for U = u (with
+   def
+U  [Uij ]) and all i = 1, . . . , N ,
+
+                                    i d                     
+                                       i , d-i , u  i di , d-i , u                           (6)
+
+for all possible pure strategies di  IN -1 .
+    To further understand the structure of a pure strategy equilibrium it is helpful to introduce
+a notion of marginal utility. The marginal utility i receives from sending a link to j equals:
+
+                                                 i (d) - i (d - ij ) if dij = 1
+                     M Uij (di , d-i ; U) =                                     .            (7)
+                                                 i (d + ij ) - i (d) if dij = 0
+
+Under preferences (2) the marginal utility of the ij link is therefore
+
+                     M Uij (di , d-i ; U) = Ai + Bj + Wij 0 + 0 sij (d) - Uij .              (8)
+
+With this notation any adjacency matrix which simultaneously satisfies the N (N - 1) non-
+linear equations:
+                        Dij = 1(Ai + Bj + Wij  + 0 sij (D)  Uij )                     (9)
+
+for i = 1, . . . , N and j = i is a pure strategy NE.
+    Similar to Miyauchi (2016), consider the mapping (D) : DN  IN (N -1) :
+                                                                       
+                                                  1(M U12 (D)  0)
+                                                  1(M U13 (D)  0)
+                                                                       
+                                                                       
+                                (D)                       .            .                    (10)
+                              N (N -1)×1
+                                         
+                                                          .
+                                                          .
+                                                                       
+                                                                       
+                                                 1(M UN N -1 (D)  0)
+
+Next let vec (A) be a modification of the matrix vectorization operator which drops the
+diagonal elements of the square matrix A. Define its inverse operator as reconstituting A,
+but now with zeros on its main diagonal. With this notation it easy to see that any pure
+strategy NE equilbrium network, d , including possibly the observed one, D, corresponds to
+a fixed point:
+                                   d = vec-  1     
+                                             ((d )).                                  (11)
+
+One advantage of the fixed point representation (11) is that is allows for the application of
+Tarski's (1955) fixed point theorem. For   0 and sij (d) weakly increasing in d for all
+
+
+                                                     8
+dyads, Tarski's theorem guarantees (i) the existence of an equilibrium and (ii) that the set of
+all equilibria constitutes a non-empty complete lattice (cf., Miyauchi, 2016, Proposition 1).
+This characterization applies when sij (d) takes either of the two example forms introduced
+above. Of course, as shown by Nash (1950), an equilibrium in mixed strategies will always
+exist. In practice this allows for substantial flexibility in the form of sij (d).
+
+
+1.4     Likelihood
+While we remain agnostic about equilibrium selection in the presence of multiplicity, it is
+nevertheless useful to develop an abstract notation for the unknown equilibrium selection
+rule. This notation allows us to write down a likelihood for the network. Of course this
+likelihood function could not be evaluated numerically without first replacing our abstract
+selection mechanism with something more concrete.
+           def
+    Let n  N (N - 1) equal the number of (ordered) dyads in the network. Further let
+  def            def
+A  [Ai ] and B  [Bi ] be the N ×1 vectors of agent-specific out- and in-degree heterogeneity
+parameters. The non-strategic (nuisance) parameters of our model are collected in  =
+( , A , B ) , recalling that  is the K 2 × 1 vector which parameterizes homophily on Xi .
+Adding our strategic interaction parameter,  we get a full parameter vector of  = (,  ) .
+    Let N (d, u; ) be a function which assigns, for U = u, a probability weight to network
+or, equivalently, pure strategy combination d:
+
+                                N (d, u; ) : DN × Rn  [0, 1]                              (12)
+
+   We assume that the selection mechanism (12) is such that:
+
+  1. if d is the only network which satisfies (6) when U = u (i.e., is the unique NE), then
+     N (d, u; ) = 1;
+
+  2. if d is not a NE when U = u, then N (d, u; ) = 0;
+
+  3. if there are multiple pure strategy NE, then N (d, u; )  0 for any d which is a NE
+     and zero otherwise (subject to the adding-up constraint dDN N (d, u; ) = 1);
+
+  4. if there is a unique mixed strategy NE when U = u, then N (d, u; )  0 equals the
+     probability assigned to pure strategy combination d (contained in the mixed strategy
+     NE). If there are multiple mixed strategy NE when U = u, then N (d, u; )  0 will
+     additionally reflect the probabilities attached to different equilibria, etc.
+
+
+
+
+                                              9
+With N (d, u; ) defined, we can write the likelihood of observing network D = d as
+
+                              P (d; , N ) =           N (d, u; )fu (u)du,                   (13)
+                                                uRn
+
+
+where fu (u) =    i=j   fU (uij ) with fU (u) = eu /[1 + eu ]2
+
+Theorem 1.1. For any network d  DN there exists a measurable function N (d, ·; ) : Rn 
+[0, 1], which assigns to u  Rn the NE weight on the pure strategy combination corresponding
+to d.
+
+    The proof of Theorem 1.1 can be found in Appendix A.1. Although we do not explicitly
+define N (d, u; ), only stating its key properties, Theorem 1.1 shows that N (d, u; ) exists
+and is measurable. An implication of this result is that the likelihood (13) is well-defined.
+    To understand the likelihood (13) it is helpful to consider a (relatively) simple example.
+This example will also help in understanding our derivation of the optimal test statistic
+below. Assume that sij (d) = dji such that agents prefer reciprocated links when   0. In
+this example sij (d) equals either zero (j does not reciprocate) or one (j does reciprocate).
+We can use the two elements of S to partition the real line into what we will call buckets :
+
+                           R = (-, µij ]  (µij , µij +  ]  (µij + , ) .                     (14)
+
+Here µij = Ai + Bj + Xi 0 Xi equals the systematic, non-strategic, component of utility
+generated by arc ij . Next consider the realization of Uij , the idiosyncratic utility agent i
+gets when she directs a link to j . If Uij falls into the first bucket in (14), then agent i will
+always direct a link to j ; irrespective of whether j chooses to direct a link to i or not. If
+Uij falls into the middle or inner bucket, however, then i will direct a link to j only if j
+reciprocates. Finally, if Uij falls into the last bucket, then i will never direct a link to j
+regardless of whether j directs a link to i or not. We will call the first and last buckets in
+(14) outer buckets.
+    If both Uij and Uji fall in their respective inner buckets, then the {i, j } dyad can either
+take the empty (Dij = Dji = 0) or reciprocated (Dij = Dji = 1) configuration in equilibrium.
+In contrast, if either Uij or Uji falls into an outer bucket, then the {i, j } dyad's wiring is
+uniquely determined. For example if Uij is in the first outer bucket and Uji is in the inner
+bucket, then the {i, j } dyad will take the reciprocated form with probability one. It is a
+strictly dominant strategy for i to direct an link to j in this case and a best response for j
+to reciprocate.
+    For U = u, let J (u)  N   2
+                                 equal the number of dyads {i, j }, where both uij and uji fall
+into their inner bucket. For each of these dyads both the empty and reciprocated configuration
+
+                                                   10
+is an equilibrium outcome. There are therefore 2J (u) equilibrium networks in this case; the
+N (d, u; ) function would assign some probability between zero and one to each of these 2J (u)
+networks (summing to one in total).5
+    Let DNE
+          N (u) be the set of 2
+                                J (u)
+                                      equilibrium networks when U = u. One equilibrium
+selection rule would assign equal probability to all NE. In this case we could write the
+likelihood as
+                                             1 d  DNEN (u)
+                       P (d; , N ) =                        fu (u)du,                    (15)
+                                        uRn     |DNE
+                                                  N (u)|
+
+                               1(dDNE
+                                   N (u))
+such that N (d, u; ) =             . This example illustrates that (13), while well-defined, is
+                          |DNE
+                            N (u)|
+generally intractable; even when the equilibrium selection mechanism is fully-specified.
+
+
+2         Testing for strategic interaction
+Our goal is to construct a powerful test for the presence of strategic interaction in network
+formation with good size properties. Importantly we wish to remain agnostic about any
+degree heterogeneity and homophily. Let  denote a subset of the K 2 + 2N dimensional
+Euclidean space in which 0 = (0 , A0 , B0 ) is, a priori, known to lie, and
+
+                                        0 = {(,  ) :  = 0,   } .                            (16)
+
+Our null hypothesis is the composite one:
+
+                                                       H0 :   0                             (17)
+
+                                                   2
+since  may range freely over   RK +2N under the null.
+                                               def
+    Under the null the likelihood is P0 (d;  )  P (d; (0,  ) , N0 ) with
+
+                                                                                      dij
+                              N0 (d, u; ) =                1 Ai + Bj + Wij   uij
+                                               i       j
+                                                                              1-dij
+                                              × 1 Ai + Bj + Wij  < uij                .
+
+Under the null the unique "equilibrium" network is the one where all links with positive
+marginal utility are present and those with negative marginal utility are not; N0 (d, u; )
+places a probability of 1 on this network. Evaluating the integral (13) under the null yields
+    5
+        For simplicity we ignore mixed strategy equilibria in this example.
+
+
+
+
+                                                             11
+                                  N                                                      dij
+                                              exp Wij  + Ri A + Rj B
+                    P0 (d;  ) =
+                                  i=1 j =i
+                                             1 + exp Wij  + Ri A + Rj B
+                                                                                 1-dij
+                                                 1
+                                  ×
+                                    1 + exp Wij  + Ri A + Rj B
+
+where Ri is the N × 1 vector with a 1 in its ith element and zeros elsewhere. Variants of this
+likelihood are analyzed by Chatterjee et al. (2011), Charbonneau (2017), Graham (2017),
+Jochmans (2018), Dzemski (2018) and Yan et al. (2018).
+
+
+2.1    Exponential family structure under the null
+Under the null our likelihood, P0 (d;  ), is a member of the exponential family. To see this it
+is helpful to establish some additional notation. The out- and in-degree sequences equal:
+
+                                      Sout              D1+ , . . . , DN +
+                            S=                 =                             .                 (18)
+                                      Sint              D+1 , . . . , D+N
+
+Here D+i = j Dji and Di+ = j Dij equal the in- and out-degree of agents i = 1, . . . , N .
+   The K × K cross-link matrix equals
+
+                                       M=               Dij Xi Xj .                            (19)
+                                               i   j
+
+
+This matrix summarizes the inter-group link structure in the network (homophily). The
+klth element of M records the number of links sent by type k agents (e.g., semiconductor
+manufacturers) to type l agents (e.g., computer manufacturers).
+    Let S, M be a degree sequence and cross-link matrix. We say S, M is graphical if there
+exists at least one arc set A such that G (V , A) is a simple directed graph with degree
+sequence S and cross link matrix M. We call any such network a realization of S, M. The
+set of all possible realizations of S, M is denoted by GS,M (DS,M denotes the associated set
+of adjacency matrices).
+    With this notation it is easy to verify that the null model belongs to the exponential
+family:
+                                     P0 (d;  ) = c( ) exp (t  )                         (20)
+
+with a (minimally) sufficient statistic for  of t = vec (m ) , sout , sin . In words, the K 2 +
+N + N sufficient statistics are (i) the cross link matrix, (ii) the out-degree sequence and (iii)
+
+                                                   12
+the in-degree sequence.
+   Under H0 the conditional likelihood of the event D = d is
+
+                                                           1
+                                      P0 ( d| T = t) =                                          (21)
+                                                         |Ds,m |
+
+if d  Ds,m and zero otherwise. Under the null of no strategic interaction all networks with
+the same in- and out-degree sequences and cross link structure are equally likely. Importantly
+this conditional likelihood is invariant to actual value of the nuisance parameter  .
+
+
+2.2    Locally best similar test
+In our setting a test with critical function  (D) will have size  if its null rejection probability
+(NRP) is less than or equal to  for all values of the nuisance parameter:
+
+                            sup E [ (D)] =       sup     E [ (D)] = .                           (22)
+                            0                   =0 , 
+
+
+Since the nuisance parameter  is very high dimensional, size control is non-trivial. For
+some intuition as to why consider, as an example, the case where sij (d) = k dik dkj , such
+that agents' have a taste for transitivity when 0 > 0. A natural test statistic in this case
+would be some function of D that is increasing in the number of transitive triads,               , in
+the network. The researcher would then reject the null of 0 = 0 when this statistic is large
+enough. Unfortunately, the expected number of transitive triads varies dramatically under
+the null depending on the value of  . Certain configurations of A, B and/or  may result
+in a network with large numbers of transitive triads even when agents' have no taste for
+transitivity per se (i.e., under the null). If we choose a single critical value for rejection then,
+depending on the values of A, B and/or , size may be very poor.
+                                                                            2
+   To avoid any size distortion induced by variation in  over   RK +2N we exploit the ex-
+ponential family structure of our model (under the null). Let T = {(s, m) : s, m is graphical}
+be the set of possible sufficient statistics T. We proceed conditional on T; that is, instead of
+choosing a single critical value, which may result in under- or over-rejection, depending on
+the value of  , we proceed conditionally on T (the minimally sufficient statistic for  ). Our
+chosen critical value varies with T. In this way we ensure good size control.
+   Formally, for each t  T we form a test with the property that, for all   0 ,
+
+                                      E [  (D)| T = t] = .                                      (23)
+
+
+
+
+                                                 13
+Such an approach ensures similarity of our test since, by iterated expectations,
+
+                             E [ (D)] = E [E [  (D)| T]] =                                      (24)
+
+for any   0 (Ferguson, 1967). By proceeding conditionally we ensure that the NRP is
+unaffected by the value of  .
+    By Ferguson (1967, Lemma 1, Section 3.6) T is a boundedly complete sufficient statistic
+for  under the null. By Ferguson (1967, Theorem 2, Section 5.4) every similar test will thus
+take the form
+                                  E [  (D)| T = t] =                                    (25)
+
+for t  T. Therefore, if we desire similarity of our test we must take the conditional approach.
+
+A conditional test
+
+We have shown that proceeding conditionally results in a similar test. Here we outline,
+concretely, how to construct an exact similar test. There will be two limitations associated
+with this test. First, since the test statistic is chosen heuristically, it may not have good
+power in the direction of the alternative of primary interest. Second, it is generally not
+computationally feasible to compute the exact test.
+    In subsequent sections we address both of these limitations. Specifically we derive the
+form of the optimal test statistic and outline an MCMC algorithm for approximating its null
+distribution.
+    Let R(D) be some statistic of the adjacency matrix. For example R(D) might be the
+network reciprocity index (Newman, 2010):
+
+                                                 ^( )
+                                                2P
+                                  R(D) =                 ,                                      (26)
+                                              ^( )+P
+                                             2P     ^( )
+
+where
+                                      N -1   N
+                 ^( )=        2
+                 P                                 [Dij (1 - Dji ) + (1 - Dij ) Dji ]           (27)
+                          N (N - 1)   i=1 j =i+1
+
+equals the fraction of dyads which take an unreciprocated or "asymmetric"               configuration
+and
+                                                N -1 N
+                             ^            2
+                            P( )=                         Dij Dji                               (28)
+                                     N (N - 1) i=1 j =i+1
+
+the fraction which take a reciprocated or "mutual" configuration . Heuristically, this choice
+of R(D) might be useful for detecting whether agents have a taste for reciprocated links.
+
+
+                                                 14
+       A conditional test based upon R(D) will have a critical function of
+                                             
+                                            1    R (d) > c (t)
+                                    (d) =  g (t) R (d) = c (t)                                             (29)
+                                          
+                                            0    R (d) < c (t)
+                                          
+
+
+where the values of c (t) and g (t)  [0, 1] are chosen to satisfy the requirement that
+E [  (D)| T = t] = .
+    Under the null all adjacency matrices with the S = s and M = m are equally probable.
+Therefore the null distribution of R(D) coincides with the one induced by a discrete uniform
+distribution on Ds,m . By enumerating all adjacency matrices in Ds,m we could exactly com-
+pute this distribution and calculate the critical values c (t) and g (t). In general such a
+brute force approach will be infeasible.6 Therefore a method of approximating the exact null
+distribution is required.
+    The intuition behind this test is straightforward. If the network in hand has an "unusu-
+ally" large value of R(D) relative to the set of all networks with same in- and out-degree
+sequences and cross-link matrix, then we reject our null.
+
+The locally best conditional test
+
+While choosing a statistic of adjacency matrix heuristically may lead to a test with good power
+in practice, there is no guarantee that it will.7 In this section we derive, for any interdependent
+preference structure, a test statistic with good power to detect small deviations from the no
+strategic interaction null.
+    Under the alternative of strategic interaction the conditional likelihood is
+
+                                                             P (d; , N )
+                              P ( d| T = t; , N ) =                           .                            (30)
+                                                            vDs,m P (v; , N )
+
+
+Two features of this likelihood make it impractical and/or unattractive for use in testing.
+First, it is complicated and (logically) cannot be evaluated without specifying an explicit
+equilibrium selection mechanism, N (d, u; ). We wish to develop inference methods which
+do not depend upon details of equilibrium selection. Even if the researcher were able to specify
+N (d, u; ), numerical evaluation of the likelihood may be impractical. Second, equation (30)
+   6
+     In fact very little is known about the set Ds,m ; for example we are aware of no method for checking whether
+a given s, m pair is graphic. From related settings we believe that the cardinality of Ds,m will typically be
+intractably huge even for modestly-sized networks. See Blitzstein and Diaconis (2011) for discussion of this
+point and examples from a related setting.
+   7
+     Of course, there is longstanding tradition of choosing test statistics heuristically. See Cox (2006) for
+interesting discussion.
+
+
+                                                       15
+depends on the value of the nuisance parameter  .
+    Assume that both 0 and the equilibrium selection mechanism N (d, u; ) are known (the
+latter up to knowledge of 0 of course), then, by the Neyman-Pearson Lemma, the most
+powerful test for the simple hypothesis H0 : 0 = 0 versus H1 : 0 = a would be based upon
+the likelihood ratio (LR)
+                                 P ( d| T = t; (a , 0 ) , N )
+                                                              .
+                                          |Ds,m |-1
+If the likelihood of the network in hand (D = d) is high under the alternative relative to
+the discrete uniform reference distribution, then we reject. Unfortunately, as noted above,
+forming a LR requires specifying an equilibrium selection mechanism, N . This is not straight-
+forward to do, and we would prefer to avoid doing so in any case.
+    As an alternative to a LR test, we instead choose, for each t  T, the crit-
+ical function,  (D) to maximize the derivative of the (conditional) power function
+ (, t) = E [  (D)| T = t] evaluated at  = 0 subject to the (conditional) size constraint
+E [  (D)| T = t] = . Such a  (D) is locally best (Ferguson, 1967, Lemma 1, Section 5.5).
+Remarkably we show that the locally best test doesn't not depend upon the form of the
+equilibrium selection mechanism N (d, u; ).
+    Differentiating the power function we get
+
+                          (, t)
+                                           = E [  (D) S ( D| T; )| T = t]                 (31)
+                                      =0
+
+
+with S ( d| t; ) denoting the conditional score function
+
+                                     1     P (d; )                       P (v; )
+                 S ( d| t; ) =                               -
+                                 P0 (d;  )              =0       vDs,m
+                                                                                    =0
+
+                                     1     P (d; )
+                            =                                + k (t)
+                                 P0 (d;  )              =0
+
+
+and k (t) only depending on the data through T = t.
+   By the Neyman-Pearson lemma the test with critical function
+                                  
+                                                   1    P (d;)
+                                           1   P0 (d; )  
+                                                                       > c (t)
+                                                                  =0
+                                  
+                                                   1    P (d;)
+                         (d) =       g (t)     P0 (d; )  
+                                                                       = c (t)            (32)
+                                                                  =0
+                                                        P (d;)
+                                                   1
+                                           0                           < c (t)
+                                  
+                                               P0 (d; )  
+                                  
+                                                                  =0
+
+
+where the values of c (t) and g (t)  [0, 1] are chosen to satisfy (23), will be locally best.
+
+
+                                                  16
+    The idea behind the locally best test is as follows. If the likelihood increases sharply as
+we move away from the null in the direction of the alternative of interest, then we take this
+as evidence against the null. Intuitively if the likelihood gradient in the neighborhood of the
+null is large, then the likelihood ratio will also be large for simple alternatives close to the
+null (i.e., when a  (- , )).
+                                                    P (d;)
+    Constructing (32) requires calculating P0 (1
+                                               d; )   
+                                                              . This is not straightforward since
+                                                                =0
+it depends on properties of the likelihood under the alternative. Surprisingly we are able to
+derive the form of this derivative.
+
+Theorem 2.1. P (d; , N ) is twice differentiable with respect to  at  = 0. Its first derivative
+at  = 0 is
+
+  P (d; , N )
+                       = P0 (d;  )
+                  =0
+
+                                                      fU (µij )                   fU (µij )
+                           ×          sij (d) dij   vij          - (1 - dij )                  . (33)
+                                i=j                 -
+                                                       fU (u) du                vij
+                                                                                   fU (u) du
+
+recalling that µij = Ai + Bj + Xi 0 Xi equals the systematic, non-strategic, component of
+utility generated by arc ij and that fU is the logistic density.
+
+     The proof of Theorem 2.1 can be found in Section A.2 of the Appendix. Here, because
+it is one of our main results, and also insightful to do so, we provide a high level overview of
+                               ;,N )
+its derivation. Although P (d 
+                                        does vary with 0 , it does not depend upon N . Below
+                                         =0
+we provide some intuition for this result.
+   Recall that S = {s, s1 , . . . , sM , s} equals the possible values of sij (d), arranged from
+smallest to largest. We can use these support points to partition R into a set of intervals B:
+
+  R = (-, µij + s]  (µij + s, µij + s1 ] 
+                                                    · · ·  (µij + sM , µij + s]  (µij + s, ) . (34)
+
+The elements of B, called buckets, correspond to the intervals listed in (34). In principle we
+should write Bij instead of B, reflecting the dependence of the bucket definitions on the value
+of µij , the systematic non-strategic utility associated with an i-to-j link. However, since this
+dependence is not essential to any of the arguments that follow we leave it implicit. Note
+that the cardinality of B does not depend on µij , but instead equals |S| + 1.
+    Agent i's linking behavior vis-a-vis j depends on which bucket Uij falls into. For B  B, if
+Uij  B , then we say Uij is in, or falls into, bucket B . The first and last buckets, respectively
+
+
+                                                     17
+(-, µij + s] and (µij + s, ), play an important role in our argument. We call these two
+buckets outer buckets. The rest of the buckets we call inner buckets.
+    If Uij falls into one of these outer buckets then player i has a pure strategy for dij which
+is strictly dominating. Specifically if Uij falls into the lowest bucket, then i will direct an link
+to j regardless of what actions are taken by the other agents in the network. The marginal
+utility generated by link ij is so large that it remains positive across all possible configurations
+of the rest of the network; hence i always chooses to direct an link to j .
+    If, instead, Uij falls into the highest bucket, then i will never direct an link to j . In this
+case the marginal utility associated with link ij is so low that it remains negative across all
+possible configurations of the rest of the network; hence i never chooses to direct a link to j .
+    Finally, if Uij falls into an inner bucket, say (µij + sm , µij + sm+1 ], then agent i's op-
+timal choice for dij is contingent upon the linking behavior of other agents. If other agents'
+link actions are such that sij (d)  sm , then it is a best response for i to link with j , but not
+otherwise.
+    The vector of idiosyncratic taste shocks, U contains n = N (N - 1) elements; one for each
+possible arc. Let the boldface subscripts i = 1, 2, . . . index these potential arcs in arbitrary
+                                                                       def
+order (e.g., i maps to some ij and vice-versa). Let b  Bn  B × · · · × B and U =
+(U1 , . . . , Un ) ; we have that U  b for b  Bn so that each element of u falls into a bucket.
+    With the above notation established we can rewrite the likelihood (13) as:
+
+                          P (d; , N ) =              N (d, u; ) fU (u) du                          (35)
+                                          bBn   ub
+
+                                                                        P (d;,N )
+Expression (35) suggests a derivation by cases approach to finding         
+                                                                                          . Fortunately
+                                                                                     =0
+a brute force exhaustive approach is not required because it is possible to show that most of
+the summands in (35) do not influence the derivative at  = 0.
+   Let B~ n be the set of bucket configurations with at least two inner buckets. If at least two
+elements of U fall in inner buckets, then we have that U  b with b  B       ~ n . If, instead, at
+most one element of U falls in an inner bucket, then we have that U  b with b  Bn \ B         ~ n.
+This set-up gives the likelihood decomposition:
+
+                                          ~ (d; , N ) + Q (d; , N ) ,
+                            P (d; , N ) = P                                                        (36)
+
+
+
+
+                                                18
+with
+
+                       ~ (d; , N ) =
+                       P                                     N (d, u; ) fU (u) du                                  (37)
+                                            ~n         ub
+                                       bBn \B
+
+                       Q (d; , N ) =                       N (d, u; ) fU (u) du.                                   (38)
+                                        ~n        ub
+                                       bB
+
+
+   To proove Theorem 2.1 we show that for   0
+
+                                            ~ (d; , N ) + O  2 .
+                              P (d; , N ) = P                                                                      (39)
+
+Intuitively, this follows from the fact that the chance that two or more elements of U fall in
+inner buckets is negligible when  is close to zero (because most of the probability mass for
+Uij is contained in the two outer buckets when strategic interactions are small). Hence when
+calculating the optimal test statistic we are free to focus on the cases where either all, or all
+but one, of the elements of U fall in outer buckets. We can then show that
+
+                              P (d; , N )                   ~ (d; , N )
+                                                            P
+                                                       =                           .                               (40)
+                                                  =0           
+                                                                              =0
+
+
+                               P (d;,N )                                               ~ (d;,N )
+                                                                                       P
+Hence to derive the form of       
+                                                 we need only calculate                   
+                                                                                                         . This calcula-
+                                            =0                                                      =0
+tion is non-trivial, but doable. Details of this calculation are provided in the proof.
+                                                                    ;,N )
+    It was not ex ante obvious that a useful expression for P (d   
+                                                                             would be available
+                                                                                            =0
+without any assumptions about the nature of equilibrium selection under the alternative.
+That such as expression is available follows from the fact that when  is small most agents
+will have a strictly dominating pure strategy for how to link; hence the chance for multiple
+equilibria is low and the form of N can generally be deduced. Conversely, when  is small
+the probability of a draw of U where many agents do not have a strictly dominating pure
+strategy, and hence the details of equilibrium selection matter, is very low.
+
+Locally best vs. heuristic test statistics
+
+With a little manipulation we can simplify:
+
+                          1     P (d; )
+                                                       =         [dij - FU (µij )] sij (d)                         (41)
+                      P0 (d;  )               =0           i=j
+
+
+where FU (u) = eu / [1 + eu ] is the logistic CDF. This form of the statistic provides insight
+into how our test accumulates evidence against the null in practice. Consider the case where
+
+                                                       19
+sij (d) = dji , as would be true in agents' have a taste for reciprocated links. Observe that
+FU (µij ) corresponds to the probability of an ij edge under the null. Therefore the optimal
+test statistic is large if we observe that many ij links with low probability under the null are
+reciprocated. It is not many reciprocated links that drives rejection per se, but the presence
+of many "unexpected" reciprocated links.
+     Consider a network of boys and girls with agents exhibiting a strong taste for gender-
+based homophily. The optimal test statistic in this case is the conditional sample covariance
+of Dij and Dji given (Ai , Bi , Xi ) and (Aj , Bj , Xj ). The test based upon the reciprocity index
+is ­ essentially ­ based upon the unconditional covariance. The effect of conditioning is to,
+for example, given more weight to heterophilous reciprocated links than to homophilous ones.
+Similarly we give more weight to reciprocated links across low degree agents, than to those
+across high degree agents.
+
+
+3     Simulation
+Because a complete enumeration of Ds,m is not feasible unless N is very small, making our
+test practical requires a method of constructing uniform random draws from this set. Such
+draws can be used to simulate the null distribution of any test statistic of interest.
+    The problem of simulating binary matrices with fixed marginals is well-studied (e.g., Sin-
+clair, 1993); with many domain specific applications (e.g., species co-occurrence/interaction
+analysis). In practice one of two simulation approaches is used (see Kolaczyk (2009) for a
+textbook overview).
+    The first approach begins with an empty graph and randomly adds links. Links need
+to be added such that the end graph satisfies the degree sequence constraint. Blitzstein
+and Diaconis (2011) develop an algorithm along these lines. They cleverly use checks for
+graphicality of a degree sequence, available in the discrete math literature, to add links in
+a way which constrains the end graph to be in the target set. They further use importance
+sampling to ensure that averages of simulated network statistics are with respect to the target
+uniform distribution. See also Del Genio et al. (2010) and Kim et al. (2012). Graham and
+Pelican (2020) provide a textbook discussion of the Blitzstein and Diaconis (2011) algorithm.
+    The second approach, to which our new method belongs, uses MCMC. Specifically an
+initial graph, satisfying the target constraints, is randomly rewired many times to create
+a new graph from the target set. Key to this approach is ensuring that each rewiring is
+compatible with the target constraints (e.g., maintains the network's degree sequence). The
+algorithm also needs to be constructed carefully to ensure that the end graph is a uniform
+random draw from the target set. Sinclair (1993), Rao et al. (1996), McDonald et al. (2007),
+
+
+                                                20
+Berger and M¨   uller-Hannemann (2009) and Tao (2016) all developed MCMC methods for
+simulating graphs (or digraphs) with given degree sequences.
+    We are aware of no extant method of generating adjacency matrix draws from Ds,m . The
+novelty of this problem, relative to the work described above, is the presence of the addi-
+tional cross link matrix constraint, M. In the discrete math literature the cross link matrix
+constraint corresponds to what is called a partition adjacency matrix (PAM) constraint. Cz-
+abarka et al. (2017) conjecture that the determining whether a given s, m pair is graphical,
+the PAM realization problem, is NP-complete. If their conjecture is correct (and NP = P),
+using a Blitzstein and Diaconis (2011) type algorithm to draw from Ds,m is not feasible.
+    This leaves MCMC methods. Erd      os et al. (2017) showed that naively incorporating a
+PAM constraint into existing MCMC algorithms destroys their correctness. In this section
+we introduce a new MCMC algorithm that does generate uniform random draws from Ds,m .
+This algorithm is of independent interest. Before describing the algorithm we introduce some
+additional definitions and notation.
+
+
+3.1     Notation and definitions
+We start by defining an alternating walk.
+
+Definition 3.1. (Alternating Walk) An alternating walk H is sequence of (ordered)
+dyads of the form
+                      H := (i1 , i2 ) , (i3 , i2 ) , (i3 , i4 ) , . . . , (il , il-1 ) (42)
+
+or
+                               H := (i2 , i1 ) , (i2 , i3 ) , (i4 , i3 ) , . . . , (il-1 , il )            (43)
+
+with ik  V (G), ik = ik+1 , ik = ik-1 and
+(i) if (ik , ik-1 ) , (ik , ik+1 ) in H, (ik , ik-1 )  A (G), then (ik , ik+1 )  / A (G)
+(ii) if (ik , ik-1 ) , (ik , ik+1 ) in H, (ik , ik-1 ) / A (G), then (ik , ik+1 )  A (G)
+(ii) if (ik-1 , ik ) , (ik+1 , ik ) in H, (ik-1 , ik )  A (G), then (ik+1 , ik )  / A (G)
+(iv) if (ik-1 , ik ) , (ik+1 , ik ) in H, (ik-1 , ik )  A (G), then (ik+1 , ik )  A (G)
+for all k = 2, . . . , l - 1.
+
+      For brevity we will often refer to a walk simply by its node sequence, writing H :=
+i1 i2 , . . . , il . To unpack Definition 3.1 it is easiest to consider an example.
+      Observe that for H := i1 i2 , . . . , il , the adjacency matrix entries Di1 i2 , Di3 i2 , . . . , Dil il-1
+alternate between ones and zeros (or zeros and ones). This observation suggests a method of
+constructing an alternating walk via a sequence of "hops" across the adjacency matrix: pick
+row i1 of the adjacency matrix and move horizontally to column i2 , where i2 corresponds to
+
+                                                             21
+one of the agents to which i1 directs a link, next move vertically to row i3 , where i3 is an
+agent which does not direct a link to i2 , and so on.8 We call the horizontal moves active steps
+and vertical moves passive steps. Figure 2 provides an example construction. The different
+cases in Definition 3.1 correspond to walks beginning/ending with passive/active steps.
+   The length of an alternating walk equals the number of ordered dyads used to define it.
+An important type of alternating walk, which following Tao (2016), we call an alternating
+cycle, is central to our algorithm.
+
+Definition 3.2. (Alternating Cycle) The alternating walk C is an alternating cycle if
+i1 = il and C has even length.
+
+    The length of an alternating cycle is at least four. Let Di1 i2 , Di3 i1 , . . . , Dil il-1 be the
+sequence of adjacency matrix entries associated with alternating cycle C in G. These entries
+necessarily form a sequence of zeros and ones (or ones and zeros).
+    Consider constructing an alternative digraph, say G , by replacing all the "ones" in C
+with "zeros" and all "zeros" with "ones". Rewiring G in this way is degree preserving: G
+has the same in- and out-degree sequence as G. We refer to such operations as switching the
+cycle (since we switch the zeros and ones).
+    Figure 3 depicts two canonical alternating cycles (Rao et al., 1996). The first, C := abcda,
+is a so called alternating rectangle. In the configuration to the left a and d each have a single
+outlink and b and c a single inlink; this is also true in the configuration to the right, which
+corresponds to the the network generated by switching C . The second cycle, called a compact
+alternating hexagon, can be constructed from a 030C ( ) triad.
+    Let Gs denote the set of all digraphs with degree sequence s. Rao et al. (1996) showed
+that, for G and G distinct and belonging to Gs , it is possible to obtain G from G by switching
+a sequence of alternating rectangles and compact alternating hexagons. In practice it may
+be useful, in the sense that one can move from G to G with fewer cycle switches, if longer
+alternating cycles are used (e.g., McDonald et al., 2007; Tao, 2016).
+    Let KN denote the complete graph on N vertices. We define the link marking function
+m : A (KN )  {0, 1}. We say the link (i1 , i2 ) is marked if m ((i1 , i2 )) = 1 and unmarked if
+m ((i1 , i2 )) = 0. The expression "mark a link" means the marking function is changed such
+that m ((i1 , i2 )) = 1. We use the expression "unmark a link analogously".
+
+Definition 3.3. (Schlaufe) An alternating walk H := i1 i2 . . . il is a schlaufe if either
+(i) There is a node ik  {i1 i2 . . . il } with k = l such that ik = il and (k - l) mod 2 = 0.
+Furthermore for any two nodes ij and ih in {i1 i2 . . . il-1 } with ij = ih and j = h it holds that
+(j - h) mod 2 = 1.
+  8
+      This description is essentially due to (Tao, 2016, p. 124).
+
+                                                        22
+                            Figure 2: Constructing an alternating walk
+
+                                                                                B: Degree
+                                     A: Alternating Walk                        Sequence
+
+
+                        a    b   c   d    e      f     g    h   i   j       Indegree   Outdegree
+
+
+                    a   0    1   0   0    1      0     0    0   0   0   a      0          2
+
+
+                    b   0    0   0   0    0      0     0    0   0   0   b      1          0
+
+
+                    c   0    0   0   1    0      0     0    1   0   0   c      2          2
+
+
+                    d   0    0   0   0    0      0     0    0   0   0   d      1          0
+
+
+                    e   0    0   1   0    0      0     0    0   0   0   e      1          1
+
+
+                    f   0    0   0   0    0      0     0    1   1   0   f      0          2
+
+
+                    g   0    0   0   0    0      0     0    0   0   0   g      2          0
+
+
+                    h   0    0   1   0    0      0     1    0   0   0   h      2          2
+
+
+                    i   0    0   0   0    0      0     0    0   0   0   i      2          0
+
+
+                    j   0    0   0   0    0      0     1    0   1   0   j      0          2
+
+
+
+Source: Authors' calculations.
+Notes: Panel A depicts an alternating walk constructed using the adjacency matrix. Agent
+labels are given in the first column and row of the table. To construct such a walk randomly
+we begin by choosing an agent at random. Here agent j is chosen, with an ex ante probability
+    1
+of 10 since there are ten agents in the network. Next we take an active step where one of
+agent j 's outlinks is chosen at random. Here we choose the outlink to agent g , an event
+with an ex ante probability of 1  2
+                                    since agent j has just two outlinks. Following the active
+step comes a passive step. In a passive step we move vertically to the row of an agent which
+does not direct a link to the current agent. Here we choose a from the set {a, b, c, d, e, f, i}
+uniformly at random (i.e., with an ex ante probability of 1  7
+                                                               ). We continue with active and
+passive steps until we choose to stop or can proceed no further. Panel B reports the indegree
+and outdegree of each agent in the network. Observe that in active steps the probability of
+any feasible choice equals the inverse of the outdegree of the current agent. In passive steps
+the probability of any feasible choice equals the inverse of the number of nodes minus the
+indegree of the node chosen in the prior step minus 1 (since ik = ik+1 ). We can also construct
+alternating walks by the above procedure, but instead starting with a passive step.
+
+
+
+
+                                                       23
+                               Figure 3: Examples of alternating cycles
+
+                                b             c         b            c
+                                                                                     a       b       c       d       a
+
+                Alternating                                                i         1       2       3       4       5                       Pr(R1 ) =   1
+                                                                                                                                                         24
+                Rectangle
+                                                                                         1       1       1       1       1
+                                                                           sel. Pr       4       1       3       1       2
+                                a             d         a            d
+
+
+
+                                       b                      b                      a       b       c       a       b       c       a
+
+                Compact
+                                                                           i         1       2       3       4       5       6       7                   1
+                Alternating                                                                                                                  Pr(R1 ) =   3
+                Hexagon
+                                                                                         1       1       1       1       1       1       1
+                                                                           sel. Pr       3       1       1       1       1       1       1
+                                a             c         a            c
+
+
+
+Source: Authors' calculations.
+Notes: The first row depicts an alternating rectangle before and after switching. The second
+row depicts a compact alternating hexagon before and after switching. The final column
+of the figure shows the probability with which each node is chosen, resulting in the total
+probability of the schlaufe.
+
+
+(ii) At node il there is no other node il+1 such that the alternating walk could be extended
+with the unmarked link (il , il+1 ).
+
+    In German schlaufe corresponds to "loop", "bow" or "ribbon" (its plural is schlaufen); the
+latter translation is evocative of our meaning here. In the first case the schlaufe will coincide
+with an alternating walk which includes exactly one alternating cycle.9 Visually schlaufen of
+the first type, with the nodes appropriately placed, will look like loops and ribbons. In the
+second case the schlaufe does not include an alternating cycle.
+    Associated with a schlaufe, R, is a K × K violation matrix which records the number
+of extra links from group k to group l generated by switching the alternating cycle in R
+(if there is one). Consider an alternating rectangle consisting of two boys and two girls. If
+initially one boy directs a link to the other and one girl directs a link to the other, then after
+switching the cycle the violation matrix will equal:
+
+
+                                           Ego \Alter       Boy   Girl
+                                              Boy            -1     1
+                                              Girl           1     -1
+
+   9
+    The requirement that ik = il and (k - l) mod 2 = 0 ensures that C = ik ik+1 . . . il is an alternating cycle
+(imposing even length). The "furthermore..." requirement ensures that if another node is visited multiple
+times it does not form an alternative cycle (imposing non-even length). See Figure 4 for an example.
+
+
+                                                      24
+After switching the cycle there are too few same gender links and too many mixed gender
+ones.
+    We call a sequence of schlaufen R = (R1 , . . . , Rk ) feasible if (i) the cycles of the schlaufen
+are link disjoint and (ii) the sum of their violation matrices is zero (and for i < k the sum of
+their violation matrices is not zero).
+    Conventional MCMC adjacency matrix re-wiring algorithms work by switching short cy-
+cles (e.g., alternating rectangles and compact alternating hexagons). Switches of this type,
+while preserving the in- and out-degree sequence of the network will typically generate net-
+works with the wrong inter-group link structure (i.e., non-zero link violation matrices). Our
+approach to solving this problem involves switching many alternating cycles simultaneously
+such that their individual link violation matrices sum to zero.
+
+
+3.2    The MCMC algorithm
+Let S = s and M = m be the degree sequence and cross link matrix of the network in
+hand. In order to a draw, say G , from Gs,m we (i) start with a realization of (s, m), say
+G, (ii) randomly construct (link disjoint) schlaufen, and (iii) switch any alternating cycles in
+them. While switching cycles will preserve the degree sequence, it may ­ as discussed earlier
+­ result in a graph without the appropriate cross link matrix. In order to ensure that G
+has the appropriate cross link matrix, we construct schlaufen until either the sum of their
+violation matrices equals zero or we stop randomly. If the sum of the schlaufen violation
+matrices is zero we move to G from G by switching the cycles, otherwise we set G = G.
+Proceeding in this way ensures that G is, in fact, a random draw from Gs,m . After sufficiently
+many iterations of this process we show that a graph constructed in this way corresponds
+to uniform random draw from Gs,m . A formal statement of the procecedure is provided by
+Algorithm 1.
+     Algorithm 1 uses a subroutine to find schlaufen. This subroutine, described in Algorithm
+2, finds and marks a schlaufe in the graph.
+     To illustrate our method in more detail consider the network depicted in Panel A of Figure
+4. This network consists of two types of agents: gold (light) and blue (dark). The cross link
+matrix for the graph is given in Panel D. In Panels B and C a sequence of three schlaufen
+is shown. The first schlaufen is R1 = jgabcdeca. It is constructed through a sequence of
+active and passive steps as described earlier (see also the notes to Figure 2 above). We begin
+                                                          1
+by choosing agent j randomly with a probability of 10        (since there are ten agents in the
+network). We then take an active step, randomly choosing one of the two agents to which
+j directs a link (i.e., either agent g or i). Here we choose agent g . Next we take a passive
+step. Specifically we choose an agent at random from the set of agents that do not direct a
+
+                                                 25
+Algorithm 1 Markov Draw Algorithm
+Inputs: An adjacency matrix d  Ds,m ; a mixing time 
+Procedure:
+
+  1. Set t = 0.
+
+  2. With probability 1 - q go to step 3, with probability q go to step 4.
+
+  3. find and mark a schlaufe (see Algorithm 2):
+
+      (a) if the sum of the schlaufen violation matrices is zero, then
+            i. switch the cycles in the schlaufen (changing the adjacency matrix d),
+           ii. unmark all links,
+          iii. go to step 4.
+      (b) else
+                                1
+            i. with probability 2 , go to step 3 or
+                                1
+           ii. with probability 2 , unmark all links and go to step 4.
+
+  4. Set t = t + 1
+
+      (a) if t =  then return d
+      (b) else go to step 2
+
+Output: A uniform random draw d from Ds,m
+
+
+
+
+                                             26
+Algorithm 2 Schlaufe Detection Algorithm
+Inputs: An adjacency matrix d  Ds,m (this network may have marked links in it)
+Procedure:
+
+  1. Choose an agent/node, say i, at random.
+
+  2. Mark agent i as active and
+
+      (a) if feasible, randomly choose one of i s (unmarked) outlinks, say to j , and go to
+          step 3;
+      (b) else (i.e., no unmarked outlinks available) go to step 6.
+
+  3. Mark edge ij , chosen in step 2 and
+
+      (a) if agent j is already marked passive, then go to step 6;
+      (b) else go to step 4.
+
+  4. Mark agent j , chosen in step 3, as passive and
+
+      (a) if feasible, randomly choose an agent, say k , from among those who do not direct
+          links to j , and go to step 5,
+      (b) else go to step 6.
+
+  5. Mark edge kj , with k the agent chosen in step 4, as passive and
+
+      (a) if agent k is already marked active, then go to step 6;
+      (b) else go to step 2.
+
+  6. return the (marked) adjacency matrix, the constructed schlaufe and its violation matrix.
+
+Output: A schlaufe, its violation matrix and a marked adjacency matrix.
+
+
+
+
+                                             27
+link to g (the agent chosen in the previous active step). The probability associated with our
+choice in this passive step is 1  7
+                                    ; this corresponds to the reciprocal number of agents in the
+network (i.e., 10) minus the indegree the current agent (i.e., 2) minus one (since self-loops
+are not allowed). We continue taking active and passive steps in this way until we visit a for
+the second time. At this point we stop since our schlaufe now includes the alternating cycle
+C1 = abcdeca. Note that c is also visited twice, but also that cdec is not an alternating cycle
+since it is not of even length (see Definition 3.2).
+    As seen in the example we can calculate the probability of a schlaufe R as we go through
+                                                                                               1
+the algorithm (see Panel E). In Step 1 of Algorithm 2 an agent is chosen with probability N      .
+            a
+Next let rG (i) be the cardinality of the set of feasible out links in an active step. This set
+                                                                                            p
+consists of all the out links of node i, which are not already marked in D. Similarly, let rG (i)
+be the cardinality of the set of feasible outlinks in an passive step. That set consists of all
+the links ij for which ji is not in A(G) and which are not already marked. The probability
+of R = (i1 , .., il ) can now be written as
+
+                              l-1
+                          1            1                          1
+                 pG (R) =            a
+                                               [k mod 2] +    p         [(k - 1) mod 2]      (44)
+                          N   k=1
+                                    rG (ik )                 rG (ik )
+
+     In step 2 of Algorithm 1 we attempt to find a sequence of schlaufen with probability
+1 - q and do not change the adjacency matrix otherwise. In step 3, a schlaufen sequence
+R = (R1 , .., Rh ) is constructed/found. After each detected schlaufe in this sequence, say
+Rk , any cycle in it is marked. Let Gk be the graph with the cycles of R1 , .., Rk-1 marked.
+                                                                          1
+After each schlaufe added the construction is stopped with probability 2    . The probability
+of finding a cycle Rk is pGk (Rk ) as given in equation (44) above. The total probability of a
+feasible schlaufen sequence R is therefore
+
+                                                             h
+                                                        1
+                              pG (R) = (1 - q )                   pGk (Rk ).                 (45)
+                                                   2(h-1)   i=1
+
+
+3.3    Correctness
+To show that our algorithm does indeed generate a uniform random draw from the set Ds,m
+we use standard Markov chain theory (e.g., Chapters 7 and 10 of Mitzenmacher and Upfal
+(2005)).
+    The random rewiring of the network implemented by Algorithm 1 can be described as
+a Markov chain. To show that, for  large enough, it returns a uniform random draw from
+Ds,m we prove that the stationary distribution of the Markov chain generated by Algorithm
+1 is uniform on Ds,m . To show this it is helpful to develop a graphical representation of the
+
+                                                   28
+                          Figure 4: A feasible schlaufen sequence
+
+                          A: Network prior to edge swaps                    D: Cross-link (PAM) matrix
+
+
+                                    d
+
+                  e                                    j            i
+
+                          c                                                            Blue                 Gold
+                                                           h                Blue                1                   3
+                                                                            Gold                2                   5
+
+
+                              a                  g              f
+
+                      b
+
+
+                                     B: Network with
+                                  three schlaufen shown                         E: Three schlaufen
+
+                                                                                   j    g a b c d e c a
+                                    d
+                                                                        i          1 2 3 4 5 6 7 8 9
+                  e                                    j            i              1        1       1       1   1       1       1   1   1
+                                                                        sel. Pr    10       2       7       2   8       2       8   1   8
+
+
+                          c                                                        c h e
+                                                           h            i          1 2 3
+                                                                                   1        1       1
+                                                                        sel. Pr    10       1       7
+
+
+                              a                  g              f                  f    h       j       i       h g         f
+                                                                        i          1 2 3 4 5 6 7
+                      b
+                                                                                   1        1       1       1   1       1       1
+                                                                        sel. Pr    10       2       6       1   7       1       6
+
+
+                                    C: Network after                         F: Violation matrices for
+                                       edge swaps                               the three schlaufen
+
+                                                                                       Blue                 Gold
+                                    d                                       Blue           -1                  +1
+                                                                            Gold          +1                    -1
+                  e                                    j            i
+
+                          c                                                            Blue                 Gold
+                                                           h                Blue                0                   0
+                                                                            Gold                0                   0
+
+
+                              a                  g              f
+                                                                                       Blue                 Gold
+                      b                                                     Blue          +1                    -1
+                                                                            Gold           -1                  +1
+
+
+Source: Authors' calculations.
+Notes: See the discussion in the main text. The figure depicts three link disjoint schlaufen
+with violation matrices which sum to zero. Panel E reports the (ex ante) probability that a
+given node was selected as the schlaufe was constructed. See equation (44).
+
+
+
+
+                                                           29
+Markov chain.
+    We denote the state graph of the Markov chain by  = (V , A ). Its underlying vertex
+set V is the set of all elements in Gs,m . That is each node in our state graph is a network
+with degree sequence S = s and cross link matrix M = m. For G in Gs,m , we denote by vG
+the corresponding vertex in V . The arc set A is defined as follows.
+
+  1. For all vertices we add the self loop (vG , vG ) with (probability) weight q (see Step 2 of
+     Algorithm 1).
+
+  2. Let G and G be two different networks in Gs,m . Let GG equal the union of the set
+     of edges in G, but not in G and the set of edges in G , but not in G. For each feasible
+     schlaufen-sequence R, with cycle edge set equal to GG we add the edge (vG , vG ) and
+     assign to it probability weight pG (R).
+
+  3. Finally we add a directed loop (vG , vG ) if the probability of all arrows leaving vG ,
+     introduced in points 1 and 2 immediately above, do not sum to 1. The probability of
+     this loop is 1 minus the sum of the probability of all other outward arrows.
+
+The probability of any arc a  A is denoted by p(a). Note, by definition, the state graph
+can have parallel arcs and loops.
+   With these definitions in place we can prove correctness of the algorithm. First we
+show that the probability of the algorithm moving from graph G to G coincides with the
+probability of moving in the reverse direction.
+
+Lemma 3.1. For any two vertexes vG , vG the transition probability attached to (vG , vG ) equals
+that attached to (vG , vG ).
+
+Proof. See appendix A.3.
+
+   Next we show the state graph is strongly connected. This means our Algorithm moves
+from any G  Gs,m to any other G  Gs,m with positive probability.
+
+Lemma 3.2. The state graph  is strongly connected.
+
+Proof. See appendix A.3.
+
+   With these two lemmata it is east to show that the stationary distribution is uniform on
+Gs,m . This gives us the main result of the section.
+
+Theorem 3.3. Algorithm 1 is a random walk on the state graph  which samples uniformly
+a network from Gs,m for   .
+
+
+                                              30
+Proof. See appendix A.3.
+
+    We provide an easy to use python implementation of this algorithm as well as the optimal
+test to a given utility function.
+Surce: https://github.com/AndrinPelican/ugd
+Package: https://pypi.org/project/ugd/
+
+
+4      Applications
+4.1     Diplomatic mission network: the strategic placement of am-
+        bassadors
+Figure 5 shows the 2005 network of diplomatic exchanges in the Americas. We constructed
+this network using the Correlates of War Diplomatic exchange dataset (Bayer, 2006). An
+ij arc indicates that country i has sent an ambassador to country j . As emphasized by
+Kinne (2014), diplomatic recognition is a core tool of statecraft. Consequently, the decision
+to establish a diplomatic mission in a country likely has strategic aspects. As a contemporary
+example, consider the decision to maintain diplomatic ties with Syria after the onset of the
+Syrian Civil War. This decision appears, in part, to be predicated upon the nature of a
+state's bi-lateral relations with Syria's long term allies Russia and Iran (along the lines of
+the "friend of my friend is also my friend" principle).10
+    The diplomatic network is also driven by a desire for prestige and practicality. Some
+nations, like the United States, send and host many ambassadors. Others send and receive
+very few. The network also has geographic dimensions: countries typically send ambassadors
+to close neighbors. These aspects of the network naturally generate network transitivity
+which is non-strategic. For example if most countries send an ambassador to, and host one
+from, the United States, then virtually any additional tie will generate a transitive triad;
+but this just reflects the superpower status of the United States, not a structural taste for
+transitivity in relations. Similarly Central American nations may all host ambassadors from,
+and send them to, one another due to their strong common cultural, economic and security
+connections. A desire for transitivity need not play a role. For these reasons it is important
+to allow for degree heterogeneity and (geographic) homophily when assessing whether nations
+(actively) prefer transitive ties.
+  10
+    Transitivity can also operate negativity, as when mainland China chooses not recognize countries which
+diplomatically recognize Taiwan, China. Withholding recognition in this case increases transitivity as not
+doing so would result in an intransitive triad.
+
+
+
+
+                                                   31
+                   Figure 5: Diplomatic Network of the Americas, 2005
+
+                            Diplomacy Network of the Americas, 2005
+
+
+
+
+                                  North America      Caribbean
+                                  Central America    South America
+
+Source: Correlates of War Diplomatic Exchange dataset (Bayer, 2006) and authors' calcula-
+tions.
+Notes: Nodes correspond to capital cities. An arc from country i to country j indicates that
+an ambassador represents i in j . The network is divided into four regions: (i) North America
+(California Gold), (ii) Central America (Berkeley Blue), (iii) the Caribbean (Lap Lane) and
+(iv) South America (Golden Gate)
+
+
+
+
+                                                32
+    We consider a utility function of the form given in (2) with sij (d) as defined in (5). We
+consider tests of the 0 = 0 null based upon the transitivity index (TI) as well as our locally
+best test statistic. We also consider a variety of null reference distributions. These different
+reference distributions illustrate the importance of controlling for degree heterogeneity and
+homophily in practice.
+    Panel A of Figure 6 plots the distribution of the transitivity index across three null
+reference sets. First we consider the set of all networks with density equal to that observed
+empirically (0.399). The degree sequence and cross link matrices are allowed to freely vary.
+This reference distribution would be appropriate in the absence of any homophily ( = 0)
+and degree heterogeneity (Ai = Bj =  for all i).
+    In empirical work it is common to compare the observed TI with network density and
+conclude that a taste for transitivity is present if the TI is substantially greater than density
+(the observed TI is shown by the vertical bar in the figure). Here this approach results in an
+absurdly decisive rejection of the null (observed transitivity equals ­ by a country mile ­ the
+1.0 quantile of the null distribution); this is a "strawman" test.
+    Second we consider the set of all networks with in- and out-degree sequences held equal to
+those observed empirically (i.e., networks where the United States host 32 ambassadors from,
+and sends 26 to, other countries in the Americas and so on). This controls for heterogeneity in
+prestige and diplomatic activity across countries. This null distribution, however, continues
+to assumes the absence of any homophily ( = 0).
+    There are several extant methods for simulating uniform draws from this null distribu-
+tion. For example, Berger and M¨    uller-Hannemann (2009), Kim et al. (2012), Blitzstein and
+Diaconis (2011), and Del Genio et al. (2010) describe methods for sampling networks with
+the same degree sequence. Our algorithm easily handles this case as well.
+    Fixing the degree sequence shifts the null reference distribution substantially to the right.
+This indicates that much of the observed transitivity in the American diplomatic network can
+be explained solely by intrinsic variation in baseline diplomatic activity across nations (i.e.,
+degree heterogeneity). While we still easily reject the null in this case as well, the actual TI
+is much closer to ­ certainly not a country mile from ­ the mode of the reference distribution.
+    Third, we additionally control for the cross region structure of diplomatic ties (i.e., we
+now allow  = 0). We consider the four regions shown in Figure 5. Hence the reference
+distribution now includes all networks with the same in- and -out degree sequences and 4 × 4
+cross link matrix as the observed one. Additionally controlling for geographic homophily
+further shifts the reference distribution to the right. While we also easily reject the null in
+this case (p-value = 2 · 10-4 ), the ordering of the three reference distributions demonstrates
+the potential importance of controlling for degree heterogeneity and homophily in practice.
+
+
+                                               33
+              Figure 6: Testing for strategic transitivity in diplomatic exchanges in the Americas
+                          (a) Transitivity index                                                      (b) Locally best test
+
+
+              0.40                                                                  0.14
+
+              0.35
+                                                                                    0.12
+              0.30
+                                                                                    0.10
+              0.25
+  Frequency
+
+
+
+
+                                                                        Frequency
+                                                                                    0.08
+              0.20
+                                                                                    0.06
+              0.15
+                                                                                    0.04
+              0.10
+
+              0.05                                                                  0.02
+
+              0.00                                                                  0.00
+                     38   40   42           66      68   70   72                        -160   -140    -120     -100      -80         -60   -40
+                               Transitivity Index                                                         Locally Best Test Statistic
+
+
+
+Source: Correlates of War Diplomatic Exchange dataset (Bayer, 2006) and authors' calcula-
+tions.
+Notes: Plots of the test statistic null distribution. Panel A: Distribution of the transitivity
+index (TI) according to three null models. The "California" colored histogram plots the
+distribution of the TI across the set of networks with density as observed in the empirical
+network, but no other constraints imposed. The "Berkeley Blue" colored histogram plots the
+null distribution when the in- and out-degree sequences are additionally held fixed. Finally,
+the "Golden Gate" colored histogram additionally fixes the structure of cross-region linkage
+(i.e., the cross link matrix). The actual TI is in, respectively the 1.0, 1.0 and 0.9998 quantiles
+of the three reference distributions. Panel B: Histogram plot of the null distribution of the
+locally best test statistic holding the network's degree sequence and cross link matrix fixed.
+The observed test statistic lies in the 1.0 quantile of the reference distribution. Results based
+on 10000 simulation draws.
+
+
+
+
+                                                                   34
+Failing do so could result in mis-interpreted rejections.
+    Panel B of the figure plots the distribution of our locally best test statistic under the null
+which fixes both the degree sequence and cross link matrix. The observed locally best test
+statistic exceeds in value all simulated values from the reference set. While, in this example, it
+appears to be the case that many "transitivity inspired" statistics would generate rejections,
+Panel B is suggestive of the power gains associated with using the local best statistics. The
+locally best statistic is well outside the support of the null distribution. We explore power
+comparisons further in the Monte Carlo simulations below.
+
+
+4.2    Buyer-supplier network: the trade-off between direct and in-
+       direct customers
+Our second example tests for substitutability between direct and indirect customers in a
+supply chain context. Firms, may, all things equal prefer to have many customers. While
+there may be a fixed costs to maintaining any customer relationship, having many customers
+may reduce variation in demand for a firm's products.
+    Firms may, all things equal, also prefer to supply firms that themselves have many cus-
+tomers. For example, a customer whose own output is widely sought after may generate a
+more reliable stream of orders than that of a firm with few customers.
+    In our baseline model, the supplier-specific effect, Ai , captures heterogeneity in firms'
+demand for customers. Similarly, the buyer-specific effect, Bj , captures heterogeneity in
+customer attractiveness. If Ai and Bi positively co-vary, as is allowed by our model, then firms
+with many customers (i.e., high Ai firms) may be viewed as especially attractive customers
+themselves (i.e., high Bi firms). These features of our baseline model suggest that it is not
+suitable for detecting whether firms value many direct (or indirect customers) per se; however
+we can test for substitutability between direct and indirect customers.
+    To construct such a test we set sij (d) equal to
+
+                                                           def
+                        sij (d) =         dik        djk    di+,-j × dj +                    (46)
+                                    k=j         k
+
+
+where di+,-j is notation for the number of customers firm i has excluding any customer
+relationship with j . With this specification of sij (d) we can interpret 0 in terms of the
+"cross derivative"
+                                              2 M Uij
+                                    0 =                 .                              (47)
+                                           di+,-j dj +
+Here we hypothesize that 0 < 0, so that firms with many direct customers value the indirect
+
+
+                                                35
+customers of a firm less than firms with few direct customers.
+    We implement our test using three industry-specific supply chain networks we constructed
+using Compustat data: pharmaceuticals (see Figure 1), computers, and motor vehicles (see
+Panels A and B of Figure 7). We test for whether the marginal benefit of an indirect
+customer is decreasing in the number of direct customers in each industry separately and
+using all three networks simultaneously. Pooling is straightforward in our set-up: the broad
+4-digit manufacturing sector constitutes an observed firm attribute which is incorporated
+into the cross link matrix constraint.
+    The p-value for the null of  = 0 equals 0.02 for pharmaceuticals, 0.32 for computers and
+0.10 for motor vehicles. Pooling all three networks together yields a p-value of 0.05. These
+p-values are based upon 1000 simulated networks. The mixing time is chosen, such that each
+edge is, on average, randomly modified 10 times before the network is considered a random
+draw from the target set.
+
+
+4.3    Monte Carlo experiments
+For the Monte Carlo experiments we work with the general utility function introduced in
+                                             def                      def                      def
+Section 1 above. We assume that Ai  A  {L , H }, Bi  B  {L , H } and Xi  X 
+{0, 1}. We assume that each support point in A × B × X occurs with equal probability (i.e.,
+with probability equal to 1 8
+                              ).
+    Observe that their are four types of sending agents: (Ai = L , Xi = 0), (Ai = H , Xi = 0),
+(Ai = L , Xi = 1) and (Ai = H , Xi = 1). Similarly there are four types of receiving agents.
+The null model is therefore fully described by 16 = 4 × 4 linking probabilities. We set the
+parameters H = H = 1.1, L = L = -1.1, 00 = 11 = 0 and 01 = 10 = -2.2.
+Our parameter choices generate meaningful degree heterogeneity and homophily under the
+null. Across 1, 000 Monte Carlo simulations with N = 48 average network density was 0.34,
+average transitivity was 0.53, and the average standard deviation of, respectively, in- and
+out-degree, was 4.1.
+    We set the strategic interaction term to sij (d) =         k dik dkj ; as is appropriate when
+agents prefer transitive ties. To simulate a network under the alternative we draw U and
+then, starting with an empty adjacency matrix, iterate to a fixed point using equation (11).
+By Tarski's Theorem this finds us the least dense pure strategy Nash Equilibrium.
+    We compare the performance of three tests. The infeasible locally best test that is based
+upon the true value of 0 . The feasible version of this test which replaces 0 with its maximum
+likelihood estimate computed under the null (see Graham (2017), Dzemski (2018) and Yan
+et al. (2018) for a discussion of this particular MLE problem). Finally we construct an ad
+hoc test based upon the transitivity index (TI). This last test is the one most often used in
+
+                                               36
+Figure 7: Buyer-supplier networks used to test for substitutability between direct and indirect
+buyers
+                           (a) Computers Buyer-Supplier Network, 2015
+
+
+
+
+                         (b) Motor Vehicles Buyer-Supplier Network, 2015
+
+
+                                  Motor Vehicle Manufacturing Buyer-Supplier Network
+
+
+
+
+                                                   Delphi
+                                                             Borgwarner
+                                                                                                                Navistar
+                                                                                                   Volvo
+                                             Gentex                                Daimler
+
+                                          Metaldyne                                                                    Wabco
+                                                                          Volkswagen
+
+                               Chrysler
+                                                                     Autoliv
+                                General Motors
+                                                 Ford                                                                             Paccar
+                                                                   Cooper-Standard
+                                                                                 Tower Intl.   Tenneco
+
+                                                        Gentherm
+                                                                                                                               Tata
+
+                                                                      Toyota
+
+                                                                                       Honda
+                                                                                                           Nissan
+
+
+
+
+                                             Motor vehicles (3361)             Bodies & Trailers (3362)      Parts (3363)
+
+
+
+
+Source: Compustat and authors' calculations.
+Notes: Plots of the computers and motor vehicles buyer-supplier networks in 2015 based upon
+Compustat data. The head of each arc denotes the buying firm. Nodes colored differently
+according to their sub-industry as listed in the legends. Largest weakly-connected component
+is shown.
+
+
+
+                                                                               37
+                       Table 1: Monte Carlo Design Parameterization
+
+                               Calibrated Link      Probability
+                              F (H + H + 00 )          0.90
+                              F (H + L + 00 )          0.50
+                              F (L + L + 00 )          0.10
+                              F (H + H + 01 )          0.50
+                              F (H + L + 01 )          0.10
+                              F (L + L + 01 )         0.012
+Source: Authors' calculations.
+Notes: Utility parameters for the Monte Carlo experiments were chosen to calibrate the null
+link probabilities listed in Column 1 to equal those values listed in Column 2.
+
+
+practice.
+    Figure 8 summarizes our main findings. The two panels of the figure correspond to the
+two network sizes we considered: N = 24 and N = 48. The horizontal axes of the figures
+in each panel correspond to different values of the strategic interaction parameter, 0 ; the
+vertical axes to rejection frequencies. With 1000 Monte Carlo replications the standard error
+of our simulation estimate of size is (0.05 (1 - 0.05) /1000)  0.007.
+    As expected, the actual size of our test is indistinguishable (i.e., equal up to simulation
+error) from its nominal size. For the designs considered here the power gains associated with
+using the locally best test statistic derived in Section 2 are considerable. Furthermore the
+feasible locally best test, which replaces 0 with its MLE (computed under the null), performs
+about as well as the infeasible locally best test based on the actual value of 0 .
+    The Monte Carlo experiments highlight that the locally best test, which upweights
+episodes of "unexpected" transitivity, is more powerful than the ad hoc test based on com-
+paring the transitivity index (TI) with its null distribution. Note both tests are "valid" and
+correctly-sized.
+
+
+
+
+                                              38
+                                                                        Figure 8: Power Analysis
+                                          (a) N = 24 agents/nodes                                                             (b) N = 48 agents/nodes
+
+                                                                                                             0.7
+                                      Locally Best Oracle                                                                 Locally Best Oracle
+                                      Locally Best Feasible                                                               Locally Best Feasible
+                         0.6          Transitivity Index                                                     0.6          Transitivity Index
+
+                         0.5                                                                                 0.5
+   Rejection Frequency
+
+
+
+
+                         0.4                                                           Rejection Frequency   0.4
+
+                         0.3                                                                                 0.3
+
+
+                         0.2                                                                                 0.2
+
+
+                         0.1                                                                                 0.1
+
+
+                               0.00       0.05       0.10        0.20     0.30                                     0.00       0.01       0.02        0.04   0.06
+                                                                                                                                                  
+
+
+
+Source: Authors' calculations.
+Notes: The figures plot the frequency with which H0 : 0 = 0 is rejected across 1, 000
+Monte Carlo replications for, respectively, networks with N = 24 and 48 agents. The y-
+axis reports the estimated rejection frequency, the x-axis gives the value of the strategic
+interaction parameter, 0 . The sparsest pure strategy NE is use to simulate each network.
+For each simulation a total of 400 MCMC draws from Ds,m were used to compute critical
+values. The mixing time was chosen such that every edge is randomly modified before the
+network is considered a uniform draw. The marginal utility function equals Ai +Bj +Xi 0 Xi +
+0 sij (d) - Uij with sij (d) = k dik dkj . The distribution of (Ai , Bi , Xi ) is as described in the
+main text; other model parameters are given in Table 1.
+
+
+
+
+                                                                                  39
+5    Extensions
+Graham and Pelican (2020) introduced an econometric model for network formation with
+transferable utility (cf., Bloch and Jackson, 2007); appropriate for the analysis of undirected
+networks. They use the importance sampling algorithm of Blitzstein and Diaconis (2011)
+to simulate the null distribution of their test statistic. Their set-up does not allow for
+homophily under the null; nor do they consider optimal test statistics. These extension
+could be accomplished use the simulation algorithms for undirected networks developed in
+Pelican (2019) and the ideas of this paper.
+    Our approach to testing could also be applied to settings where the econometrician ob-
+serves many independent games, each with a small number of players (see de Paula (2013)
+for a review); this arises when a small set of competing firms make entry decisions across a
+large number of independent markets. Testing here is relatively better studied (e.g., Chen
+et al. (2018) and the references therein). An attractive feature of our framework for empirical
+researchers is that is can to easily handle, for example, "market level" unobservables (albeit
+at the cost of assuming logistic utility shocks).
+    A primary advantage of our approach ­ complete agnosticism about equilibrium selection
+under the null ­ is also a limitation. It is not obvious how to adapt our method to, for
+example, construct an identified set for 0 (or a confidence interval for this set). Research in
+this direction would be useful.
+    While much additional research remains to be done, we have provided a feasible and
+powerful test for a key scientific hypothesis on the nature of network formation, whilst main-
+taining a rich and realistic null model structure. Our MCMC simulation algorithm is also
+likely to be of independent interest.
+
+
+References
+Airoldi, E. M., Blei, D. M., Fienberg, S. E., and Xing, E. P. (2008). Mixed membership
+  stochastic blockmodels. Journal of Machine Learning Research, 9:1981 ­ 2014.
+
+Anderson, J. E. (2011). The gravity model. Annual Review in Economics, 3(1):133 ­ 160.
+
+Andrews, I., Stock, J. H., and Sun, L. (2019). Weak instruments in instrumental variables
+ regression: theory and practice. Annual Review of Economics, 11:727 ­ 753.
+
+Apicella, C. L., Marlowe, F. W., Fowler, J. H., and Christakis, N. A. (2012). Social networks
+ and cooperation in hunter-gatherers. Nature, 481(7382):497 ­ 501.
+
+
+
+                                              40
+Atalay, E., Horta¸
+                 csu, A., Roberts, J., and Syverson, C. (2011). Network structure of produc-
+  tion. Proceedings of the National Academy of Sciences, 108(13):5199 ­ 5202.
+
+Bala, V. and Goyal, S. (2000). A noncooperative model of network formation. Econometrica,
+  68(5):1181 ­ 1229.
+
+Barab´
+     asi, A.-L. (2016). Network Science. Cambridge University Press, Cambridge.
+
+Bayer, R. (2006). Diplomatic exchange data set, v2006.1. Technical report, The Correlates
+  of War Project.
+
+Berger, A. and M¨
+                uller-Hannemann, M. (2009). Uniform sampling of undirected and directed
+  graphs with a fixed degree sequence. CoRR, abs/0912.0685.
+
+Bickel, P., Choi, D., Chang, X., and Zhang, H. (2013). Asymptotic normality of maxi-
+  mum likelihood and its variational approximation for stochastic blockmodels. Annals of
+  Statistics, 41(4):1922 ­ 1943.
+
+Blitzstein, J. and Diaconis, P. (2011). A sequential importance sampling algorithm for gen-
+  erating random graphs with prescribed degrees. Internet Mathematics, 6(4):489 ­ 522.
+
+Bloch, F. and Jackson, M. O. (2007). The formation of networks with transfers among
+  players. Journal of Economic Theory, 113(1):83 ­ 110.
+
+Boss, M., Elsinger, H., Summer, M., and Thurner, S. (2004). Network topology of the
+  interbank market. Quantitative Finance, 4(6):677 ­ 684.
+
+Calv´o-Armengol, A., Patacchini, E., and Zenou, Y. (2009). Peer effects and social networks
+  in education. Review of Economic Studies, 76(4):1239 ­ 1267.
+
+Charbonneau, K. B. (2017). Multiple fixed effects in binary response panel data models.
+ Econometrics Journal, 20(3):S1 ­ S13.
+
+Chatterjee, S., Diaconis, P., and Sly, A. (2011). Random graphs with a given degree sequence.
+ Annals of Applied Probability, 21(4):1400 ­ 1435.
+
+Chen, X., Christensen, T. M., and Tamer, E. (2018). Monte carlo confidence sets for identified
+ sets. Econometrica, 86(6):1965 ­ 2018.
+
+Cox, D. R. (2006). Principles of Statistical Inference. Cambridge University Press, Cam-
+  bridge.
+
+
+
+                                             41
+Czabarka, E., Szekely, L. A., Toroczkai, Z., and Walker, S. (2017). An algebraic monte-carlo
+  algorithm for the bipartite partition adjacency matrix realization problem. arXiv preprint
+  arXiv:1708.08242.
+
+de Paula, A. (2013). Econometric analysis of games with multiple equilibria. Annual Review
+  of Economics, 5:107­131.
+
+          ´ Richards-Shubik, S., and Tamer, E. (2018). Identifying preferences in networks
+de Paula, A.,
+  with bounded degree. Econometrica, 86(1):263 ­ 288.
+
+Del Genio, C. I., Kim, H., Toroczkai, Z., and Bassler, K. E. (2010). Efficient and exact
+  sampling of simple graphs with given arbitrary degree sequence. Plos One, 5(4):1­7.
+
+Dutta, B. and Jackson, M. O. (2000). The stability and efficiency of directed communication
+ networks. Review of Economic Design, 5(3):251 ­ 272.
+
+Dzemski, A. (2018). An empirical model of dyadic link formation in a network with unob-
+  served heterogeneity. Review of Economics and Statistics. University of Mannheim.
+
+Erdos, P., G. Hartke, S., van Iersel, L., and Mikl´
+                                                  os, I. (2017). Graph realizations constrained
+  by skeleton graphs. Electronic Journal of Combinatorics, 24(2):1 ­ 18.
+
+Ferguson, T. S. (1967). Mathematical Statistics: A Decision Theoretic Approach. Academic
+  Press, New York.
+
+Gao, C., Lu, Y., and Zhou, H. H. (2015). Rate-optimal graphon estimation. Annals of
+ Statistics, 43(6):2624 ­ 2652.
+
+Goyal, S. (2009). Connections: An Introduction to the Economics of Networks. Princeton
+ University Press, Princeton, NJ.
+
+Graham, B. S. (2017). An econometric model of network formation with degree heterogeneity.
+  Econometrica, 85(4):1033 ­ 1063.
+
+Graham, B. S. (2020). Handbook of Econometrics, volume 7A, chapter Network data. North-
+  Holland, Amsterdam.
+
+Graham, B. S. and Pelican, A. (2020). The Econometric Analysis of Network Data, chapter
+  Testing for externalities in network formation using simulation, pages 65 ­ 82. Academic
+  Press, London.
+
+Granovetter, M. S. (1973). The strength of weak ties. American Journal of Sociology,
+  78(6):1360 ­ 1380.
+
+                                              42
+Jackson, M. O., Rogers, B. W., and Zenou, Y. (2017). The economic consequences of social-
+  network structure. Journal of Economic Literature, 55(1):49 ­ 95.
+
+Jackson, M. O. and Wolinsky, A. (1996). A strategic model of social and economic networks.
+  Journal of Economic Theory, 71(1):44 ­ 74.
+
+Jochmans, K. (2018). Semiparametric analysis of network formation. Journal of Business
+  and Economic Statistics, 36(4):705 ­ 713.
+
+Kaido, H. and Zhang, Y. (2019). Robust likelihood ratio tests for incomplete economic
+ models. arXiv Working Paper arXiv:1910.04610v2 [econ.EM], Boston Univerity and Jinan
+ University.
+
+Kim, H., Genio, C. I. D., Bassler, K. E., and Toroczkai, Z. (2012). Constructing and sampling
+  directed graphs with given degree sequences. New Journal of Physics, 14(2):023012.
+
+Kinne, B. J. (2014). Dependent diplomacy: signaling, strategy, and prestige in the diplomatic
+  network. International Studies Quarterly, 58(2):247 ­ 259.
+
+Kolaczyk, E. D. (2009). Statistical Analysis of Network Data. Springer, New York.
+
+K¨
+ onig, M. D., Liu, X., and Zenou, Y. (2019). R&d networks: theory, empirics and policy
+ implications. Review of Economics and Statistics, 101(3):476 ­ 491.
+
+McDonald, J. W., Smith, P. W. F., and Forster, J. J. (2007). Markov chain monte carlo
+ exact inference for social networks. Social Networks, 29(1):127 ­ 136.
+
+McPherson, M., Smith-Lovin, L., and Cook, J. M. (2001). Birds of a feather: homophily in
+ social networks. Annual Review of Sociology, 27(1):415 ­ 444.
+
+Menzel, K. (2016). Strategic network formation with many agents. New York University.
+
+Mitzenmacher, M. and Upfal, E. (2005). Probability and Computing. Cambridge University
+ Press, Cambridge.
+
+Miyauchi, Y. (2016). Structural estimation of a pairwise stable network with nonnegative
+ externality. Journal of Econometrics, 195(2):224 ­ 235.
+
+Moreira, M. J. (2009). Tests with correct size when instruments can be arbitrarily weak.
+ Journal of Econometrics, 152(2), 131-140, 152(2):131 ­ 140.
+
+Nash, J. F. (1950). Equilibrium points in n-person games. Proceedings of the National
+  Academy of Sciences, 36(1):48 ­ 49.
+
+                                             43
+Newman, M. E. J. (2010). Networks: An Introduction. Oxford University Press, Oxford.
+
+Pelican, A. (2019). Uniform sampling of graphs with fixed degree sequence under partition
+  constraints.
+  https://www.fernuni-hagen.de/MATHEMATIK/DMO/pubs/Master Andrin Pelican.pdf.
+  Accessed: 2020-01-01.
+
+Rao, A. R., Jana, R., and Bandyopadhyay, S. (1996). A markov chain monte carlo method
+  for generating random (0,1)-matrices with given marginals. Sankhya, 58(2):225 ­ 242.
+
+Sheng, S. (2014). A structural econometric analysis of network formation games. Mimeo,
+  University of California - Los Angeles.
+
+Sinclair, A. (1993). Algorithms for Random Generation and Counting: A Markov Chain
+  Approach. Progress in Theoretical Computer Science. Birkh¨
+                                                           auser, Boston.
+
+Tao, T. (2016). An improved mcmc algorithm for generating random graphs from constrained
+  distributions. Network Science, 4(1):117 ­ 139.
+
+Tarski, A. (1955). A lattice-theoretical fixpoint theorem and its applications. Pacific Journal
+  of Mathematics, 5(2):285 ­ 309.
+
+Tinbergen, J. (1962). Shaping the World Economy: Suggestions for an International Eco-
+  nomic Policy. Twentieth Century Fund, New York.
+
+Werner, K. (2012). Maß- und Integrationstheorie. FernUniversit¨
+                                                              at in Hagen.
+
+Yan, T., Jiang, B., Fienberg, S. E., and Leng, C. (2018). Statistical inference in a directed
+  network model with covariates. Journal of the American Statistical Association.
+
+
+
+
+                                              44
+A     Supplemental Web Appendix: Proofs
+The appendix includes proofs of the theorems stated in the main text as well as statements
+and proofs of supplemental lemmata. All notation is as established in the main text unless
+stated otherwise. Equation number continues in sequence with that established in the main
+text.
+
+
+A.1     Proof of Theorem 1.1
+For the equation (13) to be well defined we must show that N (d, ·; ) is measurable. For a
+network d we can define a function N (d, ·; ), which assigns to a realization U = u the Nash
+equilibrium weight of the pure strategy which corresponds to d. We now show that there is
+a measurable function N (d, ·; ) satisfying these conditions.
+    First we consider the case where the utility shocks are bounded. Let M > 1 be given,
+we show that N (d, ·; ) is measurable on Uc = [-M, M ]n . Observe that every realization of
+the taste shock u corresponds to a game in normal form  . Here we use  to denote a table
+containing, for each pure strategy combination (or equivalently network) d, the utility of
+each agent according to equation (2). We use  to denote this table to be consistent with the
+game theory literature (recognizing this may be confusing since  is used in the main text,
+and elsewhere in this appendix, to denote the strategic interaction parameter of parameter
+of interest.
+                                                                       n
+    Utility is defined for every player. The mapping g : Rn  RN 2 assigns to each taste
+shock realization u the corresponding game g (u). In a game each player can choose among
+2N -1 strategies (corresponding to which of the N - 1 other agents she chooses to link to);
+thus there are 2(N -1)N pure strategy combinations.
+    Looking at equation (2) it is apparent that g is continuous and therefore measurable.
+Because of continuity we have sup{||g (u)|| : u  [-M, M]N(N-1) } := L < . We set
+                n
+ := [-L, L]N 2 ; the set of all games with bounded payoffs.
+
+Lemma A.1. Let  be the set of all mixed strategies combinations of the players. The set
+
+                         E := {(,  ) :  is a NE of   }   ×                                 (48)
+
+is compact.
+
+Proof. E is bounded. Thus it is sufficient to show that E is closed. The NE is defined over a
+set of inequalities, which have to be fulfilled (each player cannot strictly increase her payoff
+by replacing their strategy with any other pure strategy, holding the other players strategies
+
+
+                                               1
+constant). The utilities are continuous functions on  × . Now assume x   ×  is not in E ,
+then there exists a inequality which is not satisfied. The inequality is violated by u. Because
+the function on both sides of the inequality are continuous we can choose a  environment of
+x such that it is violated for all the elements in the environment. Therefore the complement
+of E is open, which proves the statement.
+Lemma A.2. Let   Rn and   Rm , E   ×  be compact sets. Further
+
+                                       x  y   : (x, y )  E.                                               (49)
+
+There is a measurable function f :    with
+
+                                         x   : (x, f (x))  E.                                             (50)
+
+Proof. Because of compactness there are a, b  R such that  ×   [a, b)n+m . For each k
+                                                  -a             b-a
+we partition [a, b) in 2k intervals: [a, a + b2    k ), .., [b - 2k , b) and correspondingly partition
+                                                    -a
+[a, b)n+m into hyper-cubes with side length b2       k . To a cube [a1 , b1 ) × [a2 , b2 ) × .. × [ah , bh ) we
+
+associate the characteristic vector (a1 , a2 , .., ah ). We order vectors such that a1 > a2 if the
+first coordinate i, for which entry of the two vectors is not equal is a1               2
+                                                                                i > ai . The ordering of
+the vectors implies an ordering of the boxes by their characteristic vectors. Let C k be the set
+                                                                             -a
+of hyper-cubes constructed as described above with side length b2             k  covering [a, b)n+m . Let
+p : Rn+m  Rn be the projection.
+     Now we define fk :    as follows. Select x   find all cubes in C  C k with x  p(C )
+and C  E = . We denote these cubes as Cx . We call x1 , x2   equivalent if and only if
+Cx1 = Cx2 . In this way  is partitioned into finitely many equivalence classes. By (49) Cx is
+not empty. If more than one cube is in Cx chose C , the highest one in the sense of the ordering
+defined above. We select an arbitrary vector v  C  E and set fk (x ) := (vn+1 , vn+2 , .., vn+m )
+for all x equivalent to x.
+     fk () is finite. And each element of fk () has as a preimage the intersection of  with
+a finite number of n dimensional cubes. Because  is measurable (because of compactness)
+and the n dimensional cube are measurable, fk is a measurable function. Note fk does not
+have property (50).
+     We now want to show pointwise convergence for (fk )kN . We fix x   and have a sequence
+(xk , y k ) = (x, fk (x)) in  × . Because  ×  is compact, (xk , y k ) has a convergent sub-
+sequence (xkz , y kz ) with limit (x , y  ). Let ||v || be the maximum norm of a vector v  Rn+m .
+Assume (x , y  )  E , then inf {||(x , y  ) - e|| : e  E } := > 0 because E is compact. Now
+we can choose z (and thereby k ) such that the side length of the cube is 2 . Then the cube
+containing (x , y  ) does not contain any e  E . A contradiction of the way fk is constructed.
+
+                                                      2
+Now assume that (xk , y k ) has subsequence converging to point (~      x , y
+                                                                            ~ ) = (x , y  ). Without
+loss of generality assume (~   x , y
+                                   ~ ) < (x , y  ). Let i be the first index of y in which the two
+                                                                
+vectors don't equal. We have y      ~i  < yi . Therefore |y
+                                                          ~i - yi | =: > 0. Now we can choose a
+threshold K such that for any k > K the side length of the cube is less then 2 . Then for all
+k > K the cube containing (~      x , y~ ) and the cube containing (x , y  ), do not intersect. The
+cube containing (x , y  ) is higher in the ordering then the cube containing (~   x , y
+                                                                                      ~ ). Therefore
+for all k > K (xk , y k ) is not in a 2 environment of (~ x , y
+                                                              ~ ). A contradiction to another limit
+of the sequence. This shows the pointwise convergence for (fk )kN . The limit function we
+denote with f  .
+    For a sequence of measurable functions, which converges pointwise, the limit function is
+also measurable Werner (2012). f  is measurable and satisfies condition (50).
+
+Proof of Theorem 1.1
+
+Now we are ready to prove the result stated in the main text.
+    For a z  Zn we define a function rz : [z1 , z1 + 1] × ... × [zn , zn + 1]  , which assigns
+to each taste shock in the hyper cube [z, z + 1] a NE. According to Lemma A.1 and Lemma
+A.2 and the fact that g from above is measurable we can define rz such that it is measurable.
+                              n
+We now define r ¯z : Rn  RN 2 with r  ¯z (x) = rz (x) if x  [z, z + 1) and r ¯z (x) = 0 otherwise.
+Let r : Rn   with
+                                      r(x) =        ¯z (x)
+                                                    r                                        (51)
+                                                z Zn
+
+Note in equation (51) we sum over a countable set and and the sum converges absolutely for
+each x. Therefore r is measurable; specifically it is a measurable function which assigns to
+each taste shock to a NE. Let hd :   [0, 1] be the function which assigns to every mixed
+strategy the probability of d by multiplying the mixed strategies weights corresponding to d.
+Since multiplication is a measurable operation hG is measurable. N (d, ·; ) := hd  r satisfies
+the desired properties.
+
+
+A.2     Optimal test statistic proofs
+Preliminary results
+
+Lemma A.3. Any differentiable function f  O ( 2 ) with f (0) = 0 has a derivative of zero
+at point zero.
+
+Proof. For f  O ( 2 ) we have, for some C > 0 and         > 0, that
+
+                                          |f ( )| < C 2                                        (52)
+
+                                                 3
+for all   [- , ]. The derivative of f at  = 0 equals
+
+                                         f ( ) - f (0)       f ( )
+                             f (0) = lim               = lim       ,                         (53)
+                                       0                  0 
+
+
+with the second equality because f (0) = 0. As   0, we will have  < so that
+
+                                        f ( )      C 2
+                            f (0) = lim        lim     = lim C                               (54)
+                                       0        0         0
+
+
+which goes to zero as   0 as claimed.
+
+Proof of Theorem 2.1 (i.e., derivation of the form of the locally best test statistic)
+
+We begin with the likelihood decomposition (35) given in the main text. The number of
+summands in (35) depends on the partition that sij (d) induces on R. For a positive  , the
+number neither depends on the exact value of  , nor on the other covariates and parameters.
+Intuitively, as long as  is positive, there is a positive probability that U falls in any combi-
+nation of buckets. The number of summands in (35) is typically large. The buckets b of Bn
+and the function N depend on  .
+   We have that
+
+                     P (d; , N )   
+                                 =                     N (d, u; ) fU (u) du
+                                            bBn   ub
+
+                                            
+                                  =                   N (d, u; ) fU (u) du,
+                                      bBn
+                                               ub
+
+
+The switching of summation and derivative operator is possible because the number of sum-
+mands does not depend on  . We could try to take the derivative of each summands integral
+boundaries and of N (d, .; ). But there is no need to boil the ocean, because regardless of
+N (d, .; ) most of the summands are 0. To show this we consider three cases of summands.
+
+Case 1: more than two buckets in B are inner buckets
+
+Recall that the boldface subscripts i = 1, 2, . . . index the n = N (N - 1) directed dyads in
+arbitrary order. Consider a set of buckets b where two or more of them are inner buckets.
+Without loss of generality assume that the L  2 inner buckets correspond to b1 , . . . , bL
+of b = (b1 , . . . , bn ). The shape of the lth bucket is (sl ,  s
+                                                                 ¯l ] with sl < s
+                                                                                ¯l coinciding with
+the bucket borders induced by the precise form of strategic interaction specified under the
+alternative. We normalize the dyad-specific systematic utility component µij = 0 without
+
+
+                                                  4
+loss of generality.
+    Recall that B~ n is the set of bucket configurations with two or more inner buckets. For
+any b  B  ~ n we can derive the upper bound:
+
+
+
+         N (d, u; ) fU (u) du =        N (d, u; )           fU (ui ) du
+    ub                            ub                  i
+                                  s1                           sL
+                                       fU (u1 ) × · · · ×           fU (uL )             fU-L (u-L ) du
+                                  s1                         sL                u-L b-L
+                                  s1                         sL
+                             <         fU (u1 ) × · · · ×           fU (uL ) du1 · · · duL
+                                  s1                         sL
+                                  s1                 sL
+                             <         1 × ··· ×            1du1 · · · duL
+                                  s1                 sL
+
+                             =  L (s1 - s1 ) × · · · × (sL - sL )
+
+where u-L denotes the vector u after removal of its first L components and similarly for
+b-L . The first equality follows from independence of the components of u, the second (weak)
+inequality from the fact that N (d, u; )  1 for all u  U. The third (strict) inequality
+follows because fU-L (u-L ) is a density and the integration is not over all of Rn-L . The
+fourth (strict) inequality arises because when fU (u) is the logistic density we have that
+fU (u) = FU (u) [1 - FU (u)] < 1 for all u on a compact interval of the real line. We conclude
+that any summand where b has two or more inner buckets is O ( 2 ) for   0.
+    We have, directly from this argument, that Q (d; , N )  O ( 2 ) and furthermore that
+Q d; (0,  ) , N = 0 (since inner buckets have zero probability when  = 0). Hence, by
+Lemma A.3, we have that
+                                     Q (d; , N )
+                                                      = 0.
+                                                   =0
+
+This is enough to show equation (40) of the main text. This simplification is essential to
+the overall result, as it allows us to proceed without knowing any details about the form
+of the equilibrium selection rule N when U takes values which admit multiple equilibrium
+networks.
+
+Case 2: No bucket in b is an inner bucket (i.e., all buckets are outer buckets)
+
+If all components of u fall in either their first or last buckets, then the network is uniquely
+defined. This occurs because agent-level preferences for forming (or not forming) a link are
+so strong that they do not depend on the presence or absence of other links in the network.
+
+
+                                                 5
+Each agent i either prefers to send a link to j, regardless of the actions taken by others, or
+does not wish to send a link. Put differently, each agent has a pure link formation strategy
+which is strictly dominating in such games; therefore N (d, u; ) is either zero or one.
+    For a particular network d, N (d, u; ) = 1 if, for all (directed) dyads ij such that dij = 1,
+we have that uij falls in the first bucket and for all dyads ij such that dij = 0 we have that
+uij falls in the last bucket. These considerations give the equality
+
+                                                                           dij                              1-dij
+                                                 µij +s                           
+         N (d, u; ) fU (u) du =                           fU (uij ) duij                   fU (uij ) duij           (55)
+    ub                                i=j       -                                µij + s
+                                                                                       ¯
+
+                                =                                             ¯)]1-dij
+                                            [FU (µij + s)]dij [1 - FU (µij +  s                                     (56)
+                                      i=j
+
+
+Taking logarithms of the expression above, differentiating with respect to  , evaluating at
+ = 0, and multiplying by P0 (d;  ) yields a derivative for summands where all buckets in b
+are outer buckets of
+
+                                                fU (µij )                  fU (µij )
+                    P0 (d;  )           dij s             - (1 - dij ) s
+                                                                       ¯               .                            (57)
+                                i=j
+                                                FU (µij )                1 - FU (µij )
+
+Case 3: Exactly one bucket in b is an inner bucket
+
+If all but one component of u falls into its first or last bucket, then the resulting network is
+uniquely defined except for the presence or absence of one arc, say, ij . For any such draw of
+u, since all other links are formed according to a strictly dominating strategy, player i will
+either benefit from forming the ij arc or not. Hence N (d, u; ) is also either zero or one in
+this case.
+    For a particular network d, N (d, u; ) will equal one if two conditions hold. First, for
+all directed dyads kl = ij such that dkl = 1 we have that ukl falls in the first bucket and for
+all dyads kl = ij such that dkl = 0 we have that ukl falls in the last bucket. Second, for the
+dyad ij with uij falling in an inner bucket, we require that if uij  [µij + s, µkl + sij (d))
+that dij = 1, while if uij = [µkl + sij (d) , µij +  s ¯) we require that dij = 0. The overall
+
+
+
+
+                                                            6
+likelihood contribution for this case therefore equals:
+
+                                                     µkl +s                    dkl                                  1-dkl
+       N (d, u; ) fU (u) du =                                 fU (ukl ) dukl                       fU (ukl ) dukl
+  ub                                      kl=ij     -                                    µkl + s
+                                                                                               ¯
+                                                                                   dij                                      1-dij
+                                                   µij +sij (d)                              µij + s
+                                                                                                   ¯
+                                          ×                       fU (uij ) duij                           fU (uij ) duij
+                                                  µij +s                                   µij +sij (d)
+
+                                      =                                             ¯)]1-dkl
+                                                  [FU (µkl + s)]dkl [1 - FU (µkl +  s
+                                          kl=ij
+
+                                          × [FU (µij + sij (d)) - FU (µij + s)]dij
+                                                        ¯) - FU (µij + sij (d))]1-dij .
+                                          × [FU (µij +  s
+
+Recall the restriction sij (d) = sij (d - ij ) = sij (d + ij ). Because the last two terms in [·]
+in the expression above are zero at  = 0 we only need to consider their derivative (by the
+product rule the other term equals zero at  = 0). Differentiating the last two terms with
+respect to  (and multiplying by the balance of preceding terms) yields
+
+                                                                      ¯)]1-dkl
+                                    [FU (µkl + s)]dkl [1 - FU (µkl +  s
+                            kl=ij
+
+                            × [sij (d) fU (µij + sij (d)) - sfU (µij + s)]dij
+                            × [¯           ¯) - sij (d) fU (µij + sij (d))]1-dij
+                               sfU (µij +  s
+                        =                                           ¯)]1-dij
+                                  [FU (µij + s)]dij [1 - FU (µij +  s
+                            i=j
+                                                                                                   dij
+                                            fU (µij + sij (d))    fU (µij + s)
+                            × sij (d)                          -s
+                                              FU (µij + s)        FU (µij + s)
+                                                                                                   1-dij
+                                    fU (µij +  s
+                                               ¯)           fU (µij + sij (d))
+                            × s
+                              ¯                   - sij (d)                                                .
+                                    FU (µij +  s
+                                               ¯)             FU (µij +  s¯)
+
+Summing this expression over all potential arcs (and evaluating at  = 0) gives a total
+contribution of "one inner bucket in b" summands to the derivative of:
+
+                                    fU (µij )    fU (µij )
+  P0 (d;  )         dij sij (d)               -s
+              i=j
+                                    FU (µij )    FU (µij )
+                                                                                   fU (µij )           fU (µij )
+                                                               + (1 - dij ) s
+                                                                            ¯                - sij (d)           . (58)
+                                                                                   FU (µij )           FU (µij )
+
+Summing (55) and (58) then gives the expression in the statement of Theorem 2.1. Using
+similar methods we can show that P (d; ) can be differentiated with respect to  twice as
+
+
+                                                                  7
+claimed.
+
+
+A.3      MCMC Proofs
+Proof of Lemma 3.1
+
+Let AG,G be the set of arcs form the node vG to the node vG . We construct a bijection
+ : AG,G  AG ,G . Then we show that the probability of an arc p(a) is equal to p((a)). If
+that is proven, the probability of a transition form vG to vG is
+
+                                                p(a) =              p((a))
+                                     aAG   ,G            aAG   ,G
+
+
+                                                    =                           p(a )
+                                                         -1 (a )AG         ,G
+
+
+                                                    =                      p(a )
+                                                         a (AG      ,G )
+
+
+                                                    =               p(a )
+                                                         a AG,G
+
+
+which is the probability for a transition from vG to vG .
+For the construction of the bijection consider that every arc AG,G corresponds uniquely to
+a schlaufen-sequence R = (R1 , .., Rh ). Let Rk = (i1 , .., im , .., il ) with im the start of the
+cycle (if there is no cycle in R, we set R = R   ¯ ). We define R
+                                                                ¯ k = (i1 , .., im , il-1 , ..im+1 , il ) and
+R¯ = (R¯ 1 , .., R
+                 ¯ h ).
+    Note that the R1 , .., Rh are link disjoint and as soon as the cycle of Rk is switched R             ¯ k is
+a schlaufe. The violation matrix of R   ¯ k is the negative violation matrix of Rk . This implies
+that if R is a feasible schlaufen sequence for G which defined a arc in AG,G then R                   ¯ is a
+feasible schlaufen-sequence for G and defines an arc AG ,G .
+
+    We define now  as the function which maps the arc in AG,G with schlaufen sequence R
+to the arc in AG ,G with schlaufen sequence R      ¯ . By construction  is injective, which implies
+|AG,G |  |AG ,G |. By symmetry we conclude |AG ,G |  |AG,G |, which implies |AG ,G | =
+|AG ,G | and that  is bijective.
+    It remains to show that the probability of an arc p(a) is equal to p((a)). For any node
+there are equally many feasible active / passive outlinks in G as in G . If for a node one
+outlink is marked due to an link in Rk then for the same node one outlink is marked in R        ¯k .
+Therefore is rGk (i) equal to rGk (i) for an active as well as a passive step. Looking at equation
+(44) the pGk (Rk ) is only different to pGk (R¯ k ) in the numbering of the factors. But in a cycle
+
+
+                                                         8
+of a schlaufe the start node im and the end node il are such that m - l mod 2 = 0. The
+reordering leaves even indexes even and odd indexes odd. Therefore pG (Rk ) = pG (R¯ k ). From
+                                                    ¯ ) which completes the proof.
+equation (45) it follows directly that pG (R) = pG (R
+
+Proof of Lemma 3.2
+
+The symmetric difference of two realizations of Gs,m , which we denote by G and G is a set of
+alternating cycles. Cycles are in particular schlaufen. We order them arbitrary (R1 , .., Rh ).
+The sum of the violation matrices is 0. Therefore (R1 , .., Rh ) is either a feasible schlaufen-
+sequence or a concatenation of feasible schlaufen-sequences. In the first case there is an arc
+from vG to vG . In the second case, all the feasible schlaufen-sequence define an arc to a new
+node, resulting in a directed path starting at vG and ending in vG . Thus between any two
+vertexes in  there is a directed path.
+
+Proof of Theorem 3.3
+
+Every time the Algorithm 1 arrives at step 2 a new arc is crossed. At step 2 the algorithm
+follows a loop arc of type 1 with probability q (here "refers" to the numbered points used
+to describe the state graph in the main text). Others it proceeds to step 3. In step 3 a
+schlaufen-sequence R is constructed. If the violation matrices of this schlaufen-sequence sum
+up to 0, the in it cycles are switched and an arc of type 2 is followed with probability pG (R).
+If the violation matrices do not sum up to 0, then an arc of type 3 is followed. All the cases,
+in which the violation matrices don't sum up to 0, correspond to the residual probability.
+Therefore Algorithm 1 is a a random walk on the state graph .
+    According to lemma 3.1  is (weighted) symmetric and according to lemma 3.2 it is
+strongly connected. Due to the self-loops,  is not bipartite. Therefore the limit distribution
+is uniform.
+
+
+
+
+                                               9
+
