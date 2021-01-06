@@ -1,0 +1,2583 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+   INFERENCE ON RISK PREMIA IN CONTINUOUS-TIME ASSET PRICING MODELS
+
+                                       Yacine Aït-Sahalia
+                                          Jean Jacod
+                                         Dacheng Xiu
+
+                                       Working Paper 28140
+                               http://www.nber.org/papers/w28140
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                   November 2020
+
+
+
+
+The views expressed herein are those of the authors and do not necessarily reflect the views of the
+National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Yacine Aït-Sahalia, Jean Jacod, and Dacheng Xiu. All rights reserved. Short sections
+of text, not to exceed two paragraphs, may be quoted without explicit permission provided that
+full credit, including © notice, is given to the source.
+Inference on Risk Premia in Continuous-Time Asset Pricing Models
+Yacine Aït-Sahalia, Jean Jacod, and Dacheng Xiu
+NBER Working Paper No. 28140
+November 2020
+JEL No. C51,C52,C58,G12
+
+                                           ABSTRACT
+
+We develop and implement asymptotic theory to conduct inference on continuous-time asset
+pricing models using individual equity returns sampled at high frequencies over an increasing
+time horizon. We study the identification and estimation of risk premia for the continuous and
+jump components of risks. Our results generalize the Fama-MacBeth two-pass regression
+approach from the classical discrete-time factor setting to a continuous-time factor model with
+general dynamics for the factors, idiosyncratic components and factor loadings, while accounting
+for the fact that the inputs of the second-pass regression are themselves estimated in the first pass.
+
+
+Yacine Aït-Sahalia                                Dacheng Xiu
+Department of Economics                           Booth School of Business
+Bendheim Center for Finance                       University of Chicago
+Princeton University                              5807 South Woodlaswn Avenue
+Princeton, NJ 08540                               Chicago, IL 60637
+and NBER                                          dachxiu@chicagobooth.edu
+yacine@princeton.edu
+
+Jean Jacod
+Institut de Mathématiques de Jussieu
+CNRS UMR 7586
+Université P. et M. Curie (Paris-6)
+jean.jacod@gmail.com
+1       Introduction
+Factor models have been extensively employed to represent the cross-section of equity
+returns since the beginning of the empirical asset pricing literature. The two-pass re-
+gression approach of Fama and MacBeth (1973) is the standard inference method for
+such models. The first pass estimates individual factor loadings by regressing the time
+series of their returns onto the factors. In the second pass, the cross-section of average
+returns is regressed on the previously estimated loadings in order to estimate each factor's
+risk premium. While many refinements have been implemented over the years, the basic
+structure of the inference procedure for factor models remains largely unchanged.
+    Nonetheless, a simple discrete-time factor model is inadequate in two important ways.
+First, economic factors have complex dynamics, such as stochastic volatility and jumps,
+and moreover individual equity returns respond to these factors with time-varying risk
+exposures (or "betas"). Second, it is natural to expect that risk exposures to these dis-
+similar risk components are rewarded differently: for instance, investors can be expected
+to demand different premia for bearing the tail risks of systemic factors, see, e.g., mo-
+mentum crashes in Daniel and Moskowitz (2016). Standard discrete-time factor models
+do not capture this finer structure of factor dynamics, risk exposures, and consequently
+of risk premia.1
+    Continuous-time models with high frequency observations are well understood by now
+to be useful in addressing the first issue, namely estimating factor loadings in richer
+models.2 However, the second issue, estimating risk premia, requires an expansive time
+    1
+      The literature has long been aware of the fact that individual equity returns feature time-varying
+risk exposures and rewards, dating back to as early as Rosenberg (1974), which prompted extensions
+of the baseline unconditional factor model to a conditional version. Gagliardini, Ossola, and Scaillet
+(2016) uses one characteristic and two common time-series variables to model these risk exposures and
+premia. Kelly, Pruitt, and Su (2019) investigate a list of 36 characteristics and provide evidence that these
+asset characteristics proxy for time-varying exposures to unobservable risk factors. Gu, Kelly, and Xiu
+(2019) model these risk exposures as nonlinear neural network functions of almost 100 characteristics. All
+these papers tackle the curse of dimensionality by imposing additional parametric assumptions. Raponi,
+Robotti, and Zaffaroni (2019) estimate risk premia in a linear factor model on a sequence of moving
+windows. Their asymptotic analysis allows for a small (and fixed) time window, but requires an increasing
+cross-section.
+    2
+      The first pass regression is a continuous-time regression model, which can be estimated using a
+realized beta estimator, as the ratio of realized covariance to realized variance (see Barndorff-Nielsen and
+Shephard (2004) and Andersen, Bollerslev, Diebold, and Wu (2005)). These papers do not allow for
+jumps, and the implicit regression model has constant betas over the time interval considered. Todorov
+and Bollerslev (2010) also investigate a univariate model, but allow the continuous and jump betas to
+differ. Li, Todorov, and Tauchen (2017) study a regression model but focus only on the jump components.
+A¨it-Sahalia and Xiu (2017) estimate a latent factor model for a large cross-section of equity returns (see
+also, Pelger (2019)), and use it to construct a large covariance matrix. In contrast to all these models
+                                                     2
+span, and consequently different tools. Although the two forms of asymptotics have been
+employed jointly in other contexts, such as estimating diffusion models (see Bandi and
+Phillips (2003)), they have not been combined to analyze two-pass regressions. Yet, such
+a combination is essential if we are to estimate risk premia in a model where factors
+have dynamics that possibly include stochastic volatility and jumps and where factor
+sensitivities are themselves stochastic.
+    So we develop in this paper a two-pass inference procedure for continuous-time factor
+models in a general setting, relying on both an increasing sampling frequency and an
+increasing time span. This development requires new assumptions and asymptotic results
+that have not yet been employed in the literature. The results we provide generalize
+the Fama-MacBeth two-pass regression approach to a continuous-time factor model with
+general dynamics for the factors, idiosyncratic components and factor loadings, including
+a proper accounting of the fact that the inputs of the second-pass regression are themselves
+estimated in the first pass.
+    The importance of the latter point was originally made in the classical discrete-time
+setting by Shanken (1992), who provided the first rigorous analysis of the asymptotic be-
+havior of the two-pass regression for unconditional discrete-time factor models, when tak-
+ing into account the first pass estimation error in the betas of test assets. In a continuous-
+time setting, Bollerslev, Li, and Todorov (2016) compute risk premia with respect to both
+the continuous and the jump components of market risk as a single factor, using cross-
+sectional regressions of high frequency beta estimates, but does so as if the betas were
+perfectly observed. By contrast, we provide inference for the risk premia in the second-
+pass regressions, while also allowing for multiple factors and stochastic betas in the first
+stage, and treat the betas in the second pass as components that were estimated in the
+first pass. Ang and Kristensen (2012) and Chang, Choi, Kim, and Park (2016) develop
+tests of alphas using nonparametric and parametric time-series regressions, respectively.
+Their tests cannot be used to distinguish different components of risk premia, however,
+and are only applicable to tradable factors. In addition, their model specification does not
+allow for jumps, and requires restrictive assumptions such as the existence of a specific
+time change that homogenizes the diffusion processes. Our approach is therefore the first
+that assume a constant beta, Mykland and Zhang (2006) show how to perform ANOVA for a univariate
+regression model with a time-varying coefficient, and A¨   it-Sahalia, Kalnina, and Xiu (2020) estimate a
+multivariate regression model with time-varying continuous and jump betas, see also Li, Todorov, and
+Tauchen (2016). Reiß, Todorov, and Tauchen (2015) propose a nonparametric test for the null hypothesis
+of constant beta in a bivariate setting. All these papers rely on high frequency asymptotics only, in which
+an increasing number of observations is sampled within a fixed sample period.
+
+                                                    3
+complete counterpart to the Fama-MacBeth two-pass approach, in a general continuous-
+time model, combining high frequency and long span asymptotics, and one that is robust
+to the Shanken (1992) critique.
+    When we implement our approach on a large universe of intraday individual stock
+returns, we find that a statistically and economically significant part of the market equity
+premia are earned because of exposures to the market's jump risk component, that various
+jump risks in Fama-French and momentum factors supersede their continuous counter-
+parts as the primary pricing factors, and that augmenting Fama-French factor models
+with jump risks increases the explanatory portion of the cross-section of expected returns
+in the second pass.
+    The paper is organized as follows. Section 2 formulates the general continuous-time
+factor model we will seek to estimate. Section 3 constructs the estimators and derives their
+properties. Section 4 examines their small sample properties. We estimate empirically the
+model on a large cross-section of U.S. equities in Section 5. Section 6 concludes. Proofs
+are in the Appendix.
+
+
+2     A Continuous-Time Factor Model
+We have an economy with a risk free asset and M risky assets, which are each driven by
+K common factors and an idiosyncratic component. All factors and prices are stochastic
+processes defined on some filtered probability space (, F , (Ft )t0 , P). We let Mp,q denote
+the set of all p × q matrices and M+  p the class of all symmetric nonnegative elements of
+Mp,p . For any matrix A  Mp,q we denote as A its transpose and A its operator norm.
+When A  M+      p , we denote as  (A) its smallest eigenvalue, so A is invertible if and only
+ (A) > 0, in which case A-1 = 1/ (A). The p × p identity matrix is denoted by Ip . We
+write xn yn for two sequences of positive numbers if both sequences xn /yn and yn /xn
+are bounded.
+
+
+2.1    Factors
+The factors are driven by a K ­dimensional Brownian motion W F and a Poisson random
+measure =p F on R+ × E (for some Polish space E , which can be for example E = RK ) with
+intensity (or, compensating) measure =q (dt, dz ) = dt   (dz ) with  a  -finite measure on
+E . The model is set up as usual in terms of log-prices and log-factors. The dynamics of
+
+                                             4
+the vector of log-factors F = (F 1 , . . . , F K ) are as follows:3
+                                               t
+                       Ft = F0 +                   µF        C    J
+                                                    s ds + Ft + Ft ,                                                 (1)
+                                           0
+                                     t                                    t
+                      FtC =              F
+                                         s dWsF ,        FtJ =                      F (s, z ) =
+                                                                                              p F (ds, dz ).         (2)
+                                 0                                    0        E
+
+    The M log-prices are driven by the factors above, plus (possibly) some idiosyncratic
+part, according to the model described in the next section. However, it is useful to specify
+right away that we are interested in the risk premia, which are a kind of assessment of the
+global exposure of all prices to the various "risks" associated with the factors, which we
+now discuss. For any factor F k the risks are of two types: the "continuous risk" associated
+with the continuous part FtC,k , and the "jump risk" associated with the jumps of F k , with
+itself a priori two components: the times at which those jumps occur, and their sizes. So
+one might say that we have a jump risk (repeatedly occurring at some random times) for
+each possible jump size x.
+    With this interpretation, and unless the set of possible jump sizes is finite (a very
+special model, most likely to be empirically inadequate) the number of distinct risks is
+infinite, and evaluating the risk premia is of course an impossible task for two main
+reasons: first one has a large but finite number M of prices from which one typically
+cannot deduce an infinite number of risk premia; second, the data over a finite time span
+[0, T ] give no information about the risk premia corresponding to jump sizes of F k that
+did not occur within [0, T ], although such jump sizes could occur after time T , so that
+the predictive value of our inference is absent in this case.
+                                                                            k            k
+    One way to overcome this problem is to introduce a finite partition B0    , . . . , BL k
+                                                                                             of R,
+              k                                         k                         k
+with each Bj    a non-empty interval and with either B0   = R (so Lk = 0) or B0      = [-ak , ak ]
+for a nonnegative real ak (so Lk  1). We define the partial jump processes
+                                                                                                     Lk
+                   FtJ,k,l   =           Fsk       1Blk (Fsk ),               hence      FtJ,k   =         FtJ,k,l   (3)
+                                 st                                                                  l=0
+
+
+with the usual notation Ftk = Ftk - Ftk                               k
+                                           - for the jump size of F at time t. Then, with
+F k , we associate Lk + 1 distinct factors of risk which are F J,k,l for l = 1, . . . , Lk and F k
+   3
+     Here, F0 is F0 ­measurable, µF = µF                      K
+                                           s ( ) is optional R ­valued, 
+                                                                           F
+                                                                              = s F
+                                                                                    ( ) is optional MK,K ­
+valued,  F =  F (, s, z ) is predictable RK ­valued. Those coefficients satisfy Assumption 1 below, which
+in particular ensures that the various integrals above are meaningful.
+
+
+
+                                                                  5
+given by:
+                                           F k = F C + F J,k,0 .                                                 (4)
+
+    This approach allows for some flexibility. Considering a given factor F k , on one end
+of the spectrum, if Lk = 0, one considers the whole of F k as a "single" risk factor. On
+the other end, if Lk  1 and ak = 0 the risk factors are the continuous one F C,k and
+the purely discontinuous ones F J,k,l . In the middle, if Lk  1 and ak > 0, the risk factor
+F k contains the continuous part of F and its "small" jumps, to which the prices respond
+in the same way (i.e., the same beta), whereas the response of prices to the risk factors
+F J,k,l for 1  l  Lk are (possibly) different. Put another way, we can consider that, with
+H= K                                                               k
+          k=1 Lk , we really have K + H risk factors, namely the F 's and the F
+                                                                                J,k,l
+                                                                                      's, to each
+of which individual assets are exposed. It is therefore convenient to stack all pure jump
+factors in a single H -dimensional vector F t . Specifically, we stack F t and the associated
+Blk according to the following rule (with an empty sum taken to be 0 below):
+                                   h                                         h     k(h)
+                                F = F J,k(h),l(h) ,                     B = Bl(h)
+                                                        j -1                       j -1              j           (5)
+              where k (h) = j, l(h) = h -                      Li   when                  Li < h          Li .
+                                                        i=1                        i=1              i=1
+
+We should emphasize that what is observable is the K -dimensional log-factor process
+F , whereas the risk factors, which are the components of F and F as given above, are
+typically not separately observable and our econometric procedure will account for this.
+
+
+2.2     Asset Prices
+For the log-prices, we assume a factor model: each log-price is the sum of a linear response4
+to each of the risk factors specified above, plus an idiosyncratic part. The dynamics of
+the log-prices vector P = (P 1 , . . . , P M ) is then, in matrix notation,
+                                                t                       t
+                                                    C                       J
+                             P t = P0 +             s   dF s +              s dF s + PtI ,                       (6)
+                                            0                       0
+
+        C       J
+where t   and t   are predictable processes, with values in MM,K and MM,H , respectively
+(quite often in the literature these processes are assumed to be simply constants), and
+   4
+      The linear relationship between the price and the factors in a continuous-time factor model is only
+local or instantaneous -- unlike discrete-time models, Pt can be a highly nonlinear function of Ft , F t and
+PtI .
+
+
+
+                                                          6
+the idiosyncratic part P I is
+                                       t                        t                         t
+                         PtI   =           µI
+                                            s   ds +                I
+                                                                    s   dWsI    +                             p I (ds, dz ),
+                                                                                                    I (s, z ) =                               (7)
+                                   0                        0                         0       E
+
+with W I an M ­dimensional Brownian motion and =       p I a Poisson random measure with the
+same intensity = q as is (1) (the latter is not a restriction). To ensure that this is really
+an idiosyncratic part we assume that (W I , =  p I ) and (W F , =
+                                                                p F ) are independent.5 In the
+                                                        C        J
+sequel, it is convenient to stack the two matrices t       and t    into a single M × (K + H )
+matrix by setting
+                                                C    J
+                                        t = t     , t  .                                   (8)
+
+   Moreover, the risk free asset (whose log-price Pt0 is not included into the vector Pt
+above) satisfies, with rt an optional process:
+                                                                                t
+                                                                    Pt0 =           rs ds.                                                    (9)
+                                                                            0
+
+    A critical matter which is largely irrelevant in a high frequency setting with a finite
+time span, but becomes essential over a long time horizon, is the issue of survivorship:
+existing individual stocks typically have a finite lifetime for reasons such as bankruptcy,
+mergers, acquisitions, etc., while new stocks appear after the beginning of the sample as
+well. Stocks are not necessarily active over the whole interval of observation [0, Tn ], unlike
+the common factors which are present at all times. We model this as follows. We do not
+require that the initial observation P0 in (6) be F0 -measurable. Stock m enters the market
+at some (possibly random) finite time m (with the convention m = 0 if it is present at
+time 0) and disappears at another random time m > m , which may be before or after
+Tn . The time interval in which the stock is "active" is Lm = (m , m ). In our empirical
+application below, for over three quarters of the stocks the interval Lm is strictly included
+in [0, Tn ].
+    As a result, (6) for a particular component m describes the dynamics of the log-price
+P m over the time interval [m , m ] only. Equivalently, writing this equation component-
+wise, we have
+                                                K                                      H                              h
+                                                        t                                      t
+                     Ptm = Pm
+                            m
+                              +                        0
+                                                            C,m,k
+                                                            s     dFsk +                      0
+                                                                                                   J,m,h
+                                                                                                   s     dF s + PtI,m ,
+                                                k=1                                   h=1
+                                                  M                                                                                          (10)
+                           t                                 t                                       t
+             PtI,m   =    0
+                               µI,m
+                                s     ds +                  0
+                                                                 I,m,m
+                                                                 s          dWsI,m            +     0    E
+                                                                                                                I,m           I
+                                                                                                                      (s, z ) =
+                                                                                                                              p (ds, dz ),
+                                                m =1
+  5
+      As above, µI is optional R-valued,  I is optional MM,M ­valued and  I is predictable RM ­valued.
+                                                                            7
+       C,m,k    J,m,h
+with s       = s      = µI,m
+                         s   = s I,m,m
+                                       =  I,m (s, z ) = 0 for all s / Lm , and where m , m
+are stopping times and Pm  m
+                             is Fm -measurable. Thus Ptm equals Pm     m
+                                                                         for t  m and Pm m
+
+for t  m , but those are spurious prices added for mathematical convenience and not
+used in the estimation procedure below.
+
+
+2.3     Risk Premia
+Risk premia are associated with the structure of the drifts of the log-price processes P m ,
+or rather their excess drift from which we have subtracted rt . Note that µI in (10) is not
+                                                               t
+the true drift of P , which is the process µt such that Pt - 0 µs ds is a martingale. The
+true drift process µ is connected with µI and the various coefficients in (1) and (10) as
+follows:
+                                          K
+                         I,m                        C,m,k F,k
+                   µm
+                    t = µt   +                      t     (t, z )1B0
+                                                                   k (
+                                                                       F,k
+                                                                           (t, z ))  (dz )
+                                          k=1   E
+                                K   Lk
+                                          J,m,l F,k
+                            +             t     (t, z )1Blk ( F,k (t, z ))  (dz ).                                       (11)
+                                k=1 l=1
+
+   What is commonly called risk premia is in connection with a no-arbitrage property,
+when the prices have no idiosyncratic part (except for a possible drift, see Ross (1976)),
+and in the case of m = 0 and m =  for all m for simplicity. Consider a portfolio
+                                  t m
+with actualized value Yt = M               m      0
+                             m=1 0 s (dPs - dPs ) at time t, with t a predictable M -
+                                                                           
+dimensional process. Upon using the compensated risk factors F  and F (meaning, for
+example, that F  is a martingale and F - F  is continuous with locally finite variation),
+we then have
+             M         t                            K         t                           H       t
+                                                                                                                 h
+      Yt =                 m   m
+                           s (µs - rs ) ds +                      m C,m,k
+                                                                  s s     dFsk +                      m J,m,h
+                                                                                                      s s     dF s   .
+             m=1   0                                k=1   0                           h=1     0
+
+
+Then, an arbitrage is possible if we can find a process  such that all martingale terms
+above vanish, but the drift part does not. A contrario, the no-arbitrage property implies
+the following (for Lebesgue-almost all t, hence for all t if we use a proper version for µt
+and rt ), in matrix notation (recall (8)) and with rt the M -dimensional vector with all
+components equal to rt :
+
+                                    t t = 0          =                t (µt - rt ) = 0,
+
+
+                                                                  8
+which in turn implies that µt - rt is equal to t t for some K + H -dimensional vector t ,
+which is the vector of risk premia.
+   Now, we come back to our situation, where each P m may have an idiosyncratic part,
+and also non necessarily trivial birth and death times m and m . In this case, if for all
+m we have
+                                                  K                     H
+                                                        C,m,k C,k             J,m,h J,h
+                 t  Lm =          µm
+                                   t     - rt =         t    t      +         t    t + I,m
+                                                                                        t ,          (12)
+                                                  k=1                   h=1
+
+
+then the (real-valued) process C,k
+                                 t   is called the risk premium process relative to the risk
+                                                               h
+factor F , and t is analogously relative to the risk factor F , and I,m
+         k        J,h
+                                                                       t   is relative to the
+                                           I,m
+idiosyncratic risk (with the convention t = 0 when t       / Lm ).6
+    It will be convenient again to use matrix notation and stack the risk premia C,k and
+J,h as a single (K + H )-dimensional process  with components:
+
+                                            C,l
+                                            t     if 1  l  K
+                                 l
+                                 t   =      J,l-k                                                    (13)
+                                            t     if K < l  K + H,
+                                                I,m
+whereas I
+        t is the vector process with components t , and (12) becomes
+
+
+                          µt - rt = t t + I
+                                          t,                 where rm
+                                                                    t = rt 1Lm (t).                  (14)
+
+   Our main aim in this paper is to estimate the risk premia, on the basis of observations
+on the factors and prices at times in for i = 0, 1, . . . , n, plus the introduction times m ,
+and drop-out times m when they are smaller than the horizon Tn = nn .
+
+
+2.4       Identification
+The discretization problem being addressed in the high-frequency setting n  0, we
+suppose for a while that the processes F and F and all P m and r are fully observed on
+the time interval [0, Tn ], and determine first what we can identify about the risk premia.
+This question presents several aspects.
+   First, only long term time-averages can be estimated. Let us consider the case M =
+K = 1 with the simplistic model (with W a Brownian motion and  a known positive
+  6
+      Of course, I,m
+                 t   is relevant only when the idiosyncratic part of P m does not reduces to a pure drift.
+
+
+
+
+                                                         9
+constant):
+                                                         t
+                    Ft = Wt ,           P t = P0 +            µs ds + Ft ,     rt = 0,
+                                                     0
+
+so It = 0 because P has no idiosyncratic part. Then (14) gives t = µt / . We fully
+observe Pt over [0, Tn ], but there is no consistent estimator for µt . On the other hand,
+ 1                                          T
+   P is an estimator for the average T1n 0 n t dt, with an N (0, 1/Tn ) estimation error.
+Tn Tn
+So in this case only the time-average of t over an interval [0, Tn ] with Tn   can
+be consistently estimated. This is typical for the situation at hand: the risk premia
+being effectively linear functions of the drifts, only time-averages of them can (at best)
+be estimated. Therefore, with the notation
+                            T                                 T                            T
+                    1                            1                                 1
+             C
+             T =                C
+                                t dt,      J
+                                           T =                    J
+                                                                  t dt,      T =               t dt,   (15)
+                    T   0                        T        0                        T   0
+
+we focus our attention to the behavior of those averages for T = Tn  , whereas
+pointwise estimation of t or its components for any fixed t is out of the question.
+    Next, let us return to the definition of the risk premia at time t, as given by (14).
+A natural question is then whether the knowledge of µt , rt , t yields the risk premia t
+and I  t , and the answer is no: indeed, if we choose arbitrarily the vector t , this equation
+trivially gives the vector I    t (no surprise here, since (14) is a system of M linear equations
+with M + K + H unknowns). However, at least when the eigenvalues of the idiosyncratic
+                        I
+diffusion matrix t        are bounded (independently of M ) and M is large, diversification
+arguments suggest that I                                                 I
+                              t vanishes, or at least that its average T is negligible as T  .
+In the first case, (14) is the no-arbitrage condition discussed at the beginning of the section,
+while in the second case it still is a form of asymptotic no-arbitrage condition, which will
+be more precisely stated as Assumption 5 in the next section.
+    Finally, going back again to (14), and since I       t will be negligible, in order to evaluate
+T we need to estimate t as a preliminary step, the first pass regression. Recalling (10)
+                                    C
+and (8), it turns out that t          can be estimated at any time t by using the truncated
+realized covariation process between each P m and F k .
+            J
+    For t     , it is another matter. Indeed, considering for simplicity that H = 1, we
+            m       J,m
+have Pt = t             F t , which (since the jumps of the observed processes are also fairly
+                                                                                   J,m
+accurately estimated at high frequency) gives us a good estimate of t                  at any jump
+                                                                                   J,m
+time t of F . On the other hand, we have simply no way of estimating t for the other
+                                                                           J,m
+values of t at which points no jumps occur. Assuming that t  t                  is smooth does not
+help because the jump times are isolated points. And, unfortunately, to compute J              T we
+
+                                                     10
+need to know (or, have good estimators for) J t for all t  [0, T ].
+   The only way to resolve this problem seems to impose an identification restriction on
+                                    J,m,h
+the jump beta's: namely, that each t      does not depend on t on the set Lm (recall that
+by convention this quantity is 0 when t / Lm ). So we have
+
+                                       J,m,h       J,m,h
+                                       t     =             1Lm (t),                                (16)
+         J,m,h
+where            is a constant.7
+
+
+2.5     Assumptions
+We now state and discuss the various assumptions that will be imposed. Toward this aim,
+we first introduce the following property for a (possibly multidimensional) optional process
+Yt and a random interval L = (R, R ]  (0, ), with R < R two stopping times: there is
+a constant C such that for all s  0 and all finite stopping times S with R < S  R we
+have
+             E(Y(S +s)R - YS | FS )  Cs,         E Y(S +s)R - YS 2 | FS  Cs.            (17)
+
+This holds for example for L = (0, ) (so R = 0 and R = ) and Y an It^  o semimartingale
+with bounded spot characteristics and bounded jumps. Note that, apart from the constant
+C itself, (17) does not depend on the chosen norm, and it holds for a multidimensional
+process as soon as it holds for each of its components.
+   We first make assumptions on the coefficients of the equations defining the factors,
+the idiosyncratic components, and the risk free asset:
+
+Assumption 1. (i) The processes µF          F                                  F    F
+                                     t and t are optional and bounded, and ct = t (t )
+                                                                                      F
+
+is invertible, with a bounded inverse (equivalently,  (cF
+                                                        t ) is bounded away from 0).
+    (ii) The function  F on ×R+ ×E is predictable and there are a Borel bounded function
+ on E and a number   [0, 1) such that  F (, t, z )  (z ) and E (z )  (dz ) < .
+
+Assumption 2. (i) For some  > 0 and each m the times m and (m - )  m are
+stopping times.
+   (ii) The processes µI        I
+                        t and t are optional and bounded and vanishing for t / Lm , the
+function  I is predictable vanishing for t  / Lm and  I (, t, z )  (z ), with  as in
+Assumption 1.
+   (iii) The process rt is optional, bounded, and satisfies (17) on R+ .
+   7
+    It could be, more generally, measurable with respect to Fm , but at this stage assuming that it is a
+constant is not a substantial additional restriction.
+                                                  11
+    These assumptions are standard, except for the uniform boundedness of the coeffi-
+cients, instead of the more usual local boundedness. The boundedness is required here
+since the usual localization procedure does not apply when the time horizon goes to in-
+finity, in the absence of an ergodicity condition. Note also that, instead of the usual
+ -integrability of the function   1 we impose that  is  -integrable and bounded: this
+implies that the jump of F are bounded and, since  < 1, they are (locally) summable.
+(i) of Assumption 2 means that the drop-out time m can be exactly predicted  ahead of
+time, which does not seem too strong a restriction in practice.
+    Next, we need hypotheses on the factor loadings, and also on the splitting of each F J,k
+                                                                            h
+according to (3), (4) and (5). For any two reals ,  > 0 and with B denoting the
+                h
+boundary of B we set
+                   h                     h                           h
+                 B (,  ) = x  B :   |x|   , d(x, B )   .                               (18)
+
+For each m = 1, . . . , M and t > 0 and  > 4 > 0, we put
+                                                                h        h
+            A(,  )m
+                  t = (m , m )                 {s  (0, t] : F s  B (2,  /2)}
+                                     1hH
+                                 N (,  )m
+                                        t =      #(A(,  )m
+                                                         t ),                          (19)
+                 R(m, ,  , t) is the N (,        )m
+                                                  t   × H -matrix with entries
+                               s,h         h
+                  R(m, ,  , t)       =   F s   for s  A(,  )m
+                                                            t , 1  h  H.
+
+With this notation, in addition to Assumptions 1 and 2 we assume the following:
+Assumption 3. In the case H  1 we have P  (R(m, ,  , t) R(m, ,  , t))    1 as
+t  , for each m and some , ,  > 0 (implying P(N (,  )m t  H )  1 as t  ).
+
+    The implication of this assumption is basically that the linear space spanned by all
+jump vectors F s for s  [0, t]  Lm is the whole of RH with a probability going to 1 as
+t  : this is clearly necessary if we want the  J,m,h 's to be uniquely determined by the
+jumps of P m and F . Note that this assumption becomes weaker if  decreases and/or 
+increases.
+    The assumptions on the factor loadings are:
+                                    C
+Assumption 4. (i) The process t       is optional and bounded, and for each m, k the com-
+         C,m,k
+ponent t       vanishes outside Lm and satisfies (17) on the interval Lm .
+                      J                              J,m,h
+   (ii) The process t   is given by (16), with each        being a constant.
+                                        +
+   (iii) With the notation (8), the MK +H -valued process bt = t t is invertible, with a
+bounded inverse (this implies, in particular, that M  K + H ).
+                                             12
+  Finally, the no-arbitrage condition is:
+                                      
+Assumption 5. We have (14), and T I,m
+                                               P
+                                           T  - 0 (convergence in probability) as T 
+                                       1  T I
+, for all m = 1, . . . , M , where I
+                                   T = T 0 t dt.
+
+    One may think that Assumption 5 is very mild, or even always satisfied, since any stock
+                                                                             
+will at the end have a finite lifetime m , whereas I,m
+                                                     t   = 0 for t > m , so 0 I,m
+                                                                                t   dt < .
+                                              Tn I                           
+The assumption requires that the integral 0 t dt is negligible in front of Tn , a property
+that is in principle testable. Of course, if idiosyncratic risk is unpriced (I
+                                                                             t = 0, as often
+assumed in financial models in the setting of Ross (1976)) the assumption will be satisfied,
+but this strong restriction is not required under Assumption 5.
+
+
+3    Estimators
+As already mentioned, throughout we assume n  0 and Tn  , and suppose that
+the observations are not contaminated by noise, so in empirical applications n should
+probably not be smaller than 1 or perhaps 5 minutes. The ith time interval and the ith
+return of any process X at stage n are denoted as
+
+                   Iin = ((i - 1)n , in ],              n
+                                                        i X = Xin - X(i-1)n .
+
+
+    We now construct in stages estimators for the various components of Tn , see (15).
+Note that Tn is a "moving" target, which converges to a limit  under appropriate
+conditions such as a form of ergodicity; but even if this is the case, since the observations
+available say nothing about what happens after time Tn , the only way to estimate 
+when it exists is really to estimate Tn and then make additional assumptions about how
+fast this converges to  . We avoid this extra step here, which permits substantially
+weaker assumptions.
+    We start with some heuristic considerations explaining the construction of the estima-
+tors. This is effectively the Fama-MacBeth two-pass regression procedure adapted to this
+(substantially more general) setting. First, as already seen, we have the decomposition
+                                 t
+                 Pt = P0 +           µs ds + PtMart ,    with P Mart a martingale.      (20)
+                             0
+
+Besides cF   F  F
+         t = t (t ) and bt = t t we define the processes
+
+                                         C F
+                                     t = t ct ,          t = b- 1
+                                                              t t .                     (21)
+                                                   13
+                                                                    +
+Note that the matrix bt is invertible by Assumption 4. We have cF
+                                                                t  MK and t  MM,K
+and bt , b-
+          t
+            1
+               M+
+                K +H and t  MK +H,M . (14) and (20) allow one to write the following
+key formula:
+                                              1                            1         T
+                 T = UT - UT - UT -           T
+                                                  U T , where UT =         T        0
+                                                                                         s dPs ,
+                           T                             T                      t
+                                                                                                   (22)
+                      1                           1
+               UT =   T   0
+                               s rs ds, UT =      T     0
+                                                             s I
+                                                               s ds, U t =     0
+                                                                                    s dPsMart .
+
+    In the above decomposition, UTn and UTn will be estimated and UTn will turn out to be
+negligible. The variable U Tn cannot be estimated, because we do not observe the process
+PtMart . However, one can use a central limit theorem for the local martingale U t as t  ,
+for which its quadratic variation process V plays a central role. The components of this
+quadratic variation are
+                                       M          t
+                           Vtj,j =                    j,m j ,m
+                                                      s  s     d[P m , P m ]s .                    (23)
+                                     m,m =1   0
+
+
+Hence we need to estimate UTn , UTn and VTn , and the procedure requires a number of
+steps. Before starting, we emphasize once more that the estimators may depend on F, P, r,
+but not on F or F .
+   To construct the estimators, we will need three sequences of tuning parameters: two
+sequences un and vn of positive reals, and a sequence qn of positive integers, subject to
+
+                   un     n ,         qn      -
+                                              n ,              vn   log(1/(Tn n )),                (24)
+
+and for some ,           > 0 to be specified later. qn dictates the length of local windows,
+within which we estimates  ; un , as usual in the literature, helps separate jumps from
+continuous components of returns; and finally, vn is introduced to censor exploding matrix
+inverses for better finite sample performance.
+   The procedure is split into a number of steps, and we start by an estimation of the
+spot quantities occurring in (21), and will indeed estimate those at the times iqn n for
+i = 0, . . . , n/qn - 2 only, denoting for example n,i the estimator for iqn n .
+
+
+3.1    Estimation of Jump Loadings
+Since  J only occurs when H  1, we assume this in this part. For any given m we first
+                                            J,m,h
+make a global estimation of the constants (       )1hH , on the basis of the observation
+within [0, Tn ]  Lm . We choose two numbers ,  > 0 (typically  is very small and  is
+                                                       14
+very large), such that Assumption 3 holds with those ,  and some  > 0. Set
+
+                                       m
+           In = {1, . . . , n},       In = {i  In : m  (i - 1)n  m - 2n },                       (25)
+
+and, recalling the notation (18), define the Mn,H ­valued Rn,m , the M+
+                                                                      H ­valued Rn,m , and
+the MH,n ­valued Rn,m , as follows:
+
+                         i,h
+                        Rn,m = n
+                               iF
+                                  k(h)
+                                       1B h (, ) (n
+                                                  iF
+                                                     k(h)
+                                                          ) 1In
+                                                              m (i)
+
+
+                                                (Rn,m )-1 (Rn,m )       if  (Rn,m )  vn          (26)
+      Rn,m = (Rn,m ) Rn,m ,           Rn,m =
+                                                0                       otherwise.
+
+                J        J
+The estimator n,i  for iq  n n
+                               of equation (16) is then defined, component-wise for stock
+m and risk factor h, as
+                               
+                                          h,j
+                                        Rn,m  n
+                                              jP
+                                                 m
+                                                      if iqn n  Lm
+                      J,m,h           m
+                     n,i =        j  In
+                                0                     otherwise.
+
+3.2    Estimation of Continuous Loadings
+The processes cFt and t are spot volatilities or covolatilities, easily estimated by consid-
+ering qn successive returns after time t. Upon truncating for the jumps by using un , we
+estimate the components of cF iqn n by
+
+                              qn
+                        1
+           cF,k,k
+            n,i     =               n       k n      k
+                                    iqn +j F iqn +j F 1{|n         F k |un , |n       k
+                                                                              iqn +j F |un }
+                                                                                             .   (27)
+                      qn n   j =1
+                                                         iq n +j
+
+
+
+
+For iqn n , being aware of the birth and death times of the stocks, we construct the
+estimator as, component-wise,
+                   qn
+                1       n       m   n        k
+            qn n j =1 iqn +j P iqn +j F
+           
+                                                       if m < iqn n  m - qn n
+           
+     m,k
+    n,i  =                                                                      (28)
+                   × 1   n      k       n       m
+                      {|iqn +j F |un , |iqn +j P |un }
+           
+              0                                        otherwise.
+           
+
+          C         -1
+   Since t   = (cF
+                 t ) t one can in principle deduce from the above an estimator for t .
+                                                                                        C
+
+However, although cF                                                        F
+                     t is invertible with a bounded inverse, the estimator cn,i , although
+belonging to M+ K by construction, might be not invertible or might have an unbounded
+inverse. This is why we introduce some additional truncation procedure, based on the
+
+                                                15
+sequence vn and, recalling that  (A) is the smallest eigenvalue of a nonnegative semi-
+                                C
+definite matrix A, we estimate iq n n
+                                      by
+
+                                                    -1
+                               C         n,i (cF
+                                               n,i )   if  (cF
+                                                             n,i ) > 1/vn
+                               n,i =                                                          (29)
+                                         0             otherwise.
+
+   Estimation of  . In view of what precedes, plus (8), the estimator for the MM,K +H -
+valued iqn n and the M+ K +H -valued biqn n are naturally given by
+
+                                      C     J
+                                n,i = n,i , n,i ,       bn,i = (n,i ) n,i ,                   (30)
+
+and the one for iqn n by
+
+                               (bn,i )-1 if  (bn,i ) > 1/vn
+                  b- 1
+                   n,i =                                          n,i = b- 1
+                                                                         n,i (n,i ) .         (31)
+                               0         otherwise,
+
+3.3    Estimation of Risk Premia
+We are now ready to construct the estimators of Tn and VTn . Recalling that, since m and
+m are observed, the process rt is observed at each time t = in , they are, respectively,
+and still in matrix notation:
+                                             [n/qn ]-2
+                                
+                                 Un = 1
+                                
+                                                       n,i (P(i+2)qn n - P(i+1)qn n )
+                                         Tn
+                                                i=0
+         n = Un - Un , where                    [n/qn ]-2
+                                                                                      (32)
+                                
+                                 Un = T  qn   n
+                                
+                                            n
+                                                          n,i riqn n ,
+                                                          i=0
+
+             [n/qn ]-2
+      Vn =               n,i (P(i+2)qn n - P(i+1)qn n ) (P(i+2)qn n - P(i+1)qn n ) (n,i ) .   (33)
+               i=0
+
+   In light of equation (21), the estimator (32) is reminiscent of the classical Fama-
+MacBeth procedure, in that we first regress excess returns P(i+2)qn n - P(i+1)qn n -
+     ¯iqn n onto the betas estimated over the previous time window ((i - 1)qn n , iqn n ],
+qn n r
+and then aggregate the estimated "local risk premia" to construct the final estimator.
+
+
+3.4    Asymptotics for Risk Premia
+We can now state the main result, which characterizes the asymptotic distribution of the
+risk premia estimators. We need to first specify conditions on the relative asymptotic
+behavior of the two sequences n  0 and Tn   (or equivalently n and n), and
+                                          16
+on the values of ,     in (31). Depending on whether H = 0 (corresponding to the case
+where the factors are continuous, or may be discontinuous but the beta's are the same for
+the continuous and discontinuous parts), or H  1 (in which case we need more stringent
+conditions), we require the following:
+
+          Tn n  0                                0<  2
+                                                       <  <  < 1 if H = 0
+             
+                         for some ,  with                   2
+                                                                                             (34)
+          Tn n                                   0 <  <  < 11    if H  1.
+
+    The main theorem has two parts. In part (a), the assumptions of Section 2.5 only
+                                              
+ensure that the estimators n converge at rate Tn , as should be expected since we need
+to estimate various drift components. An additional assumption, given in part (b) below,
+allows us to get a proper, and importantly feasible, central limit theorem for the risk
+premia:
+
+Theorem 1. Suppose that Assumptions 1, 2, 3, 4 and 5, plus (34), hold true and choose
+the tuning parameters ,  in (24) as follows:
+                                                  1-
+     2
+        (1 -  ) <   < 1- 2
+                           ,   0< 12
+                                     -         < 64-2
+                                                                             if H = 0
+                                   1              1-                 1-
+                                                                                      .      (35)
+     (5 ) (1 -  ) <   < 1- 2 , 0 < 2 -         < 64-2
+                                                        (   - 5 )      6
+                                                                             if H  1
+                     
+    a) The sequence Tn (n - Tn ) is bounded in probability.
+    b) If we additionally suppose that as t  , the variables (1/t)Vt converge in prob-
+ability to a limit V , there is a sequence n of subsets of  such that P(n )  1, Vn is
+invertible on n , and the variables
+                                       -1/2
+                                  Tn Vn       (n - Tn ) on n .
+                         Zn =                                                                (36)
+                                  0                     on \n
+
+                                                            1/2   -1/2           -1/2     1/2
+converge in law to N (0, IK +H ). Further, the sequences Tn Vn           1n and Tn      Vn      1n
+are bounded in probability.
+                                                                                          
+    Part (a) above tells us that the rate of convergence is at least Tn , and (b) that Tn
+is indeed the genuine rate. Importantly, the result in part (b) is feasible, in the sense that
+it directly allows for constructing asymptotic variance estimators and confidence regions,
+for example. Note that throughout the target Tn is random and moving with n. And Vn
+is not necessarily invertible everywhere so we need the dummy value 0 on \n to define
+                                                             -1/2
+Zn properly. However, when Vn is invertible, the matrix Vn        is well defined because Vn
+                +
+belongs to MK by construction, and this happens on the set n whose probability goes
+                                              17
+to 1, so the dummy value has no impact on the asymptotic theory. The limit V in part
+(b) is of course M+M +K ­valued, and the other assumptions imply that it is necessarily
+invertible. When it is assumed we can as well assume that the variables Tn converge in
+probability to some limiting variable  (this, however, does not tell us at which rate
+this convergence takes place, so in the theorem we cannot replace Tn by  ). It also
+implies, because the limit of (1/Tn )VTn is non-degenerate, that there are at least K + H
+stocks that have an infinite lifetime. This is due to our formulation of the problem, where
+we have M stocks and do not care about whether they will be alive after the time horizon
+Tn .8
+
+
+4       Monte Carlo Simulations
+This section investigates the finite sample performance of the estimators.
+
+
+4.1      Data Generating Process
+We simulate the cross-section of stock returns using a K (= 3)-dimensional vector of log-
+factors F . To do so, it is convenient to directly simulate the martingale components
+                                                                    
+of these factors and the idiosyncratic components, i.e., F  and F , and then construct
+the "genuine" drift terms of individual stocks from simulated risk premia using (14).
+Specifically, the volatility of the martingale component of factors F C in (1) is driven by
+three CIR processes, for i = 1, 2, and 3:
+                                   i                     i                i
+                               F 2
+                             d(t ) =  ( - (t
+                                           F 2
+                                             ) )dt +   t
+                                                       F
+                                                         dWt,i ,
+                                                                                                               i
+where W ,i s are independent Brownian motions. The correlation between W ,i and W F
+in (1), i , is set to be negative, which contributes to the leverage effect.9
+    With respect to the jumps, we simulate a compound Poisson process for each F i ,
+    8
+      If we introduced an ergodic requirement for the model (which is what the additional assumption
+on the convergence of (1/t)Vt in part (b) partially does), we could consider a model with potentially
+infinitely many stocks, of which Mt are alive at time t, and with the condition that K + H  Mt  M
+for all t and some finite bound M .
+    9
+      Note that our assumptions need bounded volatility processes and their inverse, so the actual volatil-
+                                                             Fi
+ities we use are truncated versions of the simulated t          s above (we recycle the same notation for conve-
+                   i
+nience), i.e., t F
+                     s will be truncated at C -1 or C , for some predetermined C , if they go beyond the range
+of [C -1 , C ]. In practice, we use a large value for C . The same procedure is adopted for all bounded
+processes throughout the simulations.
+
+
+                                                      18
+Parameters               Description                                   Value or Distribution
+Tn                       sampling span                                 5; 10
+n                        sampling interval                             1/(252 × 78); 1/(252 × 26)
+M                        number of stocks                              1,000
+K                        number of factors                             3
+H                        number of jump factors                        3×2
+qn                       size of local window                          936; 1,872; 6,552
+vn                       eigenvalue bound                              100 × log(1/(Tn n ))
+ I,m                     idiosyncratic variance                        U (0.05, 0.15)
+                                                 k
+,k                       CIR parameter for ( F )2                      3
+                                                 k
+,k                       CIR parameter for ( F )2                      0.06
+                                                 k
+ ,k                      CIR parameter for ( F )2                      0.3
+                         correlation of factor and volatility          -0.5
+,l                       OU parameter for l                            1
+g                        distribution parameter for ,l                 0.05
+ ,l                      OU parameter for l                            0.1
+,k                       OU parameter for  C,m,k                       2
+,k                       OU parameter for  C,m,k                       1 for k = 1, and 0 otherwise
+ ,k                      OU parameter for  C,m,k                       0.5
+F                        jump intensity of F                           63
+                                                       i
+a                        distribution parameter for  F                 0.02
+Bk,l                     partitions of large jumps                     [-a, -a/2], [a/2, a]
+B0                       the partition of small jumps                  [-a/2, a/2]
+¯J,m,h
+                         jump betas                                    U(1 - b, 1 + b) for h = 1, 2
+                                                                       U(-b, b) for h = 3, 4, 5, 6
+b                        distribution parameter for ¯J,m,h             0.5
+m                        jump intensity of P I
+                                                                       U(2F /3, 4F /3)
+aI,m                     distribution parameter for  I,m               U(2a/3, 4a/3)
+
+              Table 1: Parameter Values in Monte Carlo Simulations
+
+Note: This table reports the parameter values used in the data generating process of the Monte Carlo
+simulations.
+
+
+i = 1, 2, 3, with a constant intensity  F and a uniform distribution for their jump sizes:
+                                             i
+                                           F  U(-a, a).
+
+Next, we decompose each jump process into three components according to their realized
+jump sizes. Jumps with respective sizes in [-a, -a/2] and [a/2, a] are deemed separate
+risk factors with their respective betas, whereas the remaining jumps with sizes realized
+in (-a/2, a/2) will share the same beta with their corresponding continuous component.
+As a result, we have Li = 2 for each i = 1, 2, 3, K = 3, and H = 6. All these risk factors
+are compensated to form martingales.
+    Next, we simulate risk premia, (13), for continuous and jump risks from Ornstein-
+
+                                                   19
+Uhlenbeck (OU) processes:
+
+                                           ,l
+                  dl   ,l ,l
+                   t =  (    - l       
+                               t )dt +  dWt ,            l = 1, 2, . . . , K + H,            (37)
+
+where W  's are independent Brownian motions. For continuous risks, we draw their cor-
+responding ,l s from U(-g, g ), U(-g, 0) for positive jump risks, and U(0, g ) for negative
+jumps. There are no risk premia for the idiosyncratic components: I,m t = 0.
+                                    C,m,k
+   As for the betas, we simulate t        driven by OU processes, for k = 1, 2, 3, and
+m = 1, 2, . . . , M :
+                         C,m,k              C,m,k
+                       dt      =  ( - t           )dt +   dWt,m,k ,                    (38)
+                                                                         J,m,h
+where W ,m,k s are independent Brownian motions. With respect to t             given by (16),
+                          J,m,h
+we draw the constants           once from a uniform distribution U(c - b, c + b) and fix them
+afterwards. For the first two factors, which are market risk related, we fix c = 1; otherwise
+c = 0. To finalize the drift part of individual stocks, we set rt to zero, and simulate µt
+using (14).
+    Finally, the martingale component of the idiosyncratic part in (4), P I , features con-
+stant idiosyncratic volatilities  I,m s and compensated Poisson jump processes with inten-
+sities  I,m s. These jumps are independent, and their sizes follow independent uniform
+distributions:
+                                     I,m  U(-aI,m , aI,m ).
+
+Across m = 1, 2, . . . , M ,  I,m and aI,m are constants drawn randomly from an exponential
+distribution.
+    Throughout we choose a sample of M = 1, 000 stocks spanning T = 5 or 10 years with
+sampling frequencies n = 5 and 15 minutes. To simulate the births and deaths of stocks,
+we randomly allocate stock m to one of four groups: Lm = [0, T ], [m , T ], [0, m ], and
+[m , m ], where the first group accounts for 70% of all stocks and the other three groups
+contain 10% each. m and m are randomly drawn from [0, T ]. All other parameter values
+are summarized in Table 1.
+    To construct the estimators, we need three tuning parameters: un , vn and qn , subject
+to (24) and (35). We set un = ab     n (IV t )
+                                              1/2
+                                                  , where we choose a = 3 and b = 0.47: see, e.g.,
+A¨it-Sahalia and Jacod (2014). IV t is a pilot estimate of the daily annualized variation.
+For qn , to improve the finite sample performance, we choose the divisor of n that is
+                    0.5
+closest to 1/(n Tn      ). Finally, we choose vn to be an arbitrary large number relative to
+log(1/(Tn n )), say, 100 × log(1/(Tn n )) such that 1/vn gives a reasonable lower bound
+
+                                               20
+for the minimum eigenvalue of the spot covariance estimates.
+
+
+4.2    Simulation Results
+We report the biases and root-mean-squared errors (RMSEs) in Table 2 for a variety
+of settings, including cases with a lower sampling frequency (n = 15 minutes) and a
+shorter time span (Tn = 5 years). A few patterns emerge. First, estimating risk premia
+is a challenging problem. Even with a time span of 10 years, the estimates remain noisy
+relative to the magnitude of the signal. Second, the reported numbers in Columns "Bias",
+"Stdev", and "RMSE" do not deteriorate much as the sampling frequency drops from 5
+minutes (top panel) to 15 minutes (middle panel), whereas they become worse as the time
+span drops from 10 years (top panel) to 5 years (bottom panel). This suggests that it
+is the time span that plays a critical role in determining the precision and accuracy of
+the risk premia estimates, rather than the sampling frequency (at least once sampling is
+sufficiently frequent to establish reasonably accurate first pass estimates of the loadings).
+Third, the choices of qn s roughly match the size of a biweekly, monthly, and quarterly local
+window, respectively, among which a monthly window is most commonly employed in the
+empirical asset pricing literature. The results exhibit the usual bias-variance trade-off:
+larger qn s lead to a bigger bias and a smaller variance.
+     Finally, Figure 1 reports histograms of the standardized risk premia estimates, n , for
+continuous and positive/negative jump components. These histograms match the stan-
+dard normal density, suggesting that the asymptotic theory in Theorem 1 approximates
+the finite sample performance of the estimators well.
+
+
+5     Risk Premia of U.S. Equities
+We next conduct a large-scale stock-level analysis of risk premia of various factors that
+are known to be possible determinants of the cross-section of stock returns. By combining
+high frequency data and long span estimation of risk premia, our results provide a new
+perspective on the pricing of Brownian and jump risks.
+    We collect data the entire cross-section of individual stocks at the 15-minute frequency
+from the constituents of the S&P 500 (LargeCap), 400 (MidCap), and 600 (SmallCap)
+indices for a long sample spanning from January 1, 1996 to May 31, 2020. The number of
+tickers is about 1,500 per day, which, after filtering by share codes and exchange codes, is
+reduced to a minimum of 1,300 stocks per day. Our sample covers several business cycles,
+                                              21
+ Tn = 10 yrs  n = 5 mins
+                    qn =    936 (12 days)           qn = 1,638 (21 days)              qn = 4,914 (63 days)
+        Truth   Bias        Stdev     RMSE       Bias     Stdev     RMSE          Bias      Stdev     RMSE
+C,1      2.16   -0.08        7.74      7.73      -0.10     7.54       7.54        -0.28      6.76       6.76
+C,2      5.75   -0.75        7.17      7.21      -0.93     6.94       7.00        -1.88      5.74       6.04
+C,3     -5.63    0.43        7.17      7.18      0.67      6.95       6.98        1.78       5.67       5.93
+J,1      3.18   0.11         2.31      2.31      0.13      2.32       2.33        0.21       2.39       2.40
+J,2     -4.55    0.08        2.39      2.39      0.17      2.40       2.40        0.56       2.46       2.52
+J,3      0.48   -0.01        2.33      2.33      0.00      2.32       2.32         0.08      2.29       2.29
+J,4     -3.06   -0.26        2.36      2.37      -0.24     2.36       2.37        -0.19      2.35       2.36
+J,5      1.43   0.04         2.43      2.43      0.04      2.44       2.43        0.02       2.43       2.42
+J,6     -3.91   -0.24        2.51      2.52      -0.23     2.50       2.51        -0.18      2.48       2.49
+
+ Tn = 10 yrs  n = 15 mins
+                    qn = 312 (12 days)               qn = 546 (21 days)               qn = 4,914 (63 days)
+        Truth   Bias     Stdev     RMSE          Bias     Stdev     RMSE          Bias      Stdev     RMSE
+C,1      2.20   0.00      7.78      7.77         0.06      7.81      7.80         -0.22      7.03       7.03
+C,2      5.84   -0.59     7.49      7.51         -0.68     7.46      7.49         -1.71      6.29       6.52
+C,3     -5.76    0.59     7.42      7.44         0.63      7.27      7.30          1.50      6.05       6.23
+J,1      3.03   0.28      2.27      2.28         0.25      2.25      2.26         0.35       2.32       2.35
+J,2     -4.59   -0.01     2.22      2.22          0.02     2.22      2.22          0.43      2.27       2.31
+J,3      0.49   0.14      2.52      2.53         0.16      2.48      2.48         0.28       2.45       2.46
+J,4     -2.90   -0.21     2.39      2.39         -0.19     2.36      2.37         -0.08      2.33       2.33
+J,5      1.23   0.17      2.49      2.50         0.17      2.46      2.47         0.15       2.43       2.43
+J,6     -3.84    0.02     2.47      2.47         0.04      2.46      2.46          0.06      2.39       2.39
+
+ Tn = 5 yrs   n = 5 mins
+                     qn =   936 (12 days)            qn = 1,638 (21 days)             qn = 4,914 (63 days)
+        Truth    Bias       Stdev     RMSE       Bias      Stdev     RMSE         Bias      Stdev     RMSE
+C,1      1.51    0.49       10.54      10.54     0.45      10.36      10.36        0.18      9.07       9.07
+C,2      6.57    -0.74      10.36      10.38     -1.07     10.00      10.05       -2.53      8.18       8.56
+C,3     -6.52     0.78      10.72      10.74     1.05      10.31      10.36        2.39      8.61       8.93
+J,1      2.44    0.27        3.10       3.11      0.30      3.11       3.13        0.40      3.21       3.24
+J,2     -6.19     0.05       3.22       3.21      0.20      3.23       3.23        0.89      3.31       3.42
+J,3      0.00    0.10        3.45       3.45      0.13      3.45       3.45        0.29      3.43       3.44
+J,4     -2.92    -0.14       3.41      3.41      -0.13      3.41       3.41        0.03      3.37       3.36
+J,5      0.95    -0.14       3.44       3.44     -0.14      3.42       3.42       -0.16      3.38       3.39
+J,6     -3.62    -0.21       3.55      3.55      -0.17      3.54       3.54       -0.02      3.47       3.47
+
+                                    Table 2: Simulation Results
+
+Note: This table reports simulation results for various scenarios of Tn and n for different choices of qn .
+Column "Truth" provides the average of T over 1,000 Monte Carlo samples. Columns "Bias", "Stdev",
+and "RMSE" provide the bias, the standard deviation, and the root-mean-squared-error of each of the 9
+components of T - T . All numbers in this table are multiplied by 100.
+
+
+
+
+                                                    22
+            0.4                          0.4                           0.4
+
+            0.2                          0.2                           0.2
+
+             0                             0                            0
+              -5          0          5      -5         0           5     -5          0          5
+
+
+
+            0.4                          0.4                           0.4
+
+            0.2                          0.2                           0.2
+
+             0                             0                            0
+              -5          0          5      -5         0           5     -5          0          5
+
+
+
+            0.4                          0.4                           0.4
+
+            0.2                          0.2                           0.2
+
+             0                             0                            0
+              -5          0          5      -5         0           5     -5          0          5
+
+                           Figure 1: Standardized Estimates of n
+
+Note: In this figure, we report the standardized estimates for the risk premia estimator n . The first
+row plots the estimates for the continuous components, the second row risk premia estimates for negative
+jump factors, and the bottom for positive jump factors. The first, second, and third columns correspond
+to F 1 , F 2 , and F 3 , respectively. The span is 10 years long and the sampling frequency is every 5 minutes.
+The local window size qn is fixed at 1,638 (21 days).
+
+
+including the dot-com bubble, the financial crisis, and the recent and ongoing covid-19
+pandemic.
+     To preprocess the data downloaded from NYSE TAQ, we follow standard procedure.
+We remove trades and quotes with condition codes Z, B, U, T, L, G, W, K, J, and the
+corresponding odd lot trades with an additional letter I, as well as those with non-empty
+suffix codes for preferred shares. We identify the opening and closing trades with their
+unique identifiers, and remove all trades beyond this window. We only keep trades with
+correction indicator 00 or 01. We then construct the national best bid and offer (NBBO)
+data using quotes from all exchanges every second, with which we match the trades and
+eliminator, among them, that are outside the range of NBBOs. Finally, we remove all
+trades from TAQ whose prices exceed the daily minimum and maximum prices from
+CRSP.
+                                            23
+                                 MKT                                              SMB
+             0.1
+                                                            0.02
+
+              0
+                                                               0
+
+
+            -0.1                                            -0.02
+                   2000   2005    2010   2015   2020                2000   2005    2010   2015   2020
+
+                                 HML                                          RMW
+                                                            0.02
+           0.04
+
+           0.02
+                                                               0
+              0
+
+           -0.02
+                                                            -0.02
+                   2000   2005    2010   2015   2020                2000   2005    2010   2015   2020
+
+                                 CMA                                          MOM
+           0.02                                             0.02
+
+                                                               0
+              0
+                                                            -0.02
+
+           -0.02                                            -0.04
+
+                   2000   2005    2010   2015   2020                2000   2005    2010   2015   2020
+
+
+
+                            Figure 2: 15-minute Factor Returns
+
+Note: In this figure, we plot the time series of 15-minute returns for the Fama-French five factors (MKT,
+SMB, HML, RMW, CMA) plus momentum (MOM) from January 1, 1996 to May 31, 2020.
+
+
+    We employ 15-minute snapshots of the Fama-French five factors (Fama and French
+(2015)) plus momentum (MOM), which were constructed at high frequency by A¨                it-
+Sahalia, Kalnina, and Xiu (2020). The five factors are the market return (MKT), and
+mimicking portfolios for size (SMB, small minus big), value (HML, high minus low), prof-
+itability (RMW, robust minus weak) and investment (CMA, conservative minus aggres-
+sive). The mimicking portfolio for MOM is UMD (up minus down). The high-frequency
+factor returns are plotted in Figure 2.10 Large returns, or possibly jumps, are clearly
+present for all factors, particularly in earlier sample periods. Figure 3 plots time series of
+factor jumps while Figure 4 compares their magnitudes.
+    We estimate augmented versions of the CAPM, Fama-French three-factor (FF3),
+  10
+     "MKT" denotes market return in excess of the one-month T-bill rate, which serves as the proxy for
+risk free rate in our model.
+
+                                                       24
+                                     CAPM                 FF3                   FF4                   FF5                FF6
+MKT       Cont. + Small Jumps    4.73   (1.55)     2.24     (0.96)      2.48       (1.22)      3.70     (1.83)    3.41       (1.81)
+          Large Neg. Jumps      9.02    (2.96)     9.22     (3.78)      8.78       (4.00)      8.18     (3.75)    8.66       (4.13)
+          Large Pos. Jumps      -2.36 (-1.05)     0.70      (0.32)      5.11       (2.64)      2.35     (1.07)    4.11       (2.02)
+SMB       Continuous                              3.12      (2.16)      3.53       (2.62)     2.31      (1.65)    3.03       (2.31)
+          Jumps                                   -0.79    (-0.86)      -1.83     (-2.00)     -0.76    (-0.82)   -1.42      (-1.55)
+HML       Continuous                              0.43      (0.28)      0.99       (0.76)     0.08      (0.06)    0.91       (0.73)
+          Jumps                                   -5.63    (-3.44)      -5.55     (-3.47)     -7.02    (-4.53)   -5.54      (-3.64)
+RMW       Continuous                                                                           0.52     (0.48)    0.62       (0.60)
+          Jumps                                                                                1.74     (1.58)   -0.33      (-0.29)
+CMA       Continuous                                                                          -0.22    (-0.24)    0.31       (0.37)
+          Jumps                                                                               -3.13    (-2.43)   -3.59      (-2.87)
+MOM       Continuous                                                   -2.37       (-0.98)                       -2.48      (-1.06)
+          Jumps                                                        14.57        (6.75)                       14.27       (6.05)
+R2 (%)                              18.21                 21.57                 22.89                 23.21              24.14
+
+    Table 3: Estimation Results using High Frequency/Long Horizon Data
+
+Note: This table reports the estimated risk premia for a variety of models. "CAPM" includes only
+MKT and its jumps as factors, "FF3" adds to that HML, SMB and their jumps, "FF4" further adds
+MOM to "FF3", "FF5" adds RMW and CMA to "FF3", and finally "FF6" includes all six portfolios
+and their jumps. For MKT, we separately estimate the premia of its large positive and large negative
+jump components, whereas for other factors we estimate their continuous and jump risk premia. Large
+jumps are those whose sizes exceed 1%. The risk premia estimates are multiplied by 100. All t-statistics
+are reported in parentheses. The reported R2 is the time series average of the cross-sectional R2 s. The
+individual stock returns are sampled every 15 minutes from January 1, 1996 to May 31, 2020.
+
+
+
+
+                    CAPM                  FF3                      FF4                       FF5                      FF6
+MKT             7.00   (1.99)      7.45      (2.23)        7.44       (2.23)         7.59       (2.28)        7.44         (2.23)
+SMB                               0.30       (0.28)        0.44       (0.42)         0.32       (0.31)        0.38         (0.36)
+HML                               -0.76     (-0.57)        -0.82     (-0.62)         -0.84     (-0.63)        -1.00       (-0.76)
+RMW                                                                                  -0.84     (-0.63)        -0.81       (-0.61)
+CMA                                                                                  -0.20     (-0.15)        -0.17       (-0.13)
+MOM                                                         0.73       (0.35)                                  0.67        (0.32)
+ R2 (%)             14.33                 16.09                    16.75                     16.94                    17.40
+
+Table 4: Estimation Results using Low Frequency Data and the Fama-McBeth
+Two-Pass Procedure
+
+Note: This table reports the estimated risk premia for a variety of models. "CAPM" includes only the
+MKT factor, "FF3" adds HML and SMB, "FF4" further adds MOM to "FF3", "FF5" adds RMW and
+CMA to "FF3", and finally "FF6" includes all six portfolios. The risk premia are estimated by the
+standard Fama-MacBeth procedure in which betas are estimated on a monthly rolling window. The
+estimated risk premia are multiplied by 100. All t-statistics are reported in parentheses. The reported
+R2 is the time series average of the cross-sectional R2 s. The individual stock returns are sampled daily
+from January 1, 1996 to May 31, 2020.
+
+
+
+
+                                                            25
+                              Figure 3: 15-minute Factor Jumps
+
+Note: In this figure, we plot the time series of 15-minute return jumps for Fama-French five factors (MKT,
+SMB, HML, RMW, CMA) plus momentum (MOM) from January 1, 1996 to May 31, 2020. We set the
+threshold for jump truncation as un = 30       .47
+                                              n (IV t )
+                                                       1/2
+                                                           , where IV t is a pilot estimate of daily volatility
+based on 15-minute returns.
+
+
+four-factor (FF4, i.e., FF3 +MOM), five-factor (FF5), and six-factor models (FF6, i.e.,
+FF5+MOM), in which we employ three factors for MKT (large positive jumps, large neg-
+ative jumps, continuous component plus small jumps) and two factors for all other factors
+(continuous components and jumps) for parsimony and ease of interpretation; the theory
+allows for versatile choices of risk factors. For comparison with the discrete-time low
+frequency approach, we follow Lewellen and Nagel (2006) and implement Fama-MacBeth
+regressions on a monthly rolling window for each model with daily data, which yields
+estimates of the total risk premia (the validity of this approach requires much stronger
+assumptions on the data generating process, such as constancy of factor loadings, absence
+of jumps, etc., than what we have assumed).
+    Table 3 provides the estimates based on high frequency data, and Table 4 for daily
+data. We summarize the main findings as follows. First, the negative jumps of MKT are
+significantly priced with positive premia (12.5% per year), whereas its continuous compo-
+                                                      26
+                                          MKT                                                      SMB
+            150                                                             30
+
+            100                                                             20
+
+             50                                                             10
+
+              0                                                              0
+             -0.15        -0.1    -0.05         0       0.05    0.1         -0.02   -0.01      0          0.01    0.02   0.03
+
+                                          HML                                                      RMW
+                                                                            60
+             60
+                                                                            40
+             40
+                                                                            20
+             20
+
+              0                                                              0
+             -0.04        -0.02       0        0.02     0.04    0.06        -0.02     -0.01           0          0.01    0.02
+
+                                          CMA                                                      MOM
+            100
+                                                                            60
+
+             50                                                             40
+
+                                                                            20
+
+              0                                                              0
+                  -0.02       -0.01        0          0.01     0.02         -0.06   -0.04     -0.02        0      0.02   0.04
+
+
+
+                     Figure 4: Histograms of 15-minute Factor Jumps
+
+Note: In this figure, we plot the histograms of 15-minute return jumps for Fama-French five factors
+(MKT, SMB, HML, RMW, CMA) plus momentum (MOM) from January 1, 1996 to May 31, 2020. We
+set the threshold for jump truncation as un = 30   .47
+                                                  n (IV t )
+                                                           1/2
+                                                               , where IV t is a pilot estimate of daily
+volatility based on 15-minute returns.
+
+
+nent and smaller jumps are statistically and economically insignificant. Our results seem
+to suggest that negative market jump beta is a stronger proxy for market risk, regardless
+of the choice of the benchmark model. Second, the continuous component of SMB, the
+jump components of HML, CMA, and MOM are also significant with economically mean-
+ingful magnitudes, and robustly so across different models. Neither the continuous part
+nor the jumps of RMW appear significant. In contrast, the results based on low frequency
+Fama-MacBeth regressions are insignificant throughout. This is not surprising given the
+potential model misspecification and generally low signal-to-noise ratio in individual stock
+returns. Third, the time series average of cross-sectional R2 s increases from 18.21% to
+24.14%, as the model expands. By contrast, the low frequency R2 s are substantially lower
+­ the largest model's R2 is smaller than 18%.
+                                                                       27
+                                      CAPM                FF3                 FF4                  FF5                FF6
+MKT      Cont. + Small Jumps      6.87   (1.99)    3.00     (1.02)    4.34       (1.68)     4.09     (1.58)    4.01       (1.66)
+         Large Neg. Jumps        4.22    (1.24)    6.30     (2.21)    6.94       (2.65)     7.07     (2.59)    7.92       (3.04)
+         Large Pos. Jumps        -2.13 (-0.69)    5.04      (1.76)    6.39       (2.36)     4.16     (1.53)    5.47       (2.11)
+SMB      Continuous                               3.08       (1.9)    3.35       (2.21)    3.14      (1.99)    3.78       (2.56)
+         Jumps                                    -5.17    (-4.04)    -5.31     (-4.16)    -5.38    (-4.27)   -5.52       (-4.4)
+HML      Continuous                               0.16      (0.09)    1.58       (0.98)    0.82      (0.45)    2.19       (1.32)
+         Jumps                                    -7.12    (-4.61)    -4.91     (-3.55)    -7.51    (-4.76)   -5.17      (-3.73)
+RMW      Continuous                                                                         1.17     (1.02)    1.22       (1.10)
+         Jumps                                                                              2.19     (2.45)   -0.40      (-0.44)
+CMA      Continuous                                                                        -0.90    (-0.85)   -0.06      (-0.06)
+         Jumps                                                                             -4.10    (-3.38)   -4.05      (-3.31)
+MOM      Continuous                                                   -2.88      (-0.98)                      -3.16      (-1.08)
+         Jumps                                                        16.96       (6.56)                      18.29       (6.57)
+R2 (%)                               19.88                22.95               24.31                24.75              25.76
+
+                 Table 5: Robustness Check: Alternative Sampling Period
+
+Note: The content of this table is comparable to Table 3, except that the sample period in this case starts
+from January 1, 2004.
+
+
+
+
+                                      CAPM                FF3                 FF4                  FF5                FF6
+MKT      Cont.   + Small Jumps   4.73    (1.55)    5.02      (1.87)    5.62     (2.24)      7.19     (2.41)    7.32       (2.48)
+         Large   Neg. Jumps       9.02   (2.96)   10.02      (4.27)    8.36     (4.02)      9.68     (4.06)    9.83        (4.4)
+         Large   Pos. Jumps      -2.36 (-1.05)    -2.45     (-1.16)   0.95       (0.5)     -2.88    (-1.24)   -1.73      (-0.78)
+SMB      Cont.   + Small Jumps                    3.46       (2.29)    2.90     (1.98)      2.14     (1.45)    2.25       (1.56)
+         Large   Neg. Jumps                       -0.09     (-0.18)   0.12      (0.27)      0.57     (0.87)    0.30       (0.46)
+         Large   Pos. Jumps                       -1.19     (-2.18)   -1.02    (-1.94)     -0.66    (-1.12)   -0.47      (-0.81)
+HML      Cont.   + Small Jumps                    -1.49     (-0.92)   -1.04    (-0.72)      -2.0    (-1.19)   -1.34      (-0.84)
+         Large   Neg. Jumps                       -1.67     (-1.52)   -2.48    (-2.41)     -2.78    (-2.62)   -2.55      (-2.46)
+         Large   Pos. Jumps                       -1.62     (-1.67)   -1.41     (-1.5)     -1.10    (-1.11)   -0.78      (-0.83)
+RMW      Cont.   + Small Jumps                                                              0.66     (0.51)    0.48       (0.39)
+         Large   Neg. Jumps                                                                -1.06    (-1.51)   -1.36      (-1.98)
+         Large   Pos. Jumps                                                                -0.21    (-0.71)   -0.16      (-0.54)
+CMA      Cont.   + Small Jumps                                                             -0.57    (-0.52)   -0.27      (-0.27)
+         Large   Neg. Jumps                                                                -1.12    (-1.57)   -1.28      (-1.88)
+         Large   Pos. Jumps                                                                 0.70     (1.10)    0.20       (0.33)
+MOM      Cont.   + Small Jumps                                        -1.41      (-0.56)                      -1.55      (-0.58)
+         Large   Neg. Jumps                                            3.36       (2.85)                       4.33       (3.15)
+         Large   Pos. Jumps                                            3.62       (3.05)                       3.59       (2.29)
+R2 (%)                               18.21                21.35               22.61                22.60              23.49
+
+      Table 6: Robustness Check: Alternative Specification of Risk Factors
+
+Note: The content of this table is comparable to Table 3, except that all factors' large positive and
+negative jumps are treated as separate risk factors.
+
+
+
+
+                                                            28
+                                   CAPM                FF3                FF4                  FF5                FF6
+MKT     Cont. + Small Jumps    4.39   (1.44)    1.89     (0.82)   1.78       (0.88)     3.33     (1.68)    2.97       (1.60)
+        Large Neg. Jumps      7.44    (2.40)    8.55      (3.4)    8.04      (3.52)     7.43     (3.28)    8.12       (3.71)
+        Large Pos. Jumps      -0.44 (-0.18)    1.85      (0.78)   6.96       (3.27)     3.75     (1.57)    5.70       (2.59)
+SMB     Continuous                             3.13      (2.16)   3.76       (2.79)    2.50      (1.79)    3.25       (2.50)
+        Jumps                                  -0.84    (-0.91)   -2.31     (-2.46)    -1.19    (-1.25)   -1.90      (-2.00)
+HML     Continuous                             0.48      (0.32)   1.11       (0.85)    0.02      (0.01)    0.87       (0.70)
+        Jumps                                  -5.76    (-3.47)   -5.59     (-3.42)    -7.07    (-4.52)   -5.44      (-3.55)
+RMW Continuous                                                                          0.54     (0.50)    0.63       (0.61)
+        Jumps                                                                           2.02     (1.80)   -0.10      (-0.09)
+CMA     Continuous                                                                     -0.24    (-0.26)    0.31       (0.37)
+        Jumps                                                                          -3.07    (-2.38)   -3.57      (-2.87)
+MOM Continuous                                                    -2.44      (-1.01)                      -2.49      (-1.06)
+        Jumps                                                     15.19       (6.91)                      14.84       (6.22)
+Cross-Sectional R2 (%)             18.2                21.59              22.93                23.24              24.17
+
+    Table 7: Robustness Check: Alternative Threshold for "Large" Jumps
+
+Note: The content of this table is comparable to Table 3, except that the threshold for "large" jumps in
+the MKT factor is set at 0.5%.
+
+
+    We finally conduct a battery of robustness checks. In light of the potential concern on
+the presence of microstructure noise, we provide results in Table 5 with a smaller sample
+excluding the period of 1996 - 2003, during which microstructure noise may be prevalent
+in small- and mid-cap stocks even at 15-minute frequencies. In addition, we consider an
+alternative specification of jump factors in Table 6, and a different threshold for "large"
+jumps in Table 7. These results are consistent with the primary findings summarized
+above.
+
+
+6     Conclusions
+High frequency econometrics has made much progress over the years characterizing asset
+returns dynamics, with a particular emphasis on functions of second order "moments"
+in the form of quadratic (co)variations. The empirical asset pricing literature, however,
+retains an important focus on first order "moments", corresponding to the drift compo-
+nents in semimartingales. This paper provides new econometric techniques for inference
+on this drift component, allowing standard asset pricing models to be estimated using a
+generalization to continuous-time factor models of the Fama-MacBeth two-pass regression
+procedure that combines high frequency and long horizon methods. These techniques can
+be employed in future work to test the specification of the canonical asset pricing factor
+model, estimate individual alphas, conduct event studies, all of which are standard issues
+in empirical asset pricing that have not yet been fully investigated in a continuous-time
+setting.
+                                                         29
+References
+ it-Sahalia, Y., and J. Jacod (2014): High Frequency Financial Econometrics.
+A¨
+  Princeton University Press.
+
+ it-Sahalia, Y., I. Kalnina, and D. Xiu (2020): "High Frequency Factor Models
+A¨
+  and Regressions," Journal of Econometrics, 216, 86­105.
+
+ it-Sahalia, Y., and D. Xiu (2017): "Using Principal Component Analysis to Esti-
+A¨
+  mate a High Dimensional Factor Model with High-Frequency Data," Journal of Econo-
+  metrics, 201, 388­399.
+
+Andersen, T. G., T. Bollerslev, F. X. Diebold, and J. Wu (2005): "A Frame-
+ work for Exploring the Macroeconomic Determinants of Systematic Risk," American
+ Economic Review, 95, 398­404.
+
+Ang, A., and D. Kristensen (2012): "Testing Conditional Factor Models," Journal
+ of Financial Economics, 106, 132­156.
+
+Bandi, F. M., and P. C. B. Phillips (2003): "Fully Nonparametric Estimation of
+ Scalar Diffusion Models," Econometrica, 71, 241­283.
+
+Barndorff-Nielsen, O. E., and N. Shephard (2004): "Econometric Analysis of
+ Realized Covariation: High Frequency Based Covariance, Regression, and Correlation
+ in Financial Economics," Econometrica, 72(3), 885­925.
+
+Bollerslev, T., S. Z. Li, and V. Todorov (2016): "Roughing up beta: Continuous
+ versus discontinuous betas and the cross section of expected stock returns," Journal of
+ Financial Economics, 120, 464­490.
+
+Chang, Y., Y. Choi, H. Kim, and J. Y. Park (2016): "Evaluating Factor Pricing
+ Models using High-Frequency Panels," Quantitative Economics, 7, 889­933.
+
+Crimaldi, I., and L. Pratelli (2005): "Convergence results for multivariate martin-
+ gales," Stochastic Processes and their Applications, 115, 571­577.
+
+Daniel, K., and T. J. Moskowitz (2016): "Momentum Crashes," Journal of Financial
+ Economics, 122, 221­247.
+
+Fama, E. F., and K. R. French (2015): "A five-factor asset pricing model," Journal
+  of Financial Economics, 116(1), 1­22.
+
+Fama, E. F., and J. D. MacBeth (1973): "Risk, Return, and Equilibrium: Empirical
+  Tests," Journal of Political Economy, 81, 607­636.
+                                           30
+Gagliardini, P., E. Ossola, and O. Scaillet (2016): "Time-varying risk premium
+ in large cross-sectional equity datasets," Econometrica, 84, 985­1046.
+
+Gu, S., B. Kelly, and D. Xiu (2019): "Autoencoder Asset Pricing Models," Discussion
+ paper, University of Chicago.
+
+Jacod, J., and P. Protter (2012): Discretization of Processes. Springer-Verlag.
+
+Kelly, B., S. Pruitt, and Y. Su (2019): "Characteristics are Covariances: A Unified
+ Model of Risk and Return," Journal of Financial Economics, forthcoming.
+
+Lewellen, J., and S. Nagel (2006): "The conditional CAPM does not explain asset-
+  pricing anomalies," Journal of Financial Economics, 82(2), 289­314.
+
+Li, J., V. Todorov, and G. Tauchen (2016): "Inference Theory on Volatility Func-
+  tional Dependencies," Journal of Econometrics, 193, 17­34.
+
+        (2017): "Jump Regressions," Econometrica, 85, 173­195.
+
+Mykland, P. A., and L. Zhang (2006): "ANOVA for Diffusions and It^
+                                                                 o Processes,"
+ Annals of Statistics, 34, 1931­1963.
+
+Pelger, M. (2019): "Large-dimensional factor modeling based on high-frequency obser-
+ vations," Journal of Econometrics, 208(1), 23­42.
+
+Raponi, V., C. Robotti, and P. Zaffaroni (2019): "Testing Beta-Pricing Models
+ Using Large Cross-Sections," Review of Financial Studies, forthcoming.
+
+Reiß, M., V. Todorov, and G. E. Tauchen (2015): "Nonparametric Test for a Con-
+ stant Beta between It^
+                      o Semi-martingales based on High-Frequency Data," Stochastic
+ Processes and their Applications, 125, issue 8, pages, 2955­2988.
+
+Rosenberg, B. (1974): "Extra-Market Components of Covariance in Security Returns,"
+ Journal of Financial and Quantitative Analysis, 9, 263­274.
+
+Ross, S. A. (1976): "The Arbitrage Theory of Capital Asset Pricing," Journal of Eco-
+ nomic Theory, 13, 341­360.
+
+Shanken, J. (1992): "On the Estimation of Beta Pricing Models," The Review of Fi-
+  nancial Studies, 5, 1­33.
+
+Todorov, V., and T. Bollerslev (2010): "Jumps and Betas: A New Framework
+ for Disentangling and Estimating Systematic Risks," Journal of Econometrics, 157,
+ 220­235.
+                                        31
+Appendix: Proofs
+    Throughout the Appendix, we suppose that all assumptions 1­5 hold, and C denotes a
+constant which may change from line to line and may depend on the bounds in our assumptions,
+but not on n or the component indices k, h, m or the index i when we use Iin or n
+                                                                                i X for example;
+when it depends on an extra parameter p we call it Cp . The integers k, h, m used below are
+always supposed to belong to {1, , . . . , K } or {1, . . . , H } or {1, . . . , M }, respectively. We use the
+simplifying notation En
+                      i for the conditional expectation with respect to Fin , and recall that
+In = {1, . . . , n}.
+    Since we look at asymptotic properties, without loss of generality and in view of assumption
+2, we always assume
+
+                          n < 1,        m - 2n is a stopping time for all m.                           (A.1)
+
+
+A.1       Preliminaries
+Let us first state a few ­ more or less well known ­ facts about matrices, starting with the
+following trivial estimate (on matrices with the proper dimensions):
+
+                       (A + B )(A + B ) - AA      A        B   + B      A + B             B .          (A.2)
+
+Next, we have:
+
+                    +
+Lemma 1. Let A, A  Md and B = A - A, suppose that  (A)  1/a for some a  1, and let
+v  2a. The matrix A equal to A -1 if  (A ) > 1/v and to 0 otherwise satisfies:
+
+                       A - A-1  3av B ,           A - A-1 - A-1 BA-1  7a2 v B 2 .                      (A.3)
+
+Proof. We write C = A - A-1 and D = C - A-1 BA-1 , and single out three cases.
+    Suppose first that  (A )  1/v , so there is a unit vector x in Rq with A x                       1/2a,
+whereas Ax  1/a by hypothesis, so Bx  1/2a and thus B  1/2a  1/v . Therefore
+ A-1  a  av B  2a2 v B              2   and A-1 BA-1  a2 B  a2 v B               2   and, since A = 0, (A.3)
+holds.
+    Next, suppose that  (A ) > 1/v and A-1 B > 1/2. We have B > 1/2a  1/v and A =
+ A -1 < v  2av B  4a2 v B               2   and A-1  a  av B  2a2 v B                 2   and A-1 BA-1 
+a2 B  a2 v B 2 , which clearly imply (A.3).
+    Finally, suppose that  (A ) > 1/v and A-1 B  1/2. The matrix G =                                -1  j -1
+                                                                                              j 0 (A B ) A
+is then well defined, with G  a, and with I the q × q identity matrix                     and since A = A -1
+
+
+
+                                                     32
+now, we have
+
+          C = (I + A-1 B )-1 - I A-1 = A-1 BG,                           D = C - A-1 BA-1 = (A-1 B )2 G.
+
+Therefore C         a2 B          av B /2v and D                     a3 B             2    a2 v B 2 /2, and again (A.3)
+holds.
+
+      Next, we state some properties connected with (17):
+
+Lemma 2. If Yt is a bounded adapted Mp,q ­valued process satisfying (17) on some interval L
+and f is a C 2 function on Mp,q , then the process f (Yt ) also satisfies (17) on L. In particular:
+      (a) If p = q and Yt-1 exists and is also bounded on L, it satisfies (17) on L as well.
+      (b) If Yt is Mp,q ­valued and satisfies the same conditions as Yt , then Yt + Yt satisfies (17)
+on L.
+      (c) If Yt is Mq,r ­valued and satisfies the same conditions as Yt , then Yt Yt satisfies (17) on
+L.
+
+Proof. (a) follows from the first claim because for any  > 1 there is a C 2 function f on Mp,p
+such that f (x) = x-1 on the set of all x  Mp,p such that x ,                                 x-1  . Since as soon as
+two processes Yt and Yt satisfy (17) the same holds for the pair (Yt , Yt ), (b) and (c) also follow
+from the first claim, with the function f (x, y ) = x + y on (Mp,q )2 for (b), and f (x, y ) = xy on
+Mp,q × Mq,r for (c).
+      For the first claim, we can suppose without restriction that f is one-dimensional and also
+bounded, as well as its partial derivatives of order 1 and 2, because Yt takes its values in a
+compact subset of Mp,q . We have
+
+      |f (Yt+s - f (Yt )|  C Yt+s - Yt , |f (Yt+s - f (Yt ) - f (Yt )(Yt+s - Yt )|  C Yt+s - Yt 2 .
+
+Then the claim is obvious, upon using the fact that f (Yt ) is Ft ­measurable.
+
+      In the next lemma, we consider a possibly multi-dimensional It^
+                                                                    o semimartingale X of the
+form                                    t                 t                   t
+                      Xt = X0 +             as ds +           bs dWs +                 (s, z ) p
+                                                                                               = (ds, dz ),
+                                    0                 0                   0       E
+where W is a Brownian motion and p
+                                 = a Poisson measure with compensator =
+                                                                      q , and where at , bt
+are bounded and  (t, z )  (z ), with  as in Assumption 1. With   0, 1
+                                                                    2 and  > 0 we
+set
+
+                                                                                          0          if  = 0
+         X (, )n
+               t = Xt -          Xs 1{       Xt >wn } ,        where wn =                  +/2                    (A.4)
+                           s t
+                                                                                          n          otherwise,
+
+
+                                                               33
+Lemma 3. In the previous setting there is a constant  (depending on the bounds on at , bt and
+on  and ,  ) such that, if An = {t > 0 : Xt > wn }, we have
+
+              2-2 -
+       P(n
+         i )  n     , where n          n
+                            i = #(An  Ii )  2                                            n
+                                                                                         i X (, )
+                                                                                                 n
+                                                                                                   > n .
+
+
+Proof. One has the decomposition X (, ) = X0 + X C + X n , where
+                              t                 t
+                 C
+                Xt =              as ds +           bs dWs ,        Xtn =        Xs 1{    Xs wn } .
+                          0                 0                               st
+
+                                                                                 p/2
+   The boundedness of at , bt yields E( n
+                                        iX
+                                           C                        p)    Cp  n        for any p > 0, so by Markov
+                                          4
+inequality and upon taking p >          1-2         we have
+
+                                                       1   2 p Cp
+                              P n
+                                iX
+                                   C
+                                     >                   n  p p/   2   2
+                                                                  n  C n .
+                                                       2   n
+On the other hand, X n  0 when  = 0, and otherwise by (2.1.41) of Jacod and Protter (2012)
+we have for any p  1:
+
+                                                                        1+(p-)( +/2)
+   E( n
+      iX
+         n p
+             )  Cp  n                  (z )p 1{(z )wn }  (dz ) + p
+                                                                 n  Cp  n            + p
+                                                                                       n ,
+                                   E
+
+and by Markov's inequality again we deduce, upon taking p large enough:
+                                   1        p-)( +/2)-p   p(1- )
+             P n
+               iX
+                  n
+                    >                 Cp 1+(            + n       C 2
+                                                                    n.
+                                   2 n   n
+
+
+Therefore in = { n       n >  } satisfies P( n )  C 2 .
+                 i X (, )    n              i       n
+   Finally, any jump of X with size bigger than wn occurs at a jump time of the process
+= (0, t]] ×{z : (z ) > wn } , which is a Poisson process with parameter n =  ({z : (z ) > wn }).
+p
+                                               - because  is  -integrable, so
+By Markov's inequality once more, we have n  Cwn
+
+                                                          -2 -
+                         P {#(An  Iin )  2}  (n n )2  C 2
+                                                        n      ,
+
+and the claim follows.
+
+
+A.2     The case where H  1
+In this subsection we prove a number of results that are specifically needed in the case H  1.
+We begin with the following one, with ,  as in (A.4):
+                        -2 -
+Lemma 4. As soon as Tn 1
+                       n      0 we have
+
+                                   J     J       2 3/2 
+                          P supiIn n,i - iqn n
+                                                vn Tn n  1.
+
+                                                               34
+                J,m,h                         J,m,h
+Proof. 1) Since n,i   = 0 by construction and iq n n
+                                                     = 0 by hypothesis when iqn n / Lm ,
+whereas vn  , it is enough to prove that for all m, h there is a constant C such that
+                                               J,m,h
+   P(m,h           m,h
+     n )  1, where n
+                           m,h
+                       = |Yn   -                               3/2 
+                                                       |  Cvn Tn  n ,        m,h
+                                                                            Yn   =               h,j
+                                                                                               Rn,m  Pjm .
+                                                                                           m
+                                                                                        j In
+
+   Therefore, below we fix m, h and basically drop them from our notation. We apply Lemma
+3 with the K + 1-dimensional process X = (F, P m ) and the associated sets n
+                                                                           i , to get that the
+set n,1 = n    n c
+          i=1 (i ) satisfies
+
+                                          n
+                                                          1-2 -
+                          P((n,1 )c )          P(n
+                                                 i )  CTn n      0.
+                                         i=1
+
+   Next, for ,  > 0 let Dn (,  ) be the (random) set of all times in (m , m ]  (0, Tn ]
+                                                 h                                      h
+at which at least one of the components F              has a jump with size in B (,  ), and write
+Nn (,  ) = #(Dn (,  )). The set Dn (,  ) is included into the set of jump times of the Poisson
+             = ([0, t] × {z : (z )  }), whose parameter (depending on ) is finite, hence for
+process Yt = p
+some constant C we have P(YTn > C Tn )  0 as n   and also P(YS +2n > YS )  C n
+for any finite stopping time S . This with  = /2, and since m  Tn and (m - 2n )  Tn are
+stopping times (recall (A.1)), yields
+                                      
+                                        = {Nn (/2, 2 )  C/2 Tn }
+                                       n,2
+                                      
+       j = 2, 3, 4  P(n,j )  1, where  n,3 = {Dn (/2,  )  (m , m + n ] = }
+                                      
+                                       n,4 = {Dn (/2,  )  (m - 2n , m ] = }.
+                                      
+
+Moreover, Assumption 3 with , ,  yields
+
+           P(n,5 )  1,        where     n,5 = { (R(m, ,  , Tn ) R(m, ,  , Tn ))  },
+
+                                                                                  m,h
+hence the set n = 5
+                  j =1 n,j satisfies P(n )  1, and we are left to proving that n  n .
+   2) For proving n  m,h
+                     n   we argue  -wise, with n fixed and  fixed inside n . Without
+loss of generality we may also assume n < /2, hence a fortiori wn < /2 with wn as in (A.4).
+                                                                             j,h
+Coming back to (26), we let A be the set of all j  In for which the vector (Rn,m )1hH is not
+vanishing, and A = In \A. Since   (n  c                                            n
+                                   j ) for each j  In and wn < /2, we see that A  Im
+and
+                                                                              H        J,m,h     h
+   jA        n  D (/2, 2 ) = {t }, n F - F
+            Ij   n             i   j
+                                                n m
+                                           ti + j P -                                          F tj  n
+                                                                             h =1
+   jA           n
+               Ij    Dn (2,  /2) = ,
+                                                                                                       (A.5)
+                                                                  h
+and below we define the n × H matrix R by            Rj,h   =   F tj   if j  A and      Rj,h   = 0 if j  A .
+
+                                                  35
+With the notation (19), we have Dn (2,  /2) = A(,  )m                               m
+                                                    Tn , hence Nn (2,  /2) = N (,  )Tn ,
+which is not bigger that Nn (/2, 2 ), and the second part of (A.5) implies that each col-
+umn of the matrix R(m, ,  , Tn ) is also a column of the matrix R.                                                 Thus  (R R) 
+ (R(m, ,  , Tn ) R(m, ,  , Tn ))   (recall   n,5 ), implying (R                                     R)-1        1/.
+                                           -1
+   Set R = R R and R = (R )       R . Observing that R has at most Nn (/2, 2 )  C/2 Tn non
+                                                                                          
+vanishing columns and that each entry Ri,h is smaller than 2 , we easily check that R  C Tn
+               
+and R  C Tn , so R  CTn . The same argument using the first part of (A.5) yields
+                                                 
+ Rn,m - R  C Tn        n and Rn,m - R         C Tn       n , hence (A.2) gives us Rn,m - R 
+Tn n for some constant . Since  (R )   we then deduce from (A.3) with a = 1/ and
+                                                                                                        3/2
+v = vn as given by (24) and once more (A.2) that Rn,m - R                                   Cvn Tn n.
+                 j,h
+   Since Rj,h = Rn,m = 0 for j  A , the j th column of R and Rn,m are vanishing for j  A
+and thus
+                                                                                           H
+                m,h                  h,j                     J,m,h                                  J,m,h          h
+               Yn      =           Rn,m    n m
+                                           jP ,                      =          R   h,j
+                                                                                                            F tj ,
+                           j A                                           j A              h =1
+
+                            h
+where we have used F tj = Rj,h for j  A and the definition of R for the second equality
+above. Then, an application of (A.5) yields
+                                                                                                  H
+             m,h       J,m,h                                                                               J,m,h       h
+           |Yn     -           |     Rn,m n          +         (Rn,m )    h,j
+                                                                                -R        h,j
+                                                                                                                   F tj .
+                                                         j A                                     h =1
+
+                                                           
+Observe that R     C Tn , because R -1  1/ and R  C Tn . Then Rn,m - R 
+     3/2                                                     J,m,h         3/2
+Cvn Tn                                                 m,h
+         n implies Rn,m  C Tn as well, and we deduce |Yn   -       |  Cvn Tn   n . In
+other words, we have proved that   m,h
+                                   n , and the proof is complete.
+
+                                              C is by construction measurable with respect
+   A crucial remark is in order here: whereas n,i
+                                        J . This induces some difficulties because the analysis of
+to F(i+1)qn n , this is not the case of n,i
+the limiting behavior of Un , for example, strongly uses the fact that it is a kind of "discrete"
+stochastic integral with respect to the It^
+                                          o semimartingale P , and having a non adapted integrand
+                                                                           n
+makes the analysis almost impossible to do. This is why we replace n,i by F(i+1)qn ­measurable
+           , according to the following procedure:
+variables n,i
+
+                             = ( C ,  J
+                            n,i                                          b             
+                                n,i iqn n ),                              n,i = (n,i ) n,i
+                               (bn,i )
+                                       -1 if  (b ) > 1/v
+                                                n,i      n                                                                  (A.6)
+            (b-1 )n,i =
+                                                                                       = (b-1 ) (  ) .
+                                                                                      n,i      n,i n,i
+                               0                otherwise,
+
+   With Yt being any of the processes t , bt , b-1
+                                                t , t , we have the genuine estimators Yn,i as
+
+
+
+
+                                                             36
+                                              as given by (A.6). We set
+given by (30) and (31), and the "fake" ones Yn,i
+
+                           E (Y )              
+                                 n,i = Yn,i - Yn,i ,
+                                                                          
+                                                             E (Y )n,i = Yn,i - Yiqn n ,                 (A.7)
+
+and will now study the "error" E ( )n,i . To this effect, since we assume H  1 here we have the
+second parts of (34) and (35) and we define   (0, 1/2) and choose some  > 0 as follows:
+
+                                           1
+                                     =       -  ,         0 <  < 1 - 2 - .
+                                           2 10
+As easily checked, these imply for any p > 0:
+                                                                        2 -5
+              -2 -                                                  u8
+                                                                     n n           2 -6
+          Tn 1
+             n      0,                p 3 2
+                                     vn Tn n  0,             p 4
+                                                            vn Tn            + u12
+                                                                                n n      0.              (A.8)
+                                                                       qn
+
+                                               J - J       2                               3/2
+Lemma 5. In restriction to the set n = {supiIn n,i iqn n  vn Tn n }, we have
+
+
+                                   E ( )                      6 3/2 4  -2
+                                        n,i  Czn , with zn = vn Tn un n   .
+
+Proof. For Yt being any of t , bt , b- 1
+                                     t , t , we consider the following property, for some sequence
+zn :
+                         
+                        Pz n
+                             :       E (Y )n,i  Czn ,          n  1, i  In ,   n .
+
+Below, we argue  -wise and fix   n .
+                                  the process  satisfies P                  2                    3/2
+       By the very definition of n,i          t           zn,1 with zn,1 = vn Tn n .
+              m,k                                                                 
+       Next, |n,i |  u2                                    C         2
+                      n /n by construction, so (29) yields n,i  Cvn un /n , hence n,i 
+Cvn u2                     2           J
+     n /n as well because un /n  1 and t is bounded. Using (A.2), we deduce that bt
+             ) with z
+satisfies (Pz                   2            2                       2
+              n,2     n,2 = vn un zn,1 /n + zn,1 , smaller than Cvn un zn,1 /n by (A.8).
+       If  (b                                                                     
+             n,i ) > 1/vn , Lemma 1 with A = bn,i and A = bn,i and the property (Pzn,2 ) for bt yield
+ E (b-1 )n,i  zn,3 = 3vn
+                       2z                                                                   
+                         n,2 . If  (bn,i ) > 1/vn we get the same inequality by exchanging bn,i
+and bn,i , whereas if both  (b                                                     -1
+                              n,i )  1/vn and  (bn,i )  1/vn we obviously have E (b )n,i = 0.
+Therefore b-1                                        3 2
+           t satisfies (Pzn,3 ), and we have zn,3  Cvn un zn,1 /n .
+       Finally, using again (A.2) and since by construction (b-1 )n,i                 vn , we deduce that t
+satisfies      )
+            (Pz     with zn =    vn zn,1 + vn u2                                        4 u4 z    2
+                n                              n zn,3 /n + zn,1 zn,3 ,   smaller than Cvn  n n,1 /n , hence the
+claim.
+
+
+
+
+                                                          37
+                       we associate the processes
+   With the variables n,i
+
+                   [n/qn ]-2
+        =      1           (P
+      Un      Tn         n,i    (i+2)qn n - P(i+1)qn n )
+                 i=0
+                  [n/qn ]-2
+      Un = qn
+            Tn
+              n               r
+                            n,i   iqn n                                                                         (A.9)
+                     i=0
+          [n/qn ]-2
+        =              (P                                                                       ) .
+      Vn            n,i     (i+2)qn n - P(i+1)qn n ) (P(i+2)qn n               - P(i+1)qn n ) (n,i
+             i=0
+
+Lemma 6. We have
+
+                                                                                   1
+                                               Tn Un - Un - 0,                               
+                                P                                        P                      P
+            Tn Un - Un - 0,                                                            Vn - Vn - 0.
+                                                                                    Tn
+Proof. First, we have
+                                       [n/qn ]-2
+                                 1
+   an :=     Tn (Un -    Un )   =                  in , in = E ( )    n   n
+                                                                  n,i i , i = P(i+2)qn n - P(i+1)qn n .
+                                  Tn     i=0
+
+Then in restriction to the set n the previous lemma yields
+                                                                 [n/qn ]-2
+                                                zn
+                                         an    C                             n
+                                                                             i .
+                                                 Tn                i=0
+
+Since P is an It^
+                o semimartingale with bounded spot characteristics and bounded jumps, we have
+E( n
+   i
+     2 )  Cq  . Therefore
+            n n
+                                                                                 
+                                             zn n                             zn Tn
+                               E an 1n      C                        qn  n  C         .
+                                              Tn qn                             qn  n
+
+   Secondly, we have
+                                           [n/qn ]-2
+           1             1
+     an :=  (Un - Un ) =                                 i n ,       in = E ( )     n
+                                                                               n,i i ,     in = qn n riqn n .
+           Tn             Tn                   i=0
+
+Since rt is bounded, using the previous lemma yields
+                                           zn n
+                                E an 1n  C        qn  n  C z n                      Tn .
+                                            Tn qn
+   Thirdly, we have
+                                               [n/qn ]-2
+                 1            1                                          n n                  
+           an :=  (Vn - Vn )=                                in (in ) + n,i i (i ) + in (n
+                                                                                         i ) (n,i ) .
+                 Tn            Tn                  i=0
+
+            Cvn u2                                       2 2
+Recall n,i       n /n from the previous proof, so n,i  Cvn un /n and we thus have in
+
+                                                            38
+restriction to the set n :
+
+                                                2 u2 -1      [n/qn ]-2
+                                     z 2 + zn v n
+                               an   C n      n n                         n
+                                                                         i
+                                                                           2
+                                                                             ,
+                                               Tn               i=0
+
+implying
+                                 2 + z v 2 u2 -1 n
+                                zn    n n n n                2        2 2 -1
+            E an 1n  C                              qn n  C zn + zn v n un n                Tn .
+                                        Tn       qn
+
+   Now, we apply (A.8). First, together with Lemma 4, it implies P(n )  1. Second, it also
+implies
+                                           1             v 4 u4
+                                  2
+                                 zn Tn                2
+                                               + 1 + zn + n 2n          0.
+                                         qn  n            n
+Therefore the three sequences an , an , an go to 0 in probability.
+
+                         
+A.3       Properties of Un , Un and Vn
+From now on we no longer require H  1. Then we have the first parts of (34) and (35) (which
+are in any case weaker than their second parts), and we easily see that, for any p  0,
+                                              1        p                 1
+                         with n = qn n +        :     vn 2
+                                                         n Tn +                   0.               (A.10)
+                                             qn                       qn n Tn
+
+   By virtue of Lemma 2, the processes t and t rt satisfy (17), a property which will be
+essential in the sequel, on any interval L on which both t and rt satisfy (17) themselves. With
+ > 0 such that each (m - )+ is a stopping time, we introduce the (predictable) sets, with
+(a, a ] =  when a  a :
+
+                Dm = (0, m ]  (m + , m - ]  (m , ),                      D = 1mM Dm .
+
+Since D is, for each  , the union of at most 3M disjoint intervals of R, separated by intervals of
+size less than M , there is an increasing sequence (j )01J of stopping times with 0 = 0 and
+J =  and j < j +1 if j <  for some (non random) integer J  3M , such that:
+
+            J     (j )
+    D=      j =1 L ,     where L(j ) = (j -1 , j ]  R+
+    R+ \D is the union of at most 3M intervals of length not bigger than                           (A.11)
+    Any L(j ) is contained, for all m, in either (0, m ] or (m + , m - ] or (m , ).
+
+Then, by the last property above, plus (P-1), Lemma 2 and the definition (14) for rt , we have
+that the processes
+
+               cF
+                t , t , t , r t , t , t r t satisfy (17) on each L
+                                                                   (j )
+                                                                        = (j -1 , j + 2qn n ],     (A.12)
+
+                                                    39
+and the estimation errors are easily tracked only when the integer i belongs to the random set
+Bn given by
+                             J
+                                    j          j
+                   Bn =            Bn ,       Bn = i : 1  i  [n/qn ] - 2, iqn n  L(j ) .                                         (A.13)
+                            j =1
+
+   We use the notation E (Y )n,i of (A.6) for Yt being one of the processes t , bt , (bt )-1 , t , and
+also when Yt is cF         C                               F        F       
+                 t or t or t , so by convention we write (c )n,i = cn,i and n,i = n,i and
+                           m,l      C m,l                       m,l
+( C )      C
+     n,i = n,i . Then E ( )n,i = E ( )n,i if 1  l  K , and E ( )n,i = 0 if K < l  K + H .
+
+Lemma 7. We have
+
+       i  Bn                     En                     4
+                                  iqn (E ( )n,i )  C n vn ,                  En
+                                                                              iqn       E ( )n,i   2          8
+                                                                                                        Cp n vn ,                (A.14)
+
+                                                            6
+                                                    En              12
+                                                     iqn ( n,i )  Cvn .                                                          (A.15)
+
+Proof. Since n  0, we can and will assume below n  1.
+   1) In a first step, we consider the K + M ­dimensional It^
+                                                            o semimartingale Z = (F, P ) whose
+spot volatility is denoted by ct , and its continuous part by Xt = Zt -                                   st Zs .       We set
+                                     qn
+                   cl,l
+                    n,i =
+                              1
+                                           n       l n      l
+                                           iqn +j Z iqn +j Z 1{|n                       l |u ,   | n       l
+                            qn n                                             iqn +j Z       n      iqn +j Z |un }
+                                    j =1
+                                                                qn
+                                           l,l       1
+                                          cn,i =   qn n              n       l n      l
+                                                                     iqn +j X iqn +j X .
+                                                              j =1
+
+
+Those are estimators for cl,l
+                          iqn n , although the second one is not feasible because X is not observed,
+and only serves us as a technical tool.
+                                                                                                                        1-
+                    it-Sahalia and Jacod (2014) and  < 1 and since 1 - 2
+   By Lemma B.5 of A¨                                                                                               <   32-   by (35),
+for p  [1, 16] and any l, l , we have
+
+                                   l,l     l,l p      (2p-)                    -p+1
+                            En
+                             iqn |ci,n - ci,n |   Cp  n                                   Cp        n .                          (A.16)
+
+                                        l,l
+   2) Here, we estimate the difference cn,i - cl,l
+                                               iqn n . Let i  0 and l, l be fixed, and for simplicity
+write t = iqn n and often omit the index n. We have
+                                                   qn
+                  l,l                       1
+                 cn,i - cl,l
+                         iqn n =                          j ,         j = n       l n      l     l,l
+                                                                          iqn +j X iqn +j X - n ct .
+                                          qn  n
+                                                   j =1
+
+
+  o's formula yields j =  j + j , where, with Ij = (t + (j - 1)n , t + j n ],
+It^
+
+                 l    l             l                          l    l             l                                      l,l
+   j =         (Xs - Xt+(j -1)n ) dXs +                      (Xt - Xt+(j -1)n ) dXs ,                  j =        (cl,l
+                                                                                                                    s - ct ) ds,
+          Ij                                            Ij                                                   Ij
+
+
+                                                                      40
+hence
+                                               qn                     qn                          t+qn n
+  l,l                               1                         1                     1
+ cn,i   -   cl,l
+             iqn n   = A + A, A =                    j, A =                 j =                            (cl,l  l,l
+                                                                                                             s - ct ) ds.
+                                  qn n                      qn  n                 qn  n       t
+                                              j =1                   j =1
+
+    On the one hand, standard computations using Burkholder-Davis-Gundy inequality and the
+boundedness of ct and of the drift of X yield for any p > 0:
+
+                               En                  2
+                                iqn +j -1 ( j )  C n ,         En
+                                                                iqn +j -1 | j |
+                                                                               p
+                                                                                  Cp p
+                                                                                     n,
+
+
+and by another classical martingale argument, we deduce
+
+                                                                        -p/2
+                         En
+                          iqn (A)  C n ,            En
+                                                     iqn |A|
+                                                            p
+                                                               Cp (p/2
+                                                                   n + qn    )  Cp /qn .
+
+    On the other hand, observe that if 1  l  K the variable cl,l   F,l,l
+                                                             t is ct     if 1  l  K and
+l-K,l
+t     if K < l  K + M . Therefore, if l  K , the process cl,l
+                                                          t satisfies (17) on each interval
+L (j ) by (A.12). This, the boundedness of ct and the Fiq
+                                                       n ­measurability of the set {i  B }
+                                                          n                             n
+yield for any p  2:
+
+        on the set {i  Bn }, if l  K :                 En
+                                                        iqn (A)  Cqn n ,           En
+                                                                                    iqn |A|
+                                                                                           p
+                                                                                              C p qn  n .
+
+Putting together the estimates for A and A, plus (A.16), we deduce as soon as l  K and
+p  [2, 16]:
+
+                                             l,l    l,l                      l,l    l,l
+  on the set {i  Bn }:                En
+                                       iqn (cn,i - ciqn n )  Cn ,     En
+                                                                       iqn |cn,i - ciqn n |
+                                                                                           p
+                                                                                              Cp n . (A.17)
+
+    3) At this stage, the proof of (A.14) follows the same route as the proof of Lemma 5. For
+a process Y such as those described after (A.13) and any sequences zn , z n  1 and p  2, we
+consider the property
+
+                                 on the set {i  Bn } and for all p  [2, p] we have
+            (Pzn ,z n ,p ) :
+                                  En
+                                   iqn (E (Y )n,i )  C n zn ,        En
+                                                                      iqn    E (Y )n,i    p        Cp n z p
+                                                                                                          n.
+
+
+Upon using (A.2) and (A.3), we easily see the following: Let Y and Y be two adapted bounded
+matrix­valued processes with the proper dimensions, satisfying (Pzn ,z n ,p ) and (Pzn ,z n ,p ) respec-
+              and Y  are estimators of Y
+tively, and Yn,i                                                                           
+                   n,i                  iqn n and Yiqn n ; we use below (Y Y )i,n = Yn,i Yn,i
+for estimating the product (Y Y )iqn n ; in the second case below Y is M+
+                                                                        d ­valued with a bounded
+                                                                                 -1
+inverse, and we use (Y -1 )         -1 1
+                           i,n = (Yn,i )      1/v } for estimating the inverse Y
+                                         { (Yn,i n                              iqn n ; then we
+have the following: If p  p  4, the process Y Y satisfies (Pzn ,z n ,p ) with zn = max(zn , zn , z n z n )
+                                 pp
+and z n = z n z n and p =         2   . And the process Y -1 satisfies (Pzn ,z n ,p ) with zn = max(zn , vn z 2
+                                                                                                              n)
+and z n = vn z n and p = p.
+
+                                                          41
+                            k,k       m,k ) = cK +m,k and (A.17) tells us that the two processes
+    We have (cF,k,k )n,i = cn,i and (      n,i n,i
+cF
+ t and t satisfy (Pzn ,z n ,p ) with p = 16 and zn = z n = 1. Then, what precedes shows us,
+                                                                                        C , and it
+successively, the following properties (for the second one, the property is obvious for t
+extends to  by virtue of the fact stated after (A.13)): (cF   -1 satisfies (P
+                                                          t )                vn ,vn ,16 ); t satisfies
+(Pvn ,vn ,8 ); bt satisfies (Pvn                 -1 satisfies (P
+                               2 ,v 2 ,4 ); (bt )                3 ,v 3 ,4 ); t satisfies (Pv 4 ,v 4 ,2 ). The last property
+                                                                vn
+                                   n                                 n                       n n
+
+above is exactly (A.14).
+    4) It remains to show (A.15). Since cF
+                                         t and t are bounded, (A.17) with p = 6 yields
+Eiqn ( cF
+        n,i
+              6+   n,i 6 )  C . Thus (29) implies that En     C 6      6
+                                                        iqn ( n,i )  Cvn , and the same holds for
+ because  J is bounded, and by (A.6) we readily deduce the claim.
+n,i      t
+
+                                -U    P
+Lemma 8. We have            Tn Un Tn - 0.
+
+                                                                                                            -U ) =
+Proof. Recalling (A.13), we set Bn = {0, 1, . . . , [n/qn ] - 2}\Bn . We have                         Tn (Un  Tn
+   5    l
+   l=1 Gn ,   where
+
+            in = E ( )n,i (P(i+2)qn n - P(i+1)qn n ), G1               1        in , G2     1       in
+                                                       n =             Tn              n = Tn
+                                                                           iBn                 iBn
+                        (i+2)qn n
+               n =
+               i                     iqn n - s dPs , G3              1        n , G4 = 1          n
+                       (i+1)qn n                      n =            Tn
+                                                                              i      n     Tn
+                                                                                                  i
+                                                                          iBn                 iBn
+                           An = ([n/qn ] - 2)qn n , Tn ], G5
+                                                           n =            - 1
+                                                                            T    An s dPs .
+                                                                                n
+
+                                         n , hence E ( )
+    The set Bn is random, but {i  Bn }  Fiq                             n
+                                            n           n,i 1{iBn } is F(i+1)qn ­measurable.
+Therefore, taking advantage of (P-1) and (A.14), we have
+
+         En    n         4         n     n 2
+          iqn (i )  C n vn qn n , Eiqn ( i
+                                                     8
+                                             )  C n vn qn n on the set {i  Bn }.                                   (A.18)
+
+Using the F(i+2)qn n ­measurability of in 1Bn (i) and decomposing G1
+                                                                   n into the sum for all i even
+and the sum for all i odd, plus the fact that #(Bn )  n/qn , we deduce by a classical martingale
+argument and (24), plus (A.10), that
+
+                C   n                                  n                                             
+        E( G1
+            n ) 
+                          4
+                       n vn qn  n +                              8q 
+                                                              n vn        4
+                                                                   n n  Cvn n                 Tn +      n  0.
+                 Tn qn                                 qn
+                                n , plus the property En
+    Next, (A.15) and {i  Bn }  Fiq                                                    P(i+2)qn n - P(i+1)qn n         2   
+                                   n                   (i+1)qn
+Cqn n , imply by successive conditioning and the Cauchy-Schwarz inequality that
+
+                                    E( in 1Bn (i))  C vn
+                                                       2
+                                                                   qn n P(i  Bn ).                                 (A.19)
+
+By (A.11) we have #(Bn )  3M /qn n , hence we have by (24) and (A.10) again:
+                              
+                             2 qn  n                        v2
+                     2
+                E Gn  C vn           E      1Bn (i)  C  n          0.
+                                 Tn     i0
+                                                          qn n Tn
+
+                                                            42
+                                                                                j
+   For G3                                              n
+        n , we recall (A.12) and observe that, on the Fiqn ­measurable set {i  Bn }, the interval
+((i+1)qn n , (i+2)qn n ] is contained in L (j ) . Upon writing P as in (20) and since the predictable
+quadratic variation V t of any component of P M art is such that at - V t is increasing, for some
+constant a, we easily get
+
+                                En    n      n     n 2
+                                 iqn (i ) + Eiqn ( i   )  C ( qn  n ) 2
+
+                 j
+on each set {i  Bn }, hence on the set {i  Bn } as well. Then, exactly as for G1
+                                                                               n above, by a
+martingale argument we deduce
+
+                             E( G3
+                                 n )  C qn n               Tn +     qn  n  0 .                             (A.20)
+                                                                             
+   Next, using only the boundedness of t , for any p  2 we have En     n
+                                                                 iqn ( i )  C qn n . Then,
+exactly as for G2
+                n , we obtain
+                                                              1
+                                       E( G4
+                                           n )C                     0.                                     (A.21)
+                                                           qn n Tn
+   Finally, An being a non random interval with length smaller than 3qn n , so
+                                              
+                                      5          qn  n
+                                E( Gn )  C             0                                                   (A.22)
+                                                  Tn
+by the boundedness of t again. This completes the proof.
+                        
+                        Tn Un - UTn - 0.
+                                     P
+Lemma 9. We have
+                                          5     j
+Proof. We have       Tn (Un - UTn ) =     j =1 Gn ,   where (with Bn and An as in the previous proof):
+
+                 in = qn n E ( )n,i riqn n , Gn
+                                              1 =       1           i n , G n
+                                                                            2 =    1           i n
+                                                        Tn                         Tn
+                                                              iBn                         iBn
+                           (i+2)qn n
+                  in =                                           3 =
+                                        iqn n riqn n - s rs ds, Gn               1          in ,
+                          (i+1)qn n                                              Tn
+                                                                                        iBn
+                             4 =
+                            Gn     1                 5 = - 1
+                                               in , Gn                       s rs ds.
+                                   Tn                      T        n   An
+                                         iBn
+
+                                                                                         5     j
+This is exactly the same as the decomposition                 Tn (Un - UTn ) =           j =1 Gn   of the previous
+proof, except that we replace t by t rt and E ( )n,i by E ( )n,i riqn n , and the M ­dimensional
+semimartingale P by the one-dimensional "process" t which is again a (continuous) It^
+                                                                                    o semi-
+martingale with bounded spot characteristics.
+                    n ­measurable and bounded, the variables  n satisfy (A.18) and (A.19)
+   Since riqn n is Fiqn                                      i
+(actually, much sharper bounds would be available in this case). Then, one can reproduce word
+                                                                             j
+for word the previous proof, to get the same bounds for the expectations E( Gn ), and the
+claim follows.
+
+                          1      -V            P
+Lemma 10. We have         Tn
+                                Vn Tn - 0.
+                                                      43
+Proof. It suffices to show that, for any fixed l, l  {1, . . . , K + H } and m, m  {1, . . . , M }, we
+have
+                                [n/qn ]-2
+                    1                       l,m l ,m n,m n,m                          1
+                                                                                               Tn   l,m l ,m                             P
+           V n :=   Tn
+                                            n,i n,i Pi Pi    -                        Tn      0     t  t     d[P m , P m ]t -0
+                                  i=0
+                                            where        Pin,m = P(m           m
+                                                                   i+2)qn n - P(i+1)qn n .
+
+                                                          5    l
+We have the decomposition V n =                           l=1 Gn ,      where (with Bn and An as in the proof of Lemma
+8):
+                    n
+                 i = E ( )l,m      l ,m       l,m l ,m    l,m        l ,m
+                          n,i E ( )n,i + E ( )n,i iqn n + iqn n E ( )n,i  Pin,m Pin,m
+                                                1                       n         2                     n
+                                             Gn =      1              i , Gn =            1            i
+                                                       Tn                                 Tn
+                                                       iBn                                   iBn
+            n            (i+2)qn n          l,m   l ,m     l,m l ,m                                                 3                     n
+            i   =                           iqn n iqn n - s   s                         d[P , P m ]s ,
+                                                                                           m                    Gn =        1            i
+                        (i+1)qn n                                                                                           Tn
+                                                                                                                                   iBn
+                             4                        n      5                          l,m k ,m
+                            Gn     =    1             i ,   Gn      =   - T1                           d[P m , P m
+                                        Tn                                 n         An s s                                 ]s .
+                                                iBn
+                                                                                              -U ) =                    5     j
+      Here again, this decomposition is the same as                                     Tn (Un  Tn                      j =1 Gn        in the proof of
+Lemma 8, with the following changes:
+                        1              2                                    n
+      - First, for Gn and Gn : we replace in by  i . Combining (A.14) and (A.15), we see that on
+the set {i  Bn }:
+
+                                                                                                                       10 
+                En
+                 iqn            E ( )n,i    4
+                                                         En
+                                                          iqn    E ( )n,i        2    En
+                                                                                       iqn     E ( )n,i     6        Cvn  n .
+
+                   n,m p
+Since En
+       (i+1)qn (|Pi   | )  Cqn n for p = 2, 4, by successive conditioning and again (A.14) and
+                                                                                4 q  P(i                        n
+(A.15) we see that (A.18) and (A.19) should be replaced with E | i | 1Bn (i)  Cvn  n n
+Bn ), and on the set {i  Bn }:
+                                                                n
+                                                      |En              8
+                                                         iqn ( i )|  Cvn qn n n
+                                                               n               
+                                                      En          2      10
+                                                        iqn (| i | )  Cvn qn n n .
+
+Then, exactly the same proof as in Lemma 8 gives, under (24):
+                                                                                                                       4
+                                                                                                                      vn
+                        1  8                                                                    2
+               E(|Gn |)  Cvn n                      Tn + 1
+                                                         n
+                                                          /4
+                                                              0,                        E |Gn |  C                           0.
+                                                                                                                    qn n Tn
+                            3      4            5    k,m k ,m
+      - Second, for Gn , Gn and Gn : we replace t by t  t     and P by Y = [P m , P m ], which is a
+                                                                                 t+s                                4              5
+process of (locally) finite variation. We have E                                t    |dYs |     Cs, so Gn and Gn enjoy the bound
+                                                                                                                                                t
+(A.21) and (A.22) (indeed, sharper estimates are available here). Since further Yt = Mt +                                                      0 as ds
+for some bounded process at and a martingale Mt such that a t - M, M                                                    t   is increasing for some
+                                                     3
+constant a , we also obtain that                    Gn   satisfies (A.20), and the proof is complete.
+
+
+
+                                                                            44
+A.4         Proof of Theorem 1
+Recalling (22), we readily deduce from Assumption 5 and the boundedness of t , plus Lemmas
+6, 8 and 9, that
+                                                         1      P
+                                          Tn (n - Tn ) -  U Tn -0,                                     (A.23)
+                                                         Tn
+as n  . Note also that our assumptions imply that the martingale U t has bounded jumps and
+that its quadratic variation process V given component-wise by (23) satisfies, for some constant
+C0 > 1:
+                                 t
+                                     (V t )  V t ,              E( Vt )  C0 t.                         (A.24)
+                                C0
+                                            1    2
+This implies in particular that E               U Tn  C0 , yielding that the sequence     1    U Tn is bounded
+                                           Tn                                             Tn
+in probability. Then (a) of Theorem 1 follows from (A.23).
+   Let us now turn to (b). The additional assumption that the variables (1/t)Vt converge in
+probability to a limit V and (A.24) imply that all hypotheses of Corollary 2.3 of Crimaldi and
+                                            
+Pratelli (2005) are satisfied (with at = (1/ t) IK +H and A =  in this corollary), so we have
+the following multivariate CLT:
+
+                           (VTn )-1/2 U Tn converges in law to N (0, IK +H ).                          (A.25)
+
+Therefore, it is enough to show the existence of subsets n   satisfying P(n )  1,
+
+    (i)      (Vn )-1 exists on n
+    (ii)     Tn (Vn )-1 1n and             1
+                                          Tn Vn 1n are    bounded in probability
+    (iii)    Gn := (Vn   )-1/2 (V   Tn   )1/2 converges   in probability to IK +H , in restriction to n .
+
+   Without loss of generality, we can and will suppose Tn  1. By Lemmas 6 and 10, the
+sequence n =       1    Vn - VTn          goes to 0 in probability, implying that the set n = {n 
+                   Tn
+1/2C0 } satisfies P(n )  1. Observing that for any two matrices A, B in M+
+                                                                         K +H we have
+ (A)   (B ) - A - B , and in view of (A.24) we see that, on the set n ,
+                                               
+                                                 Tn    Tn
+                              (Vn )   (VTn ) -             .
+                                               2 C0   2C0
+
+Thus on n the inverse (Vn )-1 exists and Tn (Vn )-1  2C0 , whereas                  1
+                                                                                   Tn E   Vn 1n  C0 + 1
+by (A.24) again. We thus have (i) and (ii) above.
+   Finally, for any A  M+
+                        K +H with  (A)  1/2C0 we have A
+                                                        -1/2 = f (A) and A1/2 = g (A)
+
+for some continuous M+                                  +
+                     K +H ­valued functions f and g on MK +H , so on n we have Gn =
+                                                          P
+f (Vn /Tn )g (VTn /Tn ). Since Vn /Tn - VTn /Tn - 0 and VTn /Tn is bounded in probability, we
+deduce (iii), and the proof of Theorem 1 is complete.
+
+
+                                                          45
+

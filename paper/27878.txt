@@ -1,0 +1,2467 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+     A TOOLKIT FOR SOLVING MODELS WITH A LOWER BOUND ON INTEREST
+                     RATES OF STOCHASTIC DURATION
+
+                                      Gauti B. Eggertsson
+                                       Sergey K. Egiev
+                                        Alessandro Lin
+                                         Josef Platzer
+                                          Luca Riva
+
+                                      Working Paper 27878
+                              http://www.nber.org/papers/w27878
+
+
+                    NATIONAL BUREAU OF ECONOMIC RESEARCH
+                             1050 Massachusetts Avenue
+                               Cambridge, MA 02138
+                                   October 2020
+
+
+
+
+This paper was prepared for the Alejandro Justiniano Memorial Conference at the Federal
+Reserve Bank of Chicago. This research was partly conducted when Luca Riva was
+visiting Danmarks Nationalbank; the financial support and kind hospitality are gratefully
+acknowledged. The views expressed herein are those of the authors and do not necessarily reflect
+the views of the National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Gauti B. Eggertsson, Sergey K. Egiev, Alessandro Lin, Josef Platzer, and Luca Riva.
+All rights reserved. Short sections of text, not to exceed two paragraphs, may be quoted without
+explicit permission provided that full credit, including © notice, is given to the source.
+A Toolkit for Solving Models with a Lower Bound on Interest Rates of Stochastic Duration
+Gauti B. Eggertsson, Sergey K. Egiev, Alessandro Lin, Josef Platzer, and Luca Riva
+NBER Working Paper No. 27878
+October 2020
+JEL No. E31,E40,E50,E60
+
+                                         ABSTRACT
+
+This paper presents a toolkit to solve for equilibrium in economies with the effective lower bound
+(ELB) on the nominal interest rate in a computationally efficient way under a special assumption
+about the underlying shock process, a two-state Markov process with an absorbing state. We
+illustrate the algorithm in the canonical New Keynesian model, replicating the optimal monetary
+policy in Eggertsson and Woodford (2003), as well as showing how the toolkit can be used to
+analyse the medium-scale DSGE model developed by the Federal Reserve Bank of New York. As
+an application, we show how various policy rules perform relative to the optimal commitment
+equilibrium. A key conclusion is that previously suggested policy rules ­ such as price level
+targeting and nominal GDP targeting ­ do not perform well when there is a small drop in the
+price level, as observed during the Great Recession, because they do not imply sufficiently
+strong commitment to low future interest rates ("make-up strategy"). We propose two new policy
+rules, Cumulative Nominal GDP Targeting Rule and Symmetric Dual-Objective Targeting Rule
+that are more robust. Had these policies been in place in 2008, they would have reduced
+the output contraction by approximately 80 percent. If the Federal Reserve had followed
+Average Inflation Targeting ­ which can arguably approximate the new policy framework
+announced in August 2020 ­ the output contraction would have been roughly 25 percent smaller.
+
+Gauti B. Eggertsson                             Josef Platzer
+Department of Economics                         Brown University
+Brown University                                josef_platzer@brown.edu
+64 Waterman Street
+Providence, RI 02912                            Luca Riva
+and NBER                                        Brown University
+gauti_eggertsson@brown.edu                      70 Waterman Street
+                                                Providence, RI 02912
+Sergey K. Egiev                                 luca.riva@brown.edu
+Brown University
+sergey_egiev@brown.edu
+
+Alessandro Lin
+Brown University
+alessandro_lin@brown.edu
+
+
+
+An online appendix is available at http://www.nber.org/data-appendix/w27878
+1    Introduction
+The effective lower bound (ELB) on nominal interest rates has been widely studied in recent years. It is
+standard to analyse this problem with dynamic stochastic general equilibrium (DSGE) models, where the
+ELB shows up as an inequality constraint on the nominal interest rate. However, inequality constraints
+complicate the application of standard solution strategies, e.g. perturbation methods. These methods
+approximate the behaviour of a dynamical non-linear model around a point (usually, but not necessarily,
+via linearisation) using differentiability assumptions. Occasionally binding constraints pose a challenge
+for direct application of these methods.
+
+In this paper, we present a toolkit aiming to facilitate the application of a generalised version of the
+solution method first used in Eggertsson and Woodford (2003), who analyse the ELB in the face of a
+two-state Markov process for the exogenous shocks with an absorbing state.1 We illustrate the algorithm
+in the canonical New Keynesian (NK) model and in the medium-scale DSGE model developed by the
+Federal Reserve Bank of New York (FRBNY). As an economic application, we consider various policy
+rules and study their performance relative to the optimal commitment equilibrium. Previously suggested
+policy rules ­ such as price level targeting and nominal GDP targeting ­ do not perform well when the
+price level does not fall by a large amount, as observed during the Great Recession, because they do not
+imply sufficiently strong commitment to low future interest rate ("make-up strategy"). This also applies
+to a policy rule we term Average Inflation Targeting which arguably approximates the new policy regime
+by the Federal Reserve recently presented by Powell (2020). To solve this shortcoming, we propose two
+new policy rules, a Cumulative Nominal GDP Targeting Rule and a Symmetric Dual-Objective Targeting Rule
+that are more robust. Had either of these policy rules been in place in 2008, and believed to be credible,
+the model simulation suggests the Federal Reserve would have reduced the output contraction (relative
+to trend) by about 80-90 percent. The comparable number for the average inflation targeting rule is 25
+percent (Table 3).
+
+Several strategies have been proposed to deal with the presence of inequality constraints in DSGE models.
+Eggertsson and Woodford (2003) exploit a particular structure for the exogenous disturbances: the shock
+process implies that the model unexpectedly moves to a "crisis state" and then reverts back to the "steady
+state" with a fixed probability. Once back to the steady state, it stays there forever (i.e. the steady state is an
+absorbing state). The idea behind the approach is intuitive: instead of treating a single dynamical system
+that contains both a set of equality constraints and a set of occasionally binding inequality constraints, we
+split the system into several parts called regimes, each of which contains equality constraints exclusively.
+Once cast in this form, we can apply perturbation methods, since each equation is differentiable.
+
+An application to the ELB scenario should make this clear: we distinguish among four regimes, each of
+them corresponding to a different combination of the status of the inequality constraint (e.g. ELB binding
+or not) and the exogenous Markov disturbance (crisis or steady state). For the regimes that feature the
+ELB not binding, we treat the model as if the ELB was not present. In the other two regimes, when the
+ELB constraint is binding, the equilibrium conditions will be characterised by the equality constraint (e.g.
+it = it   1   = 0). Since all four dynamical systems are characterised by a set of equations, each can be
+solved using perturbation techniques.
+
+The assumptions on the shock structure allow us to solve the model recursively in regimes. Starting from
+the last regime, where the ELB is not relevant, we work backwards to the period when the shock hits the
+   1 Source codes and examples are maintained at https://github.com/gautieggertsson/2-state-toolkit. Section
+
+A.2 in the Appendix presents a short user guide. Appendix B contains a number of illustrative examples.
+
+
+
+                                                        2
+system obtaining a piece-wise solution. Since outcomes in later regimes influence behaviour in earlier
+ones through expectations, the strategy is not based on a simple merger of separate models and sticking
+their solutions together.
+
+There are two key advantages to our approach: first, its relative simplicity allows for handling of models
+with many state variables; second, compared to competing local solution techniques, our strategy allows
+for the basic stochastic structure, making it attractive for simple estimations.2 It is worth noting that there
+is nothing special about the interest rate constraint for using this toolkit. Any model with a constraint
+that is temporarily binding, can be solved using this method.
+
+The toolkit features an algorithm that generalises the solution method in Eggertsson and Woodford (2003).
+In particular, it allows for the case of a regime in which the two-state Markov process is in the crisis state,
+but the ELB is not binding. This feature is of particular importance for our application of analysing policy
+rules: a common property of policy rules is that they imply an inertial response of the interest rate. An
+example would be a Taylor-type rule with lagged terms for the nominal interest rates. Rules of this kind
+often do not imply an immediate reduction of the interest rate to the ELB once the two-state Markov
+disturbance switches to the low state. The new feature is thus a meaningful addition and facilitates the
+analysis of different types of policy rules in the presence of an ELB, which is the main application in this
+paper.
+
+The idea of attacking the problem by constructing a piece-wise solution is not new, nor is the idea of
+a toolkit applying it. In fact, Guerrieri and Iacoviello (2015), henceforth OccBin, provide a toolkit for
+solving dynamic models with occasionally binding constraints in a similar fashion. The main difference
+from OccBin is that we do not assume perfect foresight, i.e. a deterministic setting. This feature also
+differentiates our approach from several other strategies, such as the Extended Path algorithm. To achieve
+this, we rely on the specific shock structure implied by a two-state Markov process with an absorbing
+state. Expectations about the future path of variables are a crucial component of models related to the
+ELB (e.g. uncertainty whether the economy will hit the ELB and uncertain timing of lift-off), and hence
+allowing for uncertainty is a useful feature of the toolkit.
+
+Adding a two-state Markov process with an absorbing state usually implies the following timing for the
+models analysed with the toolkit: initially, a shock hits the economy and the response of the central bank
+might be to immediately lower the interest rate to zero. In every period there is some probability that
+the disturbance reverts to its initial absorbing condition. There will often be a transition period, lasting
+from the point when the shock reverts to its initial level until all other variables of the model return
+to their steady state values. One benefit of our setup is that one can separately calibrate the expected
+duration of the constraint being binding from its actual, realised duration. Empirical evidence on the
+Great Recession, for instance the Blue Chip financial forecasts (Aspen Publishers 2008-12), suggests that
+market participants were expecting the ELB to bind for a much shorter time than turned out to be the
+case. We can account for this evidence, and can analyse several questions related to it, such as what
+would have been the output gains had the Federal Reserve adopted alternative policy regimes to that in
+place during the Financial Crisis of 2008, results that we have already noted.
+
+The expected duration of the ELB episode is not necessarily exogenously determined simply by the
+transition probability of the shock: in the case of a central bank that has commitment power, the duration
+of a binding ELB will typically be longer than the persistence of the disturbance in its crisis state. The
+   2 Denes, Eggertsson and Gilbukh (2013) is an example that contains a simple estimation that exploits the two-state Markov chain
+
+the toolkit solves for.
+
+
+
+
+                                                                3
+periods where the inequality constraint is binding therefore does not coincide with periods where the
+shock is in the low state. This means that the duration at the ELB will be endogenously determined in the
+model, depending on the optimal decisions taken by the monetary authority, which depends, among
+other thing, on the realisation of the shock. This is a key challenge in solving the model discussed in
+detail in the body of the paper.
+
+Our main application is monetary policy when the ELB is reached. Since the standard policy tool of
+affecting nominal interest rates is not available anymore, influencing expectations about their future
+path becomes the main lever through which the monetary authority can affect present variables. In this
+environment, policy rules that are able to mimic some form of commitment from the central bank are
+believed to perform relatively well. For example, in Eggertsson and Woodford (2003), who predict a
+strong deflation, rules that commit to bringing the price level back to pre-crisis levels, and to inflate in the
+future, are very effective. A key economic finding is that price level targeting and nominal GDP targeting
+do not do well if there is little fall in in inflation, as was the case during the Financial Crisis of 2008 in
+the U.S. The policy of price level targeting we consider is arguably equivalent to the policy of "average
+inflation targeting" recently adopted by the Federal Reserve when amending its policy framework in
+August 2020, if the average is taken over a sufficiently long period of time. We also consider an average
+inflation targeting regime, for which the time period averaged over is shorter. This policy provides even
+less stimulus at the ELB.
+
+In addition, we propose two new rules, a Cumulative Nominal GDP Targeting Rule and a Symmetric Dual-
+Objective Targeting Rule, that imply a commitment from the central bank to make up for past deviations
+from target on both the price level and output. We study their performance in the standard NK model as
+well as in the NYFRB DSGE model and show that they generally perform better than standard rules in
+the literature. We show this in an environment with low inflation and small movement in the price level,
+as experienced during the Great Recession. Since both rules imply an aggressive reaction to past output
+misses, they manage to communicate that the longer the crisis, the more accommodative monetary policy
+will be. This in turn generates enough stimulus to prevent a large recession to start with.
+
+Of previously proposed policy rules, the ones that perform best are the Superinertial Rule described in
+Rotemberg and Woodford (1999) and the Augmented Taylor Rule by Reifschneider and Williams (2000).
+Policy rules that do not perform as well, include Price Level and Nominal GDP Targeting, as well as Average
+Inflation Targeting, a result in line with Reifschneider and Wilcox (2019). The key problem of these rules, is
+that they do not prescribe strong enough stimulus in absence of falling inflation.
+
+The most important advantage of the stochastic structure our toolkit embodies is that there is a clear
+distinction between the expected duration of the shock and the realisation of it, but the two will of course
+coincide under perfect foresight. This allows us to clearly show the advantage of policy commitments,
+such as as those exemplified by our targeting rules, relative to the optimal time-dependent policy ­
+a strategy that resembles the interventions of several central banks during the crisis of 2008. Under
+optimal time-dependence, the duration of the ELB is tied to calendar time. In contrast, the targeting
+rule we consider implies a duration at the ELB that depends upon economic conditions. We highlight
+that a properly chosen state-contingent policy rule vastly outperform optimal time-dependent policy, a
+distinction that is not as transparent in a deterministic setting.
+
+In an additional application, we utilise our toolkit to contribute to a recent debate on the economic effects
+of Forward Guidance policy. We distinguish two cases: the standard theory on forward guidance creates
+additional stimulus by a fully credible announcement of keeping the interest rate at the ELB for additional
+
+
+
+                                                       4
+periods; this is an expansionary policy. The second case is what Campbell et al. (2012) call Delphic forward
+guidance and Nakamura and Steinsson (2018) refer to as information effects. Here, the expected duration
+of the ELB episode rises as well, but this time solely due to the revelation of information leading agents
+to update their beliefs about economic fundamentals; this entails an economic contraction. We show
+that both scenarios can match the same increase in the expected duration at the ELB, but lead to vastly
+different economic outcomes.
+
+The paper is structured as follows: Section 2 outlines how the solution method relates to the literature;
+Section 3 presents the solution algorithm; Section 4 provides a few applications in the context previously
+defined; Section 5 applies our toolkit to the medium-scale FRBNY DSGE model; Section 6 concludes.
+
+
+2      Related Literature
+There exists a sizeable literature on solution methods for DSGE models.3 Solution strategies can be
+classified into local and global methods. The former includes perturbation methods, the latter projection
+methods. Projection methods can handle occasionally binding constraints in a direct way, but they are
+associated with considerable computational burden and suffer from the curse of dimensionality.
+
+Our approach relies on perturbation. Generally, provided the system in question is well behaved,
+perturbation methods can handle large models with many state variables and provide a high quality of
+approximation. However, in the presence of occasionally binding constraints differentiability does not
+hold everywhere.
+
+Several attempts have been made to address this issue: our approach is a re-work and extension of
+the algorithm proposed in Eggertsson and Woodford (2003) that solves a NK model with a ELB in
+a fully stochastic setting. Jung, Teranishi and Watanabe (2005) is another early strategy based on a
+piece-wise solution, but in a deterministic environment. The paper closest in spirit to ours is Guerrieri
+and Iacoviello (2015), already mentioned in the introduction. Occbin solves deterministic dynamic models
+with occasionally binding constraints by piece-wise first-order perturbation. It can handle an AR(1)
+shock structure, independent shocks, several alternations between slack and binding modes in one
+simulation. However, it assumes perfect foresight. From this discussion it should be clear that our toolkit
+is complementary to OccBin. Each is tailored to a particular set of questions. Both have in common that
+they are easily implementable.
+
+Doubts have been raised whether linearisation offers a good approximation to the fully non-linear system
+dynamics in the presence of the ELB, see for example Boneva, Braun and Waki (2016). Eggertsson
+and Singh (2019) look at the non-linear version of Eggertsson and Woodford (2003) and find that the
+approximation error is modest even for large disturbances, provided the approximated solution is
+parameterized to match the same empirical evidence and the non-linear solution. They also comment on
+poor approximation results that have been mentioned in relation to Rotemberg pricing,4 a finding they
+ultimately trace back to how the cost of price changes shows up in the resource constraint of the model,
+rather than errors introduced by linearisation.
+
+One way to account for the ELB is to replace the inequality constraint with news shocks: ones that
+are realised some time before they actually enter equations of the model. Las´
+                                                                             een and Svensson (2011)
+and Holden and Paetz (2012) develop this point: they use such disturbances to transform a non-linear
+    3 For   an overview we refer to the recent handbook chapter by Fern´
+                                                                       andez-Villaverde, Rubio-Ram´
+                                                                                                  irez and Schorfheide (2016).
+    4 This   point was also made in Miao and Ngo (2019).
+
+
+
+                                                                 5
+constraint into "as if" linear models. The approach is able to handle higher order approximations as
+well as uncertainty. Holden (2016) offers a Dynare toolbox for the easy implementation of the procedure,
+DynareOCB, providing reliable accuracy with sufficient speed.
+
+Another local method of solving large systems within reasonable time is the Extended Path algorithm
+(EP), proposed by Fair and Taylor (1983) and applied to a model with a ELB by Adjemian and Juillard
+(2011). This method sets a terminal date when the solution trajectory is assumed to be sufficiently close
+to the steady state. The EP algorithm is solved under perfect foresight: at each point in time, all future
+shocks are assumed to be equal to their expected values of zero. Adjemian and Juillard (2013) note that
+ignoring Jensen's inequality under an EP approach leads to a sizeable approximation error in models
+with occasionally-binding constraints. The authors extend EP to a Stochastic Extended Path algorithm that
+is more suitable for a setting with non-linear constraints. It is somewhat of a middle ground between
+perfect foresight and a fully stochastic setting: for some finite number of periods ahead, the setting is
+stochastic (e.g. the expectation is explicitly approximated via quadrature integration) while after that
+period all disturbances are assumed to be zero.
+
+Another strategy is to replace the inequality constraint by a smooth penalty function, thereby eliminating
+the inequality constraints from the model (this is also referred to as barrier method). The idea is to penalise
+the agents' utility in cases where the inequality constraint is violated. This method is used in outlined in
+Judd (1998) and put to use in Preston and Roca (2007) and Kim, Kollmann and Kim (2010), among others.
+In the centext of the ELB it is first applied in Rotemberg and Woodford (1997).5
+
+The advantage of the approaches discussed so far is that they can manage medium- to large-sized models
+in reasonable time. Global solution methods can account for non-linearities and deliver solutions with
+high precision, but suffer from the curse of dimensionality. Improvements in computation power and
+methods, make this more direct approach, however, increasingly more attractive and applicable.6
+
+Some papers using projection methods to analyse the ELB should also be mentioned here: Adam and
+Billi (2006) and Nakov (2008) work with the linearised system of equations of standard NK models, and
+the ELB is the only source of non-linearity. Fern´
+                                                 andez-Villaverde, Rubio-Ram´
+                                                                            irez and Schorfheide (2016)
+solve the fully non-linear model and highlight the benefits of this approach.
+
+It is worth highlighting an important limitation of the solution method applied in this paper, that makes
+it less appropriate to analyse some questions. Due to the that the shock that generates the ELB returns to
+an absorbing steady state, our method is not suitable to address questions related to repeated episodes of
+the ELB. For example, if one wants to address how anticipation future ELB episodes matter for policy
+under normal circumstances, the method developed here is not useful, absent further extensions. Global
+methods, in contrast, are well suitable for this class of questions.
+
+Given the numerous and powerful alternatives available, we do not claim superiority to any of the
+presented methods. Which approach suits best for a particular problem at hand will have to be evaluated
+on an individual basis. Our method has the advantage of tractability, simplicity, fast implementation,
+and the flexibility to account for a particular kind of uncertainty that has been popular in the literature.
+
+In an application of the toolkit, we analyse optimal policy rules in economies at risk of hitting the ELB.
+There is a vast literature analysing optimal rules. Recent contributions include Kiley and Roberts (2017),
+   5 An  application to the ELB is also discussed in Woodford (2003), Chapter 6, Section 4.2.
+   6 Maliar  and Maliar (2015) is a recent attempt to ameliorate the curse of dimensionality when using projection methods: the key
+to this result is to repeatedly choose the grid on which the projection method operates in a smart way, using a stochastic simulations
+approach. Gust et al. (2017) use this method to solve a medium-scale DSGE model with an occasionally-binding ZLB constraint and
+use the methodology to estimate the model using Bayesian methods.
+
+
+                                                                  6
+Mertens and Williams (2019a) and Mertens and Williams (2019b). Nakov (2008) is an earlier paper
+looking at optimal rules at the ELB. Our analysis highlights the implications of a stable price level for
+rules like price level targeting and nominal GDP targeting, and proposes rules that are robust to such
+environments.
+
+
+3     A Piece-wise Linear Solution to Rational Expectations Models with
+      Inequality Constraints
+3.1    Basic Idea
+In this section we outline our approach in applying perturbation methods to models with inequality
+constraints.7 Technically, the use of the implicit function theorem (IFT) on which perturbation methods
+rely requires the function approximated to be smooth. Inequality constraints introduce a kink in the
+model at the point where the inequality constraint becomes binding. On a more intuitive level, once
+the inequality constraint becomes binding (or slack, depending on the point of approximation), local
+approximation via IFT becomes inaccurate.
+
+The basic idea of our approach is to circumvent this problem by the following: we split the model into
+several parts, called regimes, depending on which set of equations applies. This strategy decomposes
+the inequality constraints that characterises the model in general into several equality constraints that
+characterise each regime separately. This turns one system with occasionally binding constraints into
+several interlinked systems. Critically though, it does not simply amount to transforming the problem
+into independent dynamical linear systems: optimal decision-making in the current regime takes into
+account uncertainty as to what regime will govern future dynamics of the model, thus linking the
+dynamics of one regime to the next.
+
+We assume the fundamental disturbance et 2 {e L , e H } hitting the system to be characterised by a two-
+state Markov process with an absorbing state, i.e. P(et+1 = e L |et = e L ) = µ and P(et+1 = e H |et = e H ) =
+1.8 This assumption buys a lot: this shock structure allows for the decomposition of a single dynamical
+system into several regimes.9 In the applications we consider in this paper, the regimes are:
+               ~ : the shock is in the low state, et = e L and the ELB is not yet binding;10
+    0. 0 < t < T
+       ~  t < t : the shock is in the low state, et = e L , and the ELB is binding;
+    1. T
+
+    2. t  t < t + k t : the shock has returned to the high, absorbing state, et = e H but the ELB is still
+       binding;
+
+    3. t + k t  t: the shock remains in the absorbing state, et = e H , and the ELB is not binding.
+    7 See Fern´andez-Villaverde, Rubio-Ram´    irez and Schorfheide (2016) for an overview on solution methods for macroeconomic
+models, including perturbation methods. Schmitt-Groh´        e and Uribe (2009) and Judd (1998) are excellent sources for in depth
+treatment of perturbation methods.
+    8 The exogenous disturbance e needs not to be a scalar. As long as the shocks are perfectly correlated, one should think of e as a
+                                   t                                                                                             t
+vector of perfectly correlated innovations.
+    9 An example of this in the context of the ELB would be optimal policy by the central bank under commitment. Here we can split
+
+the problem into three regimes, one where the shock is over and the ELB is slack, one where the shock is over but the ELB binds,
+and one where the shock is on an the ELB binds. Note that not every problem needs to have three (or four) regimes: the problem of
+the central bank under discretion (without endogenous state variables) will typically only have two regimes.
+   10 This regime generalises the solution method in Eggertsson and Woodford (2003) to allow for very sluggish policy rules. Notice
+
+that T ~ can be 1, meaning that regime 0 never starts. This is the case, for example, of a fully forward-looking economy such as the
+standard NK model with a policy rule that has no lagged term.
+
+
+
+
+                                                                  7
+At time t = 1 a realisation of the shock in the low state hits the system, e1 = e L . In period t = t the
+disturbance reverts to the high, absorbing state and stays there forever. Note that for each possible t , the
+solution proposed above prescribes k t additional periods in which the ELB is binding.
+
+As for the inequality constraint, there are a few switching points: first, the inequality constraint is binding
+starting from some point in time T   ~ ; this is the switching time from regime 0 to regime 1.11 Note that
+                             ~ is known and deterministic. Second, when the shock has reverted to its
+from the agents' perspective T
+absorbing state at time t the inequality constraint could still be binding. This situation constitutes a
+separate regime and the switching time is stochastic by nature as it is governed by the Markov process.
+t is the switching time from regime 0 or 1 to regime 2. The duration of regime 2 is denoted by k t , and
+might depend on the duration of the preceding regimes. Finally, t + k t represents the time when the
+economy switches from regime 2 to regime 3, where the shock is in its absorbing state and the constraint
+does not bind anymore; regime 3 governs the dynamics thereafter.12
+
+To take into account the expectations channel that interlinks the regimes, we solve the problem backwards,
+starting with regime 3. Note that since we assume an absorbing state for the exogenous shock, the system
+is deterministic in regimes 2 and 3. It is in regimes 0 and 1, where expectations about future realisations
+of the shock affect the current behaviour, that the stochastic setting comes into play.
+
+
+3.2     General Formulation
+To introduce technical notation, many macroeconomic models can be formulated in the following form:
+
+                                                      E t f~ x      ~t , e
+                                                             ~t+1 , x    ~t  0                                                     (1)
+
+where x~t is a vector of endogenous variables and e
+                                                  ~ t is a (vector) shock following a two-state Markov
+                                13
+process with an absorbing state. The disturbance switches back to the absorbing state with probability
+one at a (deterministic) time, tmax .14 E t is the mathematical operator for expectation conditional on
+information available at time t and f~ (·, ·, ·) is a differentiable function. Typically, f~ contains structural
+equations and/or necessary first order conditions of an optimisation problem arising in a microfounded
+economic model. The inequality sign in (1) accounts for the presence of inequality constraints.15 For the
+sake of convenience, we transform the notation in (1) as follows:
+
+                                                       Et f  x t
+                                                                        
+                                                                 +1 , x t  0                                                       (2)
+                      0                   0
+         = x
+where x t   ~t , e
+                 ~ t 1 = Zt                                 = ( N + N + N ) elements, of which N non-
+                                     ~ t 1 is a vector of NY
+                            , St 1 , e                           Z   S    e                     Z
+                                        
+predetermined (or jump) variables Zt , NS predetermined variables St  , and N exogenous disturbances
+                                                                       1      e
+~t 1.
+e
+
+In order to deal with the inequality constraints, we propose to split the problem into several regimes. In
+each regime the system of equations can take a different form, so we denote each resulting system by
+   11 Notice that the toolkit allows for T ~ to be "large enough", meaning that regime 1 never starts. This generalises the use of the
+toolkit for shocks that are enough small to not trigger the inequality constraint to bind.
+   12 The toolkit in its current version does not allow to switch from a higher regime back to a lower regime. This means we do not
+
+allow to move from regime 1 to regime 0, or from regime 3 to regime 2. Some models could require such a feature for a solution to
+be found, e.g. in models implying a lot of inertia. We never encountered such a case when working with the toolkit.
+   13 This notation requires that exogenous variables appear in present values only.
+   14 Note that t
+                  max can be set so that the period at which the shock reverts to its high state is arbitrarily far in the future.
+   15 The full set of first order conditions usually also includes transversality conditions, No-Ponzi scheme conditions and initial
+
+conditions. For brevity's sake we do not explicitly formulate them. Moreover, note that this formulation is general enough to
+include higher order difference equations, since they can be easily transformed into first order difference equations by redefining x~.
+
+
+
+                                                                  8
+another subscript. Importantly, the inequality constraints are either slack or binding, so that we write a
+system of equations instead of inequalities. We denote each system of equations by the following:
+
+                                                      E t f i x t
+                                                                         
+                                                                  +1 , x t = 0                                                     (3)
+
+where i 2 {0, 1, 2, 3} indicates the regime.
+
+Next, we approximate the non-linear systems of equations in (3) to the first order around a specific point.
+Usually, we approximate around the deterministic steady state x¯ of some "baseline regime" i  ~ that fulfils:
+
+                                                                 ¯, x
+                                                           f i~ (x  ¯) = 0.                                                        (4)
+
+We can choose to linearise around an equilibrium point of any regime, and the particular choice will
+depend on the application. We can write the resulting linear system of equations in the following general
+form:
+                                                        A i E t x t +1 = B i x t                                                   (5)
+
+where Ai , Bi are NY  NY coefficient matrices and x t = [ Zt , St                                        0
+                                                                                 = [ Zt , Pt 1 ]0 is a NY =
+                                                                                       1 , et 1 , Ct ]
+ NY  + 1  1 vector.16 The variables x , Z , S , e , P are now written without star: this due to the process
+                                       t  T t t t
+of linearisation, where the variables are often transformed, e.g. to log-deviation from steady state. The
+term Ct accounts for binding inequality constraint.17
+
+The solution path to small perturbations that is derived from the linearised system in (5) will be exact
+                                      ¯k2 ). The O (.) term is the remainder appearing in the first-order
+only up to a residual of order O (ke, d
+Taylor-series approximation. In addition, e in the big-O expression refers to the perturbation of the shock
+variable and d ¯ takes account of the fact that the equilibrium in regimes other than the baseline might
+not coincide with the point we linearise around. This amounts to another "perturbation" that brings us
+off the point we approximate around. In our examples we will usually have d  ¯ = i i¯ , with i
+                                                                                             ¯ being the
+                                                                                                                ¯
+                                                                                                             1+ i
+                                                             ¯ 6= 0 if i = 0, which is the case in regimes 1
+non-stochastic steady-state interest rate. Then we will have d
+and 2.
+
+As noted in Eggertsson and Woodford (2003), as well as in Woodford (2003) p.383 ff., perturbation theory
+provides accurate linearised solutions only for shocks that are small enough, i.e. both e and d small.
+We now briefly discuss this assumption: Eggertsson and Woodford (2003) show that we can make d           ¯
+                                                                                             ¯ is close to
+arbitrarily small by assuming that there is interest paid on base money. In our application, d
+realistic values (e.g. a drop of the interest rate from 3 percent to 0), and we hope (without verifying) that
+our linear approximation will be accurate. Eggertsson and Singh (2019) compare the fully non-linear
+version of a standard NK model with a binding ELB to the log-linearised one, and find that they behave
+similarly for reasonable values of disturbances, including ours.
+
+The system in (5) has a familiar form and we can therefore apply standard rational-expectations solution
+methods. All regimes except the last will have a finite duration. Blanchard and Kahn (1980) present the
+conditions under which a system of infinite horizon like (5) has a unique bounded solution. The regimes
+  16 Thevector Pt contains all predetermined variables, which include past exogenous shocks as well as constants.
+  17 When  the constraint is not binding we typically have Ct = 0. To give a concrete example, consider the zero lower bound and
+                                             ¯                                                            ¯
+                                    ^t = it ¯
+the nominal rate it . We can define i       i                                                       ^t =
+                                               . When the zero bound is binding, we have it = 0 and i     i
+                                                                                                            ¯ . This is an example of a
+                                         1+ i                                                            1+ i
+constant term.
+
+
+
+
+                                                                   9
+before the last will have a finite terminal date and can be solved recursively. Solutions will take the form:
+
+                                                              i
+                                                        Pt = Gt Pt         1                                             (6)
+                                                                  i
+                                                        Zt =     Dt   Pt                                                 (7)
+
+       i and D i are transition matrices. We see that time t variables will be a linear combination of
+where Gt      t
+pre-determined variables, shocks and constants. Once we find all transition matrices an initial condition
+for the predetermined variables P0 allows us to compute the evolution of the dynamical system.
+
+
+3.3     The Solution Algorithm
+After this general outline of our approach, we want to show the way to derive the transition matrices of
+every regime. Since transition matrices of earlier regimes depend on later ones, we solve the problem
+recursively. We will first take the length of each regime as given and then discuss how to determine a
+vector k and the time T~ . The former contains the length of regime 2 for each realisation of the shock path.
+We will refer to those realisations as contingencies.
+
+
+3.3.1                                                                   ~
+        Finding the transition matrices in all four regimes given k and T
+                                               i and D i for each regime. We will rename the matrices
+Here we describe the construction of matrices Gt      t
+according to the following notation, so that they correspond to the state they are in.
+
+   Period t       ~
+                t<T      ...    ~
+                                T     ...    t<t           ...         t        ...   t  t < t + kt   ...   t   t + kt
+                                  ~
+         Dt     D0,t     ...   D1,T   ...        D1,t      ...        D2,kt     ...       D2, j       ...       D3
+                                  ~
+         Gt     G0,t     ...   G1,T   ...        G1,t      ...        G2,kt     ...       G2, j       ...       G3
+
+where j = k t   (t     t ) denotes how many periods are left until the ELB is no longer binding.
+
+Solution for regime 3: t       t + k t . The system can be written in the following form:
+                                                    "        #      "      #
+                                             3          Zt+1      3    Zt
+                                            A Et               =B            .                                           (8)
+                                                         Pt           Pt 1
+
+A system of this form can be solved by the method outlined in Blanchard and Kahn (1980) as well as in
+King and Watson (1998).
+
+The solution takes the form:
+
+                                                        Pt = G3 Pt         1
+                                                                 3
+                                                        Zt = D Pt          1.
+
+
+Superscript 3 denotes the regime, and no subscripts are present because D3 and G3 do not depend on
+time.
+
+
+Solution for regime 2: t  t < t + k t . As in the previous case, the system can be written as:
+
+
+
+
+                                                               10
+                                                                         "          #                   "                 #
+                                                                2            Zt+1                   2           Zt
+                                                            A Et                          =B                                                                                (9)
+                                                                              Pt                             Pt       1
+                                             "                  #"                  #           "                         #"             #
+                                                 A2
+                                                  1        A2
+                                                            2        E t Zt+1                        2
+                                                                                                    B1             2
+                                                                                                                  B2            Zt
+                                                                                          =
+                                                 A2
+                                                  3        A2
+                                                            4                Pt                      2
+                                                                                                    B3             2
+                                                                                                                  B4           Pt    1
+
+
+and we want to find a solution of the form:
+
+                                                                         Pt = G2, j Pt              1
+                                                                                        2, j
+                                                                         Zt = D                Pt       1.
+
+
+We show how to derive those matrices in the following Lemma 1.
+
+
+             ~ be the reduced row echelon form of B,
+Lemma 1. Let A                                    ~ where
+                                 "                                       #                                  "                                              #
+                           ~=        I   0            C1            C2                         ~=               A2
+                                                                                                                 2
+                                                                                                                                2
+                                                                                                                               B1                 2
+                                                                                                                                                 B2   A2
+                                                                                                                                                       1
+                           A                                                      and          B                                                               .
+                                     0   I            C3            C4                                          A2
+                                                                                                                 4
+                                                                                                                                2
+                                                                                                                               B3                 2
+                                                                                                                                                 B4   A2
+                                                                                                                                                       3
+
+
+The solution in regime 2 will be:18
+                                                                  h                                         i     1
+                                                           G2, j = I               C2 D2, j             1
+                                                                                                                      C1
+
+                                                           D2, j = C3 + C4 D2, j                        1
+                                                                                                             G2, j .
+
+Also, it will hold D2,0 = D3 , and G2,0 = G3 .
+
+Proof. See Appendix A.1.
+
+Solution for regime 1: t < t . Similarly to regime 2, we can write the solution into the form
+
+                                             "               #"                     #          "                       #"               #
+                                                 A1
+                                                  1    A1
+                                                        2            E t Zt+1                        1
+                                                                                                    B1           1
+                                                                                                                B2             Zt
+                                                                                         =                                                   .                             (10)
+                                                 A1
+                                                  3    A1
+                                                        4                    Pt                      1
+                                                                                                    B3           1
+                                                                                                                B4            Pt    1
+
+
+Note that the transition matrices will now be time varying. This is because in regime 1 the expecta-
+tions at time t depend on k t+1 , since Et Zt+1 = µ Zt+1|et+1 =eL + (1 µ) Zt+1|et+1 =e H = µ Dt      1 P + (1
+                                                                                                      +1 t
+µ) D 2, k t + 1      1
+                Pt  D Pt . Recall that with probability µ the shock will stay in the low state, while with proba-
+                      t
+bility 1      µ the shock will switch back to the high state and the coefficient matrix D will be calculated
+according to the next regime.
+    ~ t be the row reduced echelon form of D
+Let C                                      ~ t , where:
+                            "                                       #                                       "                                                      #
+                     ~t = I 0
+                     C
+                                             Ct,1           Ct,2
+                                                                             and           ~t =
+                                                                                           D
+                                                                                                                At,2            Bt,1              Bt,2     At,1
+                                                                                                                                                                       .
+                          0 I                Ct,3           Ct,4                                                At,4            Bt,3              Bt,4     At,3
+  18 We   make use of the deterministic nature of regimes 2 and 3 to ignore the expectation term.
+
+
+
+
+                                                                                    11
+Then, we can rewrite the system to be:
+                         "        #       "                 #"              #         "                     #"         #
+                             Pt               Ct,1   Ct,2         Pt    1                 Ct,1       Ct,2        Pt 1
+                                      =                                         =                                        .                       (11)
+                             Zt               Ct,3   Ct,4        E t Zt+1                 Ct,3       Ct,4         1 Pt
+                                                                                                                 D t
+
+
+Once again, we want to find a solution of the form:
+
+                                                             Pt = G1,t Pt         1
+                                                                         1,t
+                                                             Zt = D Pt            1.
+
+
+To solve for these matrices we assume that at some time tmax the probability of the shock returning to its
+absorbing state (given that this did not happen at time tmax                                  1) is no longer 1              µ, but 1. This allows us
+to use the same solution strategy as in regime 2 to obtain:
+                                                            h                             i    1
+                                          G1,tmax      1
+                                                           = I         C2 D2,ktmax                 Ctmax ,1
+
+                                          D1,tmax      1
+                                                           = C3 + C4 D2,ktmax G1,tmax                   1
+                                                                                                            .
+
+We can apply this methodology recursively for t < tmax                                1:
+                                                           h                      i       1
+                                                     G1,t = I               1
+                                                                       Ct,2 D t               Ct,1
+                                                                        1
+                                                     D1,t = Ct,3 + Ct,4 D   1,t
+                                                                          tG .
+
+
+                           ~ . The solution for regime 0 follows the same procedure to the one for regime
+Solution for regime 0: t < T
+1. The only difference is that the matrices A and B differ from those in regime 1. Regime 0 holds until
+         ~ . The transition matrices in regime 0 will have the form:
+time t = T
+                                                           h                      i       1
+                                                     G0,t = I               0
+                                                                       Ct,2 D t               Ct,1
+                                                                        0
+                                                     D0,t = Ct,3 + Ct,4 D tG
+                                                                             0,t
+
+
+
+So far we have considered the vector k (the duration of regime 2 for each and every t ) and the scalar
+~ (the period in which regime 1 starts holding) to be known by the agents of the economy. The next
+T
+Sections explain the algorithm we use to find them.
+
+
+3.3.2                   ~
+        Finding k given T
+
+The algorithm to find k for a given T~ is straightforward: we start from a vector of zeros, namely that
+regime 2 is never believed to hold, under any contingency. We then use the transition matrices found as
+described in the previous section and trace the evolution of all variables, including the one constrained
+with inequality (e.g. the nominal interest rate). Starting from the first contingency, we then check whether
+the inequality constraint is violated in the first period of regime 3. In case it is not violated, we move
+forward to the next contingency until we encounter a contingency for which, according to the transition
+matrices, the inequality is violated in the first period of regime 3. Whenever we find such a contingency,
+we update k by adding one unit to the duration of regime 2 under such contingency.
+
+In the interest of saving computing power, it is possible to assume that there is an increasing relationship
+
+
+                                                                       12
+between the contingency and the length of regime 2. Such an assumption is harmless in some models but
+it is still to be shown that the results are not affected in general. If one wants to verify that a given k does
+indeed imply a solution to the dynamic system, it is possible to check that the necessary condition on the
+variable whose constraint is potentially binding is not violated.19 After having updated k, we proceed as
+explained in the previous sections by calculating a new set of transition matrices and then we follow the
+algorithm outlined above to check if there is some contingency for which the inequality is violated in the
+first period of regime 3.20
+
+
+3.3.3            ~
+         Finding T
+
+The algorithm to find T ~ is intuitive. For a given T~ , say T (which is initialised at 1), we take two steps
+to check whether it is the solution: first, for T~ = T , meaning that regime 1 starts at time T , we check
+that the inequality constraint is not violated at t = T 1; second, we impose T      ~ = T + 1, assuming that
+regime 1 starts at T + 1. We find the corresponding k, simulate the economy forward, and finally check
+whether the inequality constraint is violated for t = T . If the inequality constraint is indeed violated, then
+regime 1 should start at t = T + 1 1 = T and we conclude that T      ~ = T . If the inequality constraint is not
+violated for t = T , this implies that regime 0 is correctly imposed in t = T + 1. In such case we continue
+iterating by increasing T by one.
+
+
+4       Applications
+As an application we revisit Eggertsson and Woodford (2003), henceforth EW2003, and analyse the
+optimal monetary policy at the ELB in the standard NK model. We then ask what kind of policy rule
+can implement it. Our key finding is that EW2003 suggests a simplified price level targeting rule which
+performs poorly in replicating the optimal commitment in numerical experiments where the price level
+does not drop much at the ELB. We consider this scenario because of its similarity to the Great Recession
+in the United States, and because it stands in stark contrast with the experiment considered in EW2003.
+We also show that popular policy proposals such as nominal GDP targeting do relatively poorly in
+simulations in which there is not a significant fall in the price level at the ELB. We explain the logic of
+this result and suggest new alternative policy rules that do better. Finally, we confirm that the insights
+from the numerical experiments in the standard two-equation NK model extends to a medium-scale
+quantitative model, such as the one used by the Federal Reserve Bank of New York.
+
+
+4.1     The Optimal Policy Commitment in Eggertsson and Woodford (2003)
+EW2003 presents the standard two-equation NK model and analyses the optimal monetary policy under
+commitment (OCP) taking account of the ELB. The policy can be represented by the following set of
+  19 This situation arises for example when a Taylor rule does prescribe a negative nominal interest rate, or ­ as in Eggertsson and
+
+Woodford (2003) ­ when the Lagrange multiplier is correctly non-negative.
+  20 Following this procedure, it is possible to find a k that solves the dynamic system with binding constraints. The existence of a k
+
+does not imply its uniqueness. However, we never found multiple solutions to the same problem when applying our solution
+method.
+
+
+
+
+                                                                  13
+           2
+
+           0
+
+          -2
+             0                   5                  10                  15                  20                  25
+
+
+         0.5
+
+
+           0
+
+
+        -0.5
+            0                    5                  10                  15                  20                  25
+
+           2
+
+
+           1
+
+
+           0
+            0                    5                  10                  15                  20                  25
+
+
+
+           0
+
+
+          -2
+
+
+          -4
+            0                    5                  10                  15                  20                  25
+                                                           Quarters
+
+Figure 1: Optimal Commitment Policy as in Eggertsson and Woodford (2003). Coloured lines are the impulse
+response for output (Y ^t ), inflation (p ), the nominal interest rate (i), and natural rate (r n ), grey lines represent the
+evolution for single contingencies (from 2 to 15). The vertical axes report deviations from steady state, in percentage
+points (annualised). The vertical axis for the interest rate reports annualised percentage points.
+
+
+
+
+                                                             14
+equations:21
+
+                                           ^t = Et Y
+                                           Y       ^ t +1       s (it          ^ t +1
+                                                                            Et p             n
+                                                                                            rt )                           (12)
+                                                  ^t + b Et p
+                                           ^ t = kY
+                                           p                ^ t +1                                                         (13)
+                                                                                  1
+                                              ^ t + f2t
+                                            0=p                  f2t    1           sf                                     (14)
+                                                                                  b 1t      1
+
+
+                                                 ^t + f1t            1
+                                            0 = lY                     f             kf2t                                  (15)
+                                                                     b 1t     1
+
+                                          f1t        0                                                                     (16)
+                                            it       0                                                                     (17)
+                                        f1t it = 0                                                                         (18)
+
+      ^ t is output in deviation from steady state, p
+where Y                                             ^ t is inflation, it is the nominal interest rate, f1t and f2t
+                               n is an exogenous disturbance ­ the natural rate of interest ­ that follows a
+are Lagrange multipliers, and rt
+two-state Markov process. Specifically, there is an unexpected reduction in the natural rate of interest in
+                  n = r n < 0, and
+period 1 so that r1     L
+                                                     8
+                                                     >
+                                                     > rn    w.p. µ              n
+                                                                             if rt       = rL
+                                                     >
+                                                     < L                             1
+                                         n
+                                        rt >1    =     rn
+                                                        H    w.p. 1           n
+                                                                        µ if rt      1   = rL                              (19)
+                                                     >
+                                                     >
+                                                     >
+                                                     :r n                        n
+                                                         H                   if rt   1   = rH
+
+The toolkit simulates the economy described above and produces the outputs as shown in Figure 1, which
+replicates the results in EW2003. We outline the steps required for coding the simulation in Appendix A.2.
+Each of the light grey lines represents a contingency, i.e. a specific realisation of the Markov process. Note
+that the time period at which the exogenous disturbance switches to its absorbing state is sufficient to
+characterise the specific realisation. For this reason, one can refer to a contingency as the period at which
+the exogenous shock is back to its steady state. For example, the third grey line from the left for inflation,
+output and interest rates corresponds to the case in which the natural rate of interest reverts back to
+steady state in period t = 4. Observe that the evolution of a variable in a given contingency, prior to the
+shock reverting to steady state, depends on expectation about the evolution of variables in all future
+contingencies. The purple lines represent impulse response functions (IRF). Those are weighted averages
+of the evolution of each variable and correspond to the expectation agents hold about the economy in the
+initial period after the shock has been realised.
+
+
+4.2        Implementing the Optimal Commitment in Eggertsson and Woodford (2003)
+           via a Price Level Target and a Nominal GDP Target
+In Figure 2 we compare the optimal commitment to the standard Taylor rule (TTR) using the numerical
+values assumed in EW2003. As emphasised in that paper, the Taylor rule, or equivalently a strict inflation
+target, results in a large output drop (about 15 percent) and drop in inflation (about 10 percent) at the
+ELB. The OCP ­ via the central bank committing to keeping the nominal interest rate low for a substantial
+period of time ­ eliminates most of the drop in output. EW2003 also shows that a policy rule that fully
+implements this equilibrium can be described as follows: at the ELB the central bank commits to not
+  21 SeeEggertsson and Woodford (2003) for more details on the derivation. We use the EW2003 parametrisation: q = 7.87, s = 0.5,
+k = 0.02, b = 0.99, l = k              n   0.005, r n     1
+                        q , µ = 0.9, r L =          H = b   1.
+
+
+
+
+                                                                15
+              0
+
+             -5
+
+            -10
+
+                  0      2         4         6         8         10       12        14        16        18        20
+
+              0
+
+
+             -5
+
+
+            -10
+                  0      2         4         6         8         10       12        14        16        18        20
+
+              4
+
+
+              2
+
+
+              0
+                  0      2         4         6         8         10       12        14        16        18        20
+
+              0
+
+
+            -20
+
+
+            -40
+                  0      2         4         6         8         10       12        14        16        18        20
+                                                            Quarters
+                                         OCP               TTR             PLT             NGDPT
+
+Figure 2: Selected rules and optimal commitment (OCP) under Eggertsson and Woodford (2003) calibration. Lines
+represent contingency 10 for output (Y^ ), inflation (p ), the nominal interest rate (i), and nominal GDP ( N
+                                                                                                            ^ ). The vertical
+axes report deviations from steady state, in percentage points (annualised figures). The vertical axis for the nominal
+interest rate reports annualised percentage points.
+
+
+
+
+                                                            16
+                                               ~t reaches a certain threshold P
+increasing the interest rates unless and index P                              ^  , i.e. P
+                                                                                        ~t = P
+                                                                                             ^  where P
+                                                                                                      ~t is
+                                                                               t              t
+                                                                ^                                     ^
+and index built as a weighted average of (detrended) output (Yt ), and the (detrended) price index ( Pt ):
+
+                                                    ^t + k Y
+                                                ~t  P
+                                                P          ^t .                                            (20)
+                                                         l
+
+The key to this commitment is how the threshold P^  is formulated. EW2003 shows that the optimal
+                                                  t
+                                              ^  is computed according to the following formula:
+monetary policy commitment is replicated when P          t
+
+
+
+                                   ^t
+                                   P      ^
+                                     +1 = Pt + b
+                                                    1
+                                                        (1 + ks)Dt        b   1
+                                                                                  Dt   1                   (21)
+
+where Dt is a variable that measures how much the monetary authority misses its target in period t due
+to the ELB:
+                                                    ^t
+                                                Dt  P         ~t .
+                                                              P                                            (22)
+
+EW2003 recognises that this rule might be difficult to communicate in practice. Hence, the authors
+suggest a simplified variation of the optimal rule:
+
+                                             ^t + k Y
+                                             P      ^t = P
+                                                         ^           8t                                    (23)
+                                                  l
+
+Now the gap-adjusted Price Level Target (PLT) is fixed at all times. Figure 2 shows that this simplified
+policy rule does a relatively good job in replicating OCP. The reason is that the fall in the price level
+through the duration of the shock induces the central bank to promise a policy easing once the disturbance
+has subsided. Thus, the interest rate remains at its lower bound even once the shock has reverted, and
+inflation and output gap could be set at their steady state values. This is the key feature of the optimal
+policy commitment. As stressed by Woodford (2012), targeting nominal GDP instead of the price level
+has the same essential features. This kind of policy has been suggested by a number of authors such as
+Hatzius and Stehn (2011) and Sumner (2012). A Nominal GDP Target (NGDPT) can be written as:
+
+                                                      ^t = Y
+                                                 ^t + Y
+                                                 P         ^                                               (24)
+
+which would be equivalent to the simplified price level target in EW2003 for special values of l. Figure 2
+shows that this policy does a relatively good job in replicating the optimal commitment in the EW2003
+numerical example. Again, the key to this result is that the fall in the price level implies a substantial
+monetary easing even once the shock has reverted back to steady state, as mandated by the optimal
+policy commitment.
+
+
+4.3   The Great Recession and the Robustness of Nominal GDP and a Price Level
+      Target
+The key take-away from the last section was that the simple Price Level Target suggested in EW2003
+and the Nominal GDP Target replicated the optimal commitment policy relatively well in the EW2003
+numerical example. As we discussed, this is explained by the fact that the fall in the price level generates
+a commitment to lower future nominal interest rates once the shock has reverted to steady state, while a
+standard Taylor rule would imply an immediate normalisation.
+
+A key feature of the EW2003 calibration, however, is that if one assumes standard policy rules, such as
+the Taylor rule, there is a substantial fall in the price level of about 10 percent per year, as shown in Figure
+
+
+                                                         17
+2. Meanwhile, in the U.S. Great Recession, the fall in the price level was much smaller by most accounts.
+Inflation, as measured by Personal Consumption Expenditure for example, averaged at about 1.5 percent
+from 2008 to 2015, when the Federal Reserve started raising rates, which is only -0.5 percent below its
+2 percent inflation target. This is in sharp contrast to the 10 percent drop in inflation predicted by the
+EW2003 parametrisation.
+
+We now analyse the performance of the PLT and NGDPT rules once we calibrate the model to match a
+smaller drop in inflation. For this experiment, we interpret22 inflation as the deviation of inflation from
+target, as in Benigno, Eggertsson and Romei (2020).23
+
+To parameterise the model, we calibrate k and s as in EW2003. Moreover, we assume the presence of a
+cost push shock ut that is perfectly correlated with the natural rate of interest and thus follows the same
+two-state Markov process we have already discussed.24 We then choose both r L as well as u L in order
+to match a drop in inflation of -0.5 percent and output of -7.5 percent, thus taking on different values
+relative to EW2003.25 A key assumption is that we suppose that policy was conducted according to the
+Taylor rule in this period. This calibration strategy results in r L =                0.013875 and u L = 0.00136375.
+
+The idea behind the calibration is that the shock that gave rise to the Great Recession ­ for example a
+debt-deleveraging shock or a similar displacement originating in the financial sector ­ simultaneously
+leads to a cost push and a drop in the natural rate of interest. While we model this in a reduced form,
+it is also the explanation given for the lack of deflation during the Great Recession in Eggertsson and
+Krugman (2012), who derive a fully specified microfoundation.26 Our approach is also consistent with
+the estimated DSGE model in Christiano, Eichenbaum and Trabandt (2015).
+
+As an alternative to choosing a cost push shock to match the limited drop in inflation, we experiment
+with different values of k , the slope of the New Keynesian Phillips curve (13), that generate the small
+drop in inflation observed in the data. We show in Section 4.9 that our conclusions are robust to this
+alternative strategy.
+
+We also change the EW2003 calibration in another important respect. The objective of the central bank in
+EW2003 is:
+                                                          ·
+                                                     E0   Â bt [p
+                                                                ^t2    ^t2 ]
+                                                                    + lY                                                      (25)
+                                                          t =0
+
+A well-known feature of the standard NK model is that it places virtually no weight on output in the
+welfare objective of the government. In the EW2003 calibration, while the weight on the squared deviation
+of inflation from target is one, the weight on output is only l = k /q = 0.0025. Here instead we assume
+equal weights on annual inflation and on output, so that l = 1/16.
+
+The reason for making this alternative assumption is two-fold: first, the Federal Reserve typically
+interprets itself as adhering to a dual mandate, with inflation only being one component and some
+measure of economic activity the other. These two objectives are typically put on equal footing. Thus,
+one could argue that an equal weight better captures the behaviour of the Fed in practice. Second, recent
+  22 To stay consistent with the previous Section, we stick to the Eggertsson and Woodford (2003) calibration of b = 0.99 and p
+                                                                                                                              ¯ = 0,
+which implies a steady state real and nominal rate of 4%. Numerical results are almost unchanged if we set b = 0.995 and p  ¯ = 2%,
+implying a real rate of 2% and a nominal rate of 4%.
+  23 See Benigno, Eggertsson and Romei (2020) for the microfoundations of price setting for this interpretation.
+  24 Equation (13) becomes p  ^ t = b Et p          ^ t + ut .
+                                         ^ t +1 + k Y
+  25 The rationale for these values is discussed in Eggertsson and Egiev (2020).
+  26 In that paper, a cost push is traced back to the effect of the debt-deleveraging shock on the labour supply of borrowers and
+
+savers.
+
+
+
+                                                                 18
+research suggests that once one incorporates realistic idiosyncratic shocks in firms' pricing decisions,
+then the weight on output relative to inflation increases substantially. Eggertsson and Inui (2020) show
+how to microfound a loss function that puts equal weight on inflation and output (other examples in this
+literature are Burstein and Hellwig 2008 and Nakamura et al. 2018).
+
+
+                 0
+                 -2
+                 -4
+                 -6
+                 -8
+                   0        2         4         6         8         10       12        14        16        18       20
+
+                 4
+
+                 2
+
+                 0
+
+                   0        2         4         6         8         10       12        14        16        18       20
+
+                 4
+
+
+                 2
+
+
+                 0
+                  0         2         4         6         8         10       12        14        16        18       20
+
+                10
+
+
+                 0
+
+
+               -10
+                  0         2         4         6         8         10       12        14        16        18       20
+                                                               Quarters
+                                             OCP              TTR             PLT             NGDPT
+
+     Figure 3: Selected rules and optimal commitment (OCP) under the baseline calibration with cost push shock.
+     Coloured lines are contingency 10 for output (Y ^t ), inflation (p ), the nominal interest rate (i), and nominal GDP ( N
+                                                                                                                            ^ ).
+     The vertical axes report deviations from steady state, in percentage points (annualised figures). The vertical axis for
+     the nominal interest rate reports annualised percentage points. The list of acronyms is detailed in Table 1.
+
+
+Figure 3 contrasts the optimal policy commitment (OCP) to the Taylor rule (TTR) under our main
+calibration strategy, showing the contingency when the natural rate of interest reverts back to steady state
+ten quarters after the shock hits (other contingencies look qualitatively similar). Assuming the Federal
+Reserve follows a Taylor rule implies, by construction, a fall in inflation of 0.5 percent and a drop in
+output of 7.5 percent. The optimal commitment, in contrast, results in only a 2 percent drop in output
+and, instead of falling, inflation overshoots its target substantially throughout the duration of the shock.
+The way the central bank accomplishes this is by committing to keeping the nominal interest rate at the
+ELB by about six additional quarters after the natural rate normalises, a similar commitment as in the
+original EW2003 example. Interestingly, this commitment now implies that during the period of the
+shock inflation overshoots its target by about 3 percentage points and then mildly undershoots it once
+the disturbance subsides. This is in sharp contrast to the EW2003 calibration, where there is no such
+overshooting of the inflation target when the shock hits. The reason for the different result is that the
+
+
+                                                                19
+central bank is now putting output deviation and inflation on equal footing in its objective. Accordingly,
+it is more willing to tolerate higher inflation in order to achieve better output stabilisation.
+
+Figure 3 also shows the outcome if the central bank follows a Price Level Target (PLT) of the form suggested
+by EW2003 and a Nominal GDP Target (NGDPT). As the Figure suggests, this commitment does not
+substantially improve the outcome relative to the Taylor rule. The reason is that the small decrease
+in the price level in this numerical experiment leads to a trivial additional commitment to low future
+rates once the shock has subsided. The key mechanism for why PLT succeeds in replicating the optimal
+commitment in the EW2003 calibration lies in the shock generating enough deflation. This means that
+once the disturbance is over the central bank does not raise the interest rate for a considerable period
+of time, or until the price level recovers to the target. If there is very little fall in the price level, this
+commitment loses most of its power. As it can be seen in the third panel, the nominal interest rate is
+almost the same for the Taylor rule relative to the PLT or the NGDPT. Note that this problem is attenuated
+by the fact that once a central bank commits to either of these two policies, the equilibrium drop in the
+price level is even smaller than under the Taylor rule, thus implying an even smaller commitment to
+future expansion once the shock reverts to steady state.
+
+A stark assumption in the calibration of the Markov process is that the Federal Reserve followed a Taylor
+rule during the crisis. This interpretation implies that the forward guidance done by the central bank
+during the crisis did not substantially commit to keeping future rates lower as inflation started to recover.
+By contrast, if we calibrate the model taking the other extreme ­ that policy was conducted under optimal
+commitment ­ then the implied fall in the price level would have been larger under alternative policy
+regimes, such as the Taylor rule, and thus price and nominal GDP targeting would have worked better.
+We prefer our specification, however, as it more clearly highlights possible pitfalls of these targeting
+strategies. They critically rely upon a sizeable fall in inflation in order to generate any meaningful
+commitment to low future rates. In the presence of cost push shocks, or very low values for k , there is no
+reason to expect such a fall in the price level from the perspective of the model.
+
+
+4.4    Cumulative Nominal GDP Targeting and Symmetric Dual-Objective Targeting
+We now consider simple alternatives to the price level and nominal GDP targeting rules that better
+replicate the optimal commitment policy.
+
+The key problem with both rules was that if there is little decrease in the price level, neither rule implies
+much accommodation once the shock giving rise to the ELB normalises. The optimal commitment,
+instead, mandates that if there is a decrease in either output or the price level for the duration of the ELB,
+then there should be accommodation (or make-up accommodation) once the crisis period is over, as seen
+in the analytic derivation of the fully optimal targeting rule. In that derivation, the time varying target is
+defined in terms of the weighted average of the price level and output. Moreover, if the target is missed,
+the fully optimal rule suggests that the future target should be increased, thus generating expectations of
+future accommodation.
+
+Motivated by this observation, let us first consider the following simple targeting rule.27 Define the
+cumulative deviations of nominal GDP from its trend as G ^ t:
+
+                                                                  ^t + G
+                                                             ^t + Y
+                                                        ^t = P
+                                                        G              ^t      1.                         (26)
+ 27 This   rule is closely related to Reifschneider and Williams (2000), see Section 4.5.
+
+
+
+
+                                                                   20
+            2
+            0
+           -2
+           -4
+           -6
+             0         2         4         6         8        10        12        14        16        18        20
+            3
+            2
+            1
+            0
+
+             0         2         4         6         8        10        12        14        16        18        20
+            5
+
+
+
+
+            0
+             0         2         4         6         8        10        12        14        16        18        20
+           10
+
+
+            0
+
+
+          -10
+             0         2         4         6         8        10        12        14        16        18        20
+                                                          Quarters
+                                     OCP            TTR             HD-NGDPT                 SDTR
+
+Figure 4: Selected rules and optimal commitment (OCP) under baseline calibration with cost push shock. Coloured
+                                     ^ ), inflation (p ), the nominal interest rate (i), and nominal GDP ( N
+lines are contingency 10 for output (Y                                                                     ^ ). The vertical
+axes report deviations from steady state, in percentage points (annualised figures). The vertical axis for the interest
+rate reports annualised percentage points.
+
+
+
+
+                                                            21
+This variable measures how much nominal GDP deviates from its target. Relative to previous nominal
+GDP targeting proposals, such as those cited above, this variable keeps track not only of the size of
+deviations of current nominal GDP from its trend, but it also accounts for past misses. The proposed
+targeting rule is then to set the nominal interest rate so that the cumulative nominal GDP is on trend, i.e.
+^ t = 0, whenever possible. Otherwise, the central bank should set the nominal rate at its effective lower
+G
+bound, with the threshold for lift-off being that the cumulative nominal GDP target is reached again.
+Critically, if this rule is credible, the public understands that if the Federal Reserve misses its nominal
+GDP target, it is then committed to keeping the interest rate at zero until it has compensated for having
+missed its target. Thus, if it were to miss on trend nominal GDP by 5 percent, it is committed to overshoot
+trend nominal GDP by 5 percent going forward.
+
+Figure 4 shows how this History-Dependent Nominal GDP Target (HD-NGDPT) does in the numerical
+experiment. It does substantially better than PLT or NGDPT reported in Figure 3 (we provide a more
+detailed assessment of this comparison in Table 2). The key to the success of this rule is that it prescribes
+a substantial easing once the ELB is no longer binding on account of the exogenous shock, much as
+prescribed by the optimal commitment.
+
+As an alternative to keeping track of how nominal GDP misses its trend, we also consider the following:28
+                         ^ t ) that measures how inflation and real output deviates from trend:
+let us define an index ( D
+
+                                                      ^ t = 4p
+                                                      D           ^t + D
+                                                             ^t + Y    ^t        1                                                 (27)
+
+A targeting rule we coin Symmetric Dual-Objective Targeting Rule (SDTR) sets interest rates so that the
+                   ^ t is set to zero if possible but keeps the nominal interest rate at the ELB otherwise.29
+Dual Mandate Index D
+Critically then, if a central bank following this reaction function misses its target, it will automatically
+commit to a future accommodation.
+
+Figure 4 shows the performance of this rule and illustrates that it does even better than the cumulative
+nominal GDP target. Again, the key behind this success is that it implies a considerable easing once the
+ELB is no longer binding, much beyond price or nominal GDP targets. PLT and NGDPT imply make-up
+behaviour for past misses of the inflation target only. The two new rules show this feature as well, but in
+addition they do the same for output: if there is a recession today, the central bank then commits to a
+boom in the future. This type of commitment is particularly important when the price level moves by
+small amounts.
+
+Overall, the fact that SDTR does better than HD-NGDPT is not robust once we consider richer model
+such as the FRBNY DSGE. Before getting there, however, we compare these rule to other well-known
+policy rules and offer a more detailed assessment of their performance.
+
+
+4.5     Comparison to Other Policy Rules
+In this Section we compare the two policy rules we have suggested to several reaction functions that have
+been proposed in the literature (Table 1). We summarise their performance in Table 2, using the welfare
+criterion specified in Equation (25), as well as other measures. The first column shows the welfare loss
+implied by these different rules, with the optimal monetary policy commitment normalised to one.
+  28 The rule is closely related to Reifschneider and Williams (2000), see Section 4.5, and rules that feature a lagged interest rate, as
+
+in Taylor and Williams (2010) or recently discussed in Kiley and Roberts (2017).
+  29 The inflation gap is multiplied by 4 to make sure that there is equal weight on annualised inflation and output.
+
+
+
+
+                                                                  22
+     Name
+      Acronym                            Rule
+     Taylor Rule
+       (TTR)                              TTR = max 0, r
+                                         it              ¯ + fp p
+                                                       ¯+p               ^t
+                                                                ^ t + fy Y
+     TR with lag
+       (TTR-1)                            TTR
+                                         it         1
+                                                                 ¯+p
+                                                        = max 0, r        ^t
+                                                                   ¯ + fp p         1
+                                                                                             ^t
+                                                                                        + fy Y    1
+     TR with lead
+       (TTR+1)                            TTR+1
+                                         it                ¯ + fp ( Et p
+                                                         ¯+p
+                                                = max 0, r                           ^ t +1
+                                                                       ^ t+1 + fy Et Y
+     Interest Smoothing
+       (TTRS)                             TTRS = max 0, f i
+                                         it              i t           1   + (1        ¯+p
+                                                                                  fi ) r        ^ t + fy Y
+                                                                                         ¯ + fp p        ^t
+     Price Level Rule
+       (TTRP)                             TTRP = max 0, r
+                                         it                              ^t
+                                                                 ^t + fy Y
+                                                          ¯ + fp P
+                                                        ¯+p
+     Nominal GDP Target                                
+       (NGDPT)                                       ^t = 0
+                                                ^t + Y
+                                          NGDPT P
+                                         it
+     Augmented Taylor Rule                           n            o
+                                          ATR
+                                         it    = max 0, i TR a Zt , it
+                                                                     TR
+                                                                                          =r ¯ + fp p
+                                                                                                    ^ t + fy Y
+                                                                                           ¯+p               ^t
+       (ATR)                                                        
+                                                          ATR   TR
+                                            Zt = Zt 1 + it     it
+     Superinertial Taylor Rule
+       (SUP)                              SUP = max 0, (1
+                                         it                            fiSUP )(r ¯ ) + fiSUP it
+                                                                               ¯+p                    1        ^ t + fy Y
+                                                                                                          + fp p        ^t
+     Average Inflation Targeting
+       (AIT)                              AIT = max 0, r
+                                         it                     ^ t + fy Y
+                                                         ¯ + fp p
+                                                       ¯+p               ^ t + fait p NN                      ¯
+                                                                                                              p
+                                                                                     t
+     Price level target                                
+                                              ^t + k P
+                                          PLT Y      ^
+       (PLT)                             it        l t =0
+     History-Dependent NGDP
+       Target (HD-NGDPT)                 ^ t i HD
+                                         G              NGDPT
+                                                                = 0,   ^t = P
+                                                                       G         ^t + G
+                                                                            ^t + Y    ^t      1
+                                              t
+     Symmetric Dual-Objective
+       Targeting Rule (SDTR)                  SDTR = 0,
+                                         Dt i t                  ^ t = 4p
+                                                                 D           ^t + D
+                                                                        ^t + Y    ^t      1
+
+
+Table 1: Policy rules, names, and acronyms. ptNN is average inflation over last NN quarters. P
+                                                                                             ^t is deviation of price
+                                                       ^ t are defined in Equation (26) and (27).
+                                               ^ t and D
+level from its (detrended) steady state value. G
+
+
+
+
+                                                                23
+Of the rules considered, the two we have introduced in Section 4.4 are among the best performing ones,
+together with the Augmented Taylor Rule (ATR) proposed by Reifschneider and Williams (2000) and
+the Superinertial Taylor Rule (SUP) described in Rotemberg and Woodford (1999). Figure 5 depicts the
+dynamic response of the simple two-equation model under these different reaction functions, alongside
+two benchmarks: the Optimal Commitment Policy (OCP) and a Truncated Taylor Rule (TTR). We discuss
+each one in turn.
+
+The Augmented Taylor Rule is closely related to our two proposals. According to this rule, a cumulative
+index (Zt ) keeps track of how much the actual interest rate misses the interest rate suggested by the
+standard Taylor rule due to the ELB. This reaction function then prescribes the interest rate to respond to
+these cumulative misses at a rate a. In turn, this implies that if the ELB is binding, future rates will be
+lower than predicted by a standard Taylor rule to make up for previous deviations from target. This is a
+similar make-up feature to the one characterising the fully optimal commitment rule in EW2003, as well as
+our proposed rules HD-NGDPT and SDTR.
+
+The Superinertial rule of Rotemberg and Woodford (1999) generates a similar commitment to low rates for
+a prolonged period of time, but for different reasons. As shown in Table 1, it has a lagged interest-rate
+term appearing in an otherwise standard Taylor rule. The coefficient on this lagged interest rate, however,
+is greater than one ­ hence the name super-inertial. This implies not only that interest rates drop very
+slowly in reaction to the shock, as shown in Figure 5, but also that they increase equally sluggishly once
+the disturbance reverts. This generates exactly the type of commitment needed. Interestingly, even
+though this rule does not prescribe an immediate drop in the nominal interest rate in reaction to the shock
+­ as the optimal commitment would mandate ­ it still outperforms most of the other policy functions
+under consideration.
+
+In line with the finding of Reifschneider and Wilcox (2019), we can also document how a Taylor-type
+rule reacting to Average Inflation (AIT) is sub-optimal at best, with a welfare loss comparable to a price
+level or nominal GDP target. Again, this is mostly due to the limited drop in inflation that prevails in this
+parametrisation of the model. This policy rule is arguably similar to the policy regime adopted by the
+Federal Reserve in 2020.
+
+Appendix A.6.1 shows the results if we do not impose the ELB and the nominal interest rate is allowed to
+go negative. Our two proposed rules are still among the best performing ones. There are two notable
+observations: first, NGDPT and HD-NGDPT overlap in this case. The central bank can fully stabilise
+nominal GDP, and thus there will never be a cumulative deviation to be made up for; second, the price
+level targeting rule PLT performs very well. This should not come as a surprise, as Eggertsson and
+Woodford (2003) show that optimal commitment is identical to PLT if the effective lower bound is never
+reached.
+
+In the next sections we assess the robustness of these conclusions to different assumptions in terms of
+size of the inflation response, its source, choice of policy parameters, as well as how our results transpose
+to a more sophisticated macroeconomic model.
+
+
+4.6   Forward Guidance, the Role of Uncertainty and Time Dependent Policy Com-
+      mitments
+The toolkit allows us to evaluate the robustness of different policy strategies in the presence of uncertainty.
+This is particularly helpful to clarify the difference between Time-Dependent Forward Guidance, under
+
+
+
+                                                      24
+              2
+              0
+             -2
+             -4
+             -6
+
+                  0     2          4         6        8        10       12        14       16          18   20
+
+              4
+
+
+              2
+
+
+              0
+
+                  0     2          4         6        8        10       12        14       16          18   20
+
+
+              4
+
+
+              2
+
+
+              0
+                  0     2          4         6        8        10       12        14       16          18   20
+                                                           Quarters
+                      OCP              TTR            HD-NGDPT                SDTR               ATR        SUP
+
+                         (a)                     ^ ), inflation (p ) and nominal interest rate (i)
+                               Paths for output (Y
+
+
+
+              6
+              4
+              2
+              0
+                  0     2          4         6        8        10       12        14        16         18   20
+             10
+
+
+              0
+
+
+            -10
+               0        2          4         6        8        10       12        14        16         18   20
+            100
+
+
+              0
+
+
+           -100
+               0        2          4         6        8        10       12        14        16         18   20
+
+              0
+            -20
+            -40
+            -60
+                  0     2          4         6        8        10       12        14        16         18   20
+                                                           Quarters
+                      OCP              TTR            HD-NGDPT                SDTR               ATR        SUP
+
+      (b) Paths for price level (P
+                                 ^ ), nominal output ( N
+                                                       ^ ), cumulated nominal output (G
+                                                                                      ^ ) and the symmetric
+                      ^)
+      mandate index ( D
+
+Figure 5: Dynamic response to a natural interest rate shock and a correlated cost push shock in a simple two-equation
+NK model, under different policy rules. Shocks are calibrated such that output falls by 7.5% and inflation by 0.5%
+constant under a Truncated Taylor Rule (TTR). The natural interest rate reverts to the absorbing state after 10 quarters
+(10th contingency). The list of acronyms is detailed in Table 1. The parametrisation is reported in Table A.2. Paths for
+additional rules reported in Table 1 are shown in Section A.7.1 in the Appendix.
+
+
+                                                            25
+                     Welfare Loss    E0 [t + k t    ~]
+                                                    T               ^
+                                                         Volatility Y   Volatility p   Volatility i          ^
+                                                                                                      Impact Y   Impact p
+                         (1)               (2)               (3)            (4)            (5)          (6)        (7)
+
+
+     OCP              8.252 10   4        15.257         5.356 10   3   4.904 10   4   1.411 10   3    -2.208       3.059
+
+     PANEL A: baseline rules
+     OCP                  1.000             1.000            1.000           1.000         1.000         1.000      1.000
+     TTR                  3.800             0.655            9.335           0.022         0.657         3.364     -0.144
+     HD-NGDPT             1.568             1.099            3.563           0.207         1.094         1.818      0.502
+     SDTR                 1.194             0.703            1.514           0.975         0.716         1.400      0.936
+     ATR                  1.404             0.655            2.603           0.586         0.666         1.842      0.711
+     SUP                  1.352             0.000            1.896           0.980         0.426         1.820      0.897
+
+     PANEL B: additional rules
+     PLT                  3.294             0.655            8.118           0.000         0.657         3.145     -0.018
+     NGDPT                3.267             0.655            8.054           0.000         0.657         3.132     -0.011
+     TTRP                 4.183             0.000           10.301           0.007         0.199         3.894     -0.136
+     TTRS-1               1.520             0.000            2.671           0.734         0.363         2.189      0.759
+     TTR-1                1.835             0.649            4.177           0.236         0.653         2.451      0.454
+     AIT                  3.306             0.655            8.149           0.000         0.657         3.150     -0.021
+     FLFG                 3.499             0.807            8.596           0.020         0.814         2.752      0.042
+
+
+
+     Table 2: Some metrics for selected interest rate rules in the simple two-equation NK model in the presence of a
+     natural rate shock and a correlated cost push shock. All rows except the first show values normalised with respect
+     to the optimal commitment policy (OCP, first row). Column (1) reports the welfare loss computed from a quadratic
+     loss function (Equation 25) for the central bank with equal weights; Column (2) displays the unconditional expected
+     duration of the Effective Lower Bound (regimes 1 and 2); Columns (3)-(5) report a summary measure of deviations of
+     the endogenous variables from target, computed according to Equation (A.6); finally, Columns (6) and (7) show the
+     response on impact, in annual percentage points, of the output and inflation to a natural interest rate shock and a
+     correlated cost push shock such that output falls by 7.5 percent and inflation by 0.5 percent under a Truncated Taylor
+     Rule (TTR). Rule calibration reported in Table (A.2). The model is calibrated with the standard EW2003 parameter
+     values reported in footnote 21. The list of acronyms is detailed in Table 1.
+
+
+
+which the central bank communicates a time period when it expects the ELB to be binding, and State-
+Contingent Forward Guidance, where the monetary authority stipulates economic conditions ­ or thresholds
+­ which once satisfied allow the interest rate to be lifted from the ELB.
+
+A popular policy strategy followed by policy-makers shortly after the Financial Crisis of 2007-08 ­ aimed
+at providing additional monetary stimulus ­ was to stipulate that the policy rate would remain at zero
+until a predetermined calendar time. The Bank of Canada, for example, announced on 21 April 2009 that
+its policy rate would remain at zero until the end of the second quarter of 2010. The Federal Reserve
+initially pursued a similar time-dependent strategy by stating that rates would stay low for "some time"
+(December 2008), for an "extended period" (March 2009) and finally "at least to mid-2013" (August 2011).
+
+While the Bank of Canada and the Federal Reserve did their best to communicate that these time
+commitments were conditional on incoming data, a common criticism was that the markets interpreted
+this as a binding commitment, regardless of actual trajectory of the economy. This is a point raised by
+Woodford (2012).
+
+One interpretation of time-dependent forward guidance is that it corresponds to the optimal fixed
+duration of the zero interest rates determined at time t = 0, what we call the optimal Fixed-Length Forward
+Guidance (FLFG). Under FLFG, the monetary authority announces that, in response to a negative natural
+rate shock, it holds the nominal rates at zero until a fixed calendar date n, after which the policy will
+
+
+
+
+                                                               26
+return to a standard Taylor rule. This corresponds to the following policy rule for nominal rates
+                                                  8
+                                                  <0                              for t  n
+                                           it =                                                                                          (28)
+                                                  :max(0, r + f p )               otherwise
+                                                               p t
+
+
+Figure 6 shows the optimal time-zero FLFG assuming a deterministic process for the natural rate of
+interest and contrasts it to the optimal policy commitment. As the fFigure reveals, FLFG approximates
+OCP relatively well by approximating a delayed lift-off of the policy rate.
+
+As stressed by Woodford (2012) however, a key problem with time-dependent forward guidance is that it
+does not allow the central bank to flexibly react to economic conditions, i.e. to the shocks that brings the
+economy to the ELB in the first place. Since the toolkit can incorporate a stochastic duration of the ELB
+episode, it is ideal to clarify this point.
+
+       5 5                                                                 5 5
+
+       0 0                                                                 0 0
+      -5 -5
+                                                                          -5 -5
+     -10-10
+         0 0    5 5     10 10    15 15    20 20   25 25     30 30           0 0      5 5      10 10   15 15   20 20    25 25     30 30
+
+
+       0 0                                                                 0 0
+      -2 -2                                                               -1 -1
+      -4 -4                                                               -2 -2
+
+        0 0     5 5     10 10    15 15    20 20   25 25     30 30           0 0      5 5      10 10   15 15   20 20    25 25     30 30
+                                                                           4 4
+       4 4
+
+
+       2 2                                                                 2 2
+
+
+       0 0                                                                 0 0
+        0 0     5 5     10 10    15 15    20 20   25 25     30 30           0 0      5 5      10 10   15 15   20 20    25 25     30 30
+       4 4                                                                 5 5
+
+       2 2                                                                 0 0
+
+       0 0
+                                                                          -5 -5
+        0 0     5 5     10 10    15 15    20 20   25 25     30 30           0 0      5 5      10 10   15 15   20 20    25 25     30 30
+                       TTR
+                         TTR        OCP
+                                      OCP         FLFG
+                                                     FLFG                                    TTR
+                                                                                               TTR       OCP
+                                                                                                           OCP         FLFG
+                                                                                                                          FLFG
+
+        (a) Natural rate rn  stochastic two-state Markov                 (b) Natural rate rn  deterministic two-state Markov
+     Figure 6: Optimal Fixed-Length Forward Guidance (FLFG, red dot-dash line) under alternative solutions for the
+     two-state Markov natural interest rate disturbance: stochastic (Panel a, left) or deterministic process (Panel b, right).
+     Lines represent impulse responses for output (Y  ^ ), inflation (p ), the nominal interest rate (i) and the natural rate (r n ).
+     Panel (a) shows contingency 10, 16 and 22 for each policy rule. At contingency 16, the central bank moves away
+     from the ELB both under optimal commitment (OCP) and fixed-length forward guidance (FLFG). The size of the
+     Markov shock process is calibrated to achieve a drop in output in the initial period of -7.5% under a Taylor rule (blue
+     dashed line). The purple solid line reports the optimal policy under commitment (Ramsey plan). The vertical axis for
+     inflation and output reports deviations from steady state, in percentage points (annualised figures). The vertical axes
+     for interest rates reports annualised percentage points.
+
+
+Figure 6 compares FLFG with OCP assuming the two-state Markov process analysed in previous sections.
+As evident from the Figure, FLFG now does a much poorer job in replicating the OCP when the duration
+of the shock is uncertain. The Figure shows the realisations for output, inflation, interest rates and the
+natural rate of interest, assuming the shock reverts to steady state in period t = 10, t = 16 and t = 22. It is
+
+
+                                                                    27
+only for the 16th contingency that the duration of the ELB under OCP and FLFG coincide. If the natural
+rate reverts earlier (e.g. in period t = 10), then FLFG implies the ELB binds for longer than under OCP,
+while if the natural rate stays low for longer (e.g. period t = 22), then FLFG does not imply sufficient
+monetary stimulus since the central bank will raise rates as soon as the shock subsides.
+
+We also contrast FLFG to the policy rules in Table 2. The optimal FLFG does worse than all other reaction
+functions, with the exception of the Taylor rule (TTR). The reason is that this type of commitment does
+not adjust the duration of the policy accommodation in reaction to shocks.
+
+
+4.7   Communicating State-Contingent Policy Rules
+One major rationale for using a time-dependent policy commitment is that it is easy to explain and
+communicate it to the public. Communicating a state-contingent policy rule, however, need not be much
+more complex.
+
+The Federal Reserve's formulation of a threshold strategy in December 2012 is an example of a state-
+contingent policy commitment, that replaced the Fed's time-dependent policy. Under the new formula-
+tion, the Federal Reserve announced in its FOMC statement that it would
+
+      "keep the target range [. . . ] at 0 to 1/4 percent and currently anticipates that this [. . . ] will be
+      appropriate at least as long as the unemployment rate remains above 6-1/2 percent, inflation between
+      one and two years ahead is projected to be no more than half a percentage point above the Committee's
+      2 percent longer-run goal."
+
+This type of commitment resembles much more closely the fully optimal state-contingent policy.
+
+Consider the following communication strategy:
+
+   1. The central bank announces that it will keep the interest rate at zero until a particular quantitative
+      threshold, or targeting criterion, is met for inflation and output, similar to its policy in 2012 (further
+      specified below). This gives the market a way of forecasting the duration of the ELB, obtained by
+      predicting the variables contained in the target criterion;
+
+   2. Once this threshold is met and the ELB is no longer binding, the interest rate is set freely to hit the
+      pre-specified target criterion.
+
+As shown by EW2003, optimal commitment is implemented in the two-equation model we have sketched
+                                                                                        ~t , which is a weighted
+out if the quantitative threshold is specified using as a targeting criterion the index P
+average of the price level and output as defined in Equation (20). The threshold this index needs to reach
+                           ^  , specified in Equation (21). Observe that the threshold in period t + 1 can be
+for lift-off is denoted by Pt
+computed at time t, thus in each period the monetary authority can state what the threshold will be for a
+lift-off from the ELB going forward, based upon variables observed in period t.
+
+As discussed in EW2003, a major advantage of this targeting rule is that its formulation is independent
+from the stochastic process for the natural rate of interest and the cost push shock. What is required of
+the policy-maker is to know the structural parameters of the model and values for output and the price
+level. The policy communication of the Federal Reserve in 2012 had this exact feature.
+
+Our proposed make-up strategies HD-NGDPT and SDTR can be communicated along the same lines. The
+only difference is that the targeting criterion is now G^ t = 0, where this variable is defined in Equation
+(26). For HD-NGDPT it is D  ^ t = 0, where the targeting variables is defined in Equation (27).
+
+
+
+                                                        28
+To be more specific, consider HD-NGDPT and let a shock hit the economy at t = 1. In this period, even
+if the central bank cuts the interest rate to the ELB, it is unable to achieve its nominal GDP target, i.e.
+N^1 = P      ^1 < 0. At time t = 1, the policy-maker announces that the interest rate will remain at zero at
+        ^1 + Y
+least until nominal GDP reaches the threshold N   ^  given by:
+                                                   2
+
+                                       ^2
+                                       N 
+                                               ^1 =
+                                               G            ^1
+                                                            P    ^1 > 0.
+                                                                 Y                                     (29)
+
+which exactly compensates for the shortfall in the previous period. In other words, the central bank
+commits to make up for the drop in nominal GDP from period t = 1 by overshooting in period t = 2.
+Consider now the scenario in which the shock remains in the low state also in period t = 2. The monetary
+authority then announces that the interest rate will remain at zero at least until nominal GDP reaches the
+threshold:
+                                    ^3
+                                    N 
+                                            ^2 =
+                                            G          ^2
+                                                       P     ^2 + N  > 0,
+                                                             Y                                         (30)
+                                                                   2
+
+thus compensating for its past two misses by overshooting in future periods. As in the case of the
+EW2003, the advantage of this type of targeting rule is that its implementation does not depend upon the
+stochastic nature of the underlying shock, but rather exclusively on observable variables. Moreover, the
+expected duration of the ELB can automatically be inferred by market participants: the policy acts as an
+automatic stabiliser. Thus, for example, in the case of a fresh adverse demand shock the market will infer
+that the threshold is further away from being satisfied. Consequently, it will adjust its expectations to
+reflect a longer duration at the ELB, and in turn generate an additional monetary stimulus to counteract
+the shocks without the need for new announcements by the monetary authority. By contrast, in case of a
+time-dependent commitment the central bank would need to reformulate its policy each time in response
+to shocks, and the size of the adjustment would depend on the stochastic properties of the underlying
+disturbance.
+
+
+4.8   Odyssean and Delphic forward guidance
+Another illustration of the usefulness of accounting for uncertainty is motivated by the debate about the
+economic effects of central bank forward guidance. Campbell et al. (2012) distinguish between Odyssian
+and Delphic forward guidance: the former refers to the standard theory about forward guidance, where
+the central bank makes announcements about future actions and it is believed to be credible. The latter
+refers to the idea that forward guidance statements ­ for a given economic fundamental and monetary
+policy stance ­ may instead change agents' beliefs about future economic fundamentals.
+
+Allowing for Delphic forward guidance it can happen that a central bank announcement that is supposed
+to be expansionary ­ such as keeping rates lower for longer ­ has in fact a contractionary effect, because
+private-sector agents revise downwards their beliefs about economic fundamentals.
+
+Campbell et al. (2012) can be placed in a broader literature on the effects of information in central-bank
+policy. Another recent paper in this literature is Nakamura and Steinsson (2018). The information effect in
+their model analysis captures information about the state of the economy arising in response to surprise
+interest rate cuts or increases by the policy-maker. The underlying mechanism is the same: policy can
+affect private sector beliefs about economic fundamentals.
+
+We conduct a small experiment that illustrates how we can coherently illustrate the effect of both types
+of forward guidance with the help of our toolkit. In this case, the main benefit of the toolkit is that it
+provides a framework where one can make a meaningful distinction between expected and realised
+
+
+
+                                                       29
+duration of the ELB episode. In a deterministic setup, the two concepts coincide. This is not the case in
+the toolkit: here we can change the expected duration at the ELB separately from the realised duration.
+
+Consider the following deterministic process for the natural rate of interest. It turns negative in period
+t = 1 and returns back to steady state in period t = 10. Let us allow however for the possibility that
+while the actual evolution of the economy will always feature a reversal of the shock in period t = 10,
+agents believe that there is a fixed probability (µb ) in each period from t = 2 to t = 9, that the shock
+reverts to steady state in the following period.
+
+We consider two scenarios that increase the agents beliefs about the duration at the ELB by one period: in
+the first, the Odyssean forward guidance, we impose the following rule:
+                                          8
+                                          <0                  for t < t + 1
+                                   it =                                                                    (31)
+                                                       ^
+                                          :r + f p + f Y
+                                                p t   y t     otherwise
+
+
+The central bank announces to keep the interest rate low for an additional period, i.e. one more quarter
+than prescribed under the standard Taylor rule (TTR); this is an expansionary policy.
+
+In the second scenario ­ where we implement Delphic forward guidance ­ we adjust the agents beliefs
+about the reversal probability (µb ) to obtain the same increase of one period of the expected duration of
+the ELB. In order to obtain a longer duration, µb has to increase. This is a more contractionary shock than
+before. The two experiments are meant to separately study the effects of policy (Odyssean) and the effect
+of beliefs about fundamentals of the economy (Delphic).
+
+Results are shown in Figure 7, the benchmark calibration is the same as before. The Odyssian forward
+guidance results in a increase in output, cutting the output contraction almost by a half. Meanwhile, the
+Delphic forward guidance leads to a sharp output contraction.
+
+This experiment highlight the critical role of beliefs in the model. It also illustrates that the toolkit allows
+for the possibility of shifting beliefs without a change in fundamentals, which remain pinned down by
+the deterministic path for the natural rate of interest.
+
+
+4.9   Robustness Checks
+In the previous Sections we explored the performance of our novel policy rules, and we found that they
+improve upon several alternatives documented in the literature, such as PLT and NDGPT. We did so in
+an environment in which inflation on impact was slightly below steady state under a Taylor rule (-0.5
+percent). This reflects what the U.S. economy experienced during the Great Recession of 2008.
+
+We repeat the experiment with different parametrisations of the natural rate and cost push shock to have
+lower (0 percent) or higher (-2 percent) deflation on impact under TTR. Our results are robust to both
+scenarios ­ namely that HD-NGDPT and SDTR fare relatively well when compared to PLT and NGDPT.
+In particular, the welfare loss under HD-NGDPT (SDTR) is approximately 1.6 (1.2) times as large as in the
+optimal commitment policy. On the contrary, the welfare loss in both PLT and NGDPT is at least three
+times as large as in OCP. In Sections A.7.2 and A.7.3 in the Appendix we report the detailed performance
+assessment of our candidate rules, as well as plots for the impulse responses.
+
+In the experiments so far the inflation response has been quite weak due to the presence of a cost push
+shock, perfectly correlated with the drop in the natural interest rate. An alternative theory for why
+inflation was so stable in the U.S. Great Recession points to price rigidity. We explore this avenue by
+
+
+                                                      30
+           0
+
+
+         -10
+
+
+         -20
+               0              2               4                  6              8               10               12
+
+           0
+
+          -5
+
+         -10
+               0              2               4                  6              8               10               12
+
+           4
+
+           2
+
+           0
+               0              2               4                  6              8               10               12
+           4
+           2
+           0
+          -2
+          -4
+          -6
+               0              2               4                  6              8               10               12
+                                                           Quarters
+                                                  TTR        Odyssean           Delphic
+
+
+Figure 7: Odyssean vs. Delphic forward guidance (FG) experiment in simple two-equation NK model. Odyssean
+FG features commitment of central bank to one additional periods at ELB relative to Taylor rule (TTR). Delphic FG
+features lower transition probability of shock, 1 µb . Both scenarios have expected duration at ELB of 10 quarters,
+TTR has expected duration at ELB of 9 quarters. The coloured lines represent contingency 10 for output (x), inflation
+(p ) and the nominal interest rate (i). Calibration is the same as in Section 4.3, achieving a drop in output in the initial
+period of -7.5% and a fall in inflation to 0.5% under discretion in response to a natural rate shock and a perfectly
+correlated cost push shock (TTR, blue solid line). Transition probability under Delphic FG is µb = 0.09091. The vertical
+axes for inflation and output reports deviations from steady state, in percentage points (annualised figures). The
+vertical axis for the interest rate reports annualised percentage points.
+
+
+
+
+                                                            31
+repeating the exercise with no cost push shock, but with a degree of price rigidity such that, under TTR,
+inflation again drops to -0.5 percent on impact. We refer the reader to the Appendix (Section A.7.4) for
+welfare analysis and dynamic responses. Our two rules remain very good compared to the optimal policy
+commitment. On the other hand, strategies that were comparable to ours, ATR and SUP, now tend to fare
+significantly worse than OCP.
+
+The last robustness check we perform involves the policy parameters: we choose them to maximise
+welfare according to Equation (25).30 The results are in Table A.8 in the Appendix (Section A.7.5); optimal
+parameters are reported in Table A.2. In this setting, only ATR and SUP ­ rules that display welfare losses
+comparable to ours ­ improve slightly in terms of welfare. All other optimised policies are virtually
+unchanged.
+
+
+5       Medium-Scale DSGE Model
+The results discussed so far were derived under a simple two-equation NK model. In this Section we
+show that the findings generalise to a medium-scale DSGE model and they are not an artefact of the
+simple structure of the baseline exercise. Rules that imply substantial make-up behaviour or feature inertia
+in the path of interest rates show the best outcome. Our two proposed policies, HD-NGDPT and SDTR,
+outperform all alternative candidates by implying substantial stimulus compared to a simple Taylor
+rule. As before, a price level target and nominal GDP target do not perform as well in an environment
+with a relatively stable prices. This Section also serves to illustrate how our toolkit can easily handle
+medium-scale models.
+
+For this exercise, we implement the FRBNY DSGE as outlined in Del Negro, Giannoni and Patterson
+(2013). We treat the model as a reasonable description of the U.S. economy and simulate the Great
+Recession. In all our Figures, we plot the data against our simulations. Figure 8 shows the pre-crisis trend
+and the actual path for the U.S. nominal GDP and price level. We calibrate the model to match a similar
+decline of both variables as observed in the data. For the calibration, we use the policy rule proposed
+and estimated in Del Negro, Giannoni and Patterson (2013) as the one prevailing in the data-generating
+process (Equation A.7).31 This gives us the ideal testing grounds for the reaction functions introduced in
+the previous section.32
+
+As an illustration, we assume that the shock that gave rise to the Great Recession reverts back to steady
+state right around the time the Federal Reserve started increasing interest rate in 2015. It is clearly an
+exaggeration to assume that the shock fully reverts back to it steady state at that time. We are willing
+to contemplate this scenario because it makes the thought experiment straightforward to interpret and
+comparable to our previous simulations.
+
+Figure 9 compares the FRBNY policy rule with the four targeting rules, as well as with the data. We see
+that PLT and NGDPT do not improve significantly upon the FRBNY Rule, which is consistent with our
+experiment in the simple model. The reason as before is that the small drop in the price level does not
+generate strong enough of a commitment to low future rates. The FRBNY Rule implies 28 quarters at the
+ELB, as observed in the data. Relative to this, PLT and NGDPT only command five additional quarters
+at the lower bound after the shock reverts to the steady state. This is in stark contrast to our newly
+    30 Targeting
+              rules are not re-parametrised.
+    31 In
+      a medium-scale model like the FRBNY DSGE featuring many state variables, optimal commitment is cumbersome to derive.
+We therefore take the FRBNY policy as our baseline.
+ 32 Section A.5 in the Appendix contains details on the model and its calibration.
+
+
+
+
+                                                           32
+     10.2                                                                                 4.8
+
+                                                                                         4.75
+       10
+                                                                                          4.7
+
+      9.8                                                                                4.65
+
+                                                                                          4.6
+      9.6
+                                                                                         4.55
+
+      9.4                                                                                 4.5
+
+                                                                                         4.45
+      9.2
+                                                                                          4.4
+
+       9                                                                                 4.35
+       2000   2002   2004   2006   2008   2010   2012   2014   2016   2018   2020           2000   2002   2004   2006   2008   2010   2012   2014   2016   2018   2020
+
+
+                     (a) Gross Domestic Product                                             (b) Core Personal Consumption Expenditures
+      Figure 8: U.S. Gross Domestic Product (in Billions of Dollars) and Personal Consumption Expenditures ex. Food
+      and Energy (Chain-Type Price Index, 2012=100). All series are in log-points and seasonally adjusted. The dashed line
+      represents a linear trend estimated in the pre-Great Recession period (2000-Q1 to 2007-Q2). Data from the U.S. Bureau
+      of Economic Analysis. For details on the data source see Footnote 39.
+
+
+
+proposed rules: HD-NGDPT (SDTR) implies 16 (15) additional quarters at the ELB relative to the baseline,
+postponing the lift-off from zero well into the year 2019. This aggressive policy improves outcomes
+considerably: while output drops to -8.5 percent under the FRBNY Rule, and still to -6.3 percent (-6.0
+percent) under PLT (NGDPT), the maximum drop in output under HD-NGDPT (SDTR) is -3.6 percent
+(-3.1 percent). In addition, we should note that output hits its trough early, and recovers thereafter. This
+improvement is achieved at the expense of a modest overshoot of inflation relative to the other rules.
+
+We can assess the costs in term of output loss associated with the Federal Reserve's inability to flatten the
+path of the expected Federal Funds Rate in the early stages of the U.S. Great Recession. To this end, we
+compare the realised output loss implied by the model to trend output. For the time period 2007-Q3 to
+2020-Q1 the FRBNY Rule implies an average annualised output gap of -5.07 percent, see Column (8) in
+Table 3. Our proposed rules reduce this number considerably: -0.34 for SDTR and -1.01 for HD-NGDPT.
+This means that the cumulative output gap since the Great Recession would have been almost closed by
+the first quarter of 2020 had the Federal Reserve implemented the SDTR policy rule. We also report the
+model-implied price level in 2020-Q1, see Column (9) of Table 3. Under the FRBNY Rule, the price level
+is still 3.5 percent below trend in 2020-Q1, while HD-NGDPT closes the price level gap (0.4 percent above
+target) and SDTR overcompensates (4.2 percent above target). While a price level target (PLT) closes
+the price level gap by 2020-Q1, it does not provide enough stimulus, and implies a rather large average
+annualised output gap of -3.74 percent.
+
+Notably, we calibrate our model such that we exactly hit the relatively low expected duration of the ELB
+binding for four quarters at the early stages of the Great Recession, as found in surveys of professional
+forecasters. This is one benefit of the stochastic structure of the toolkit: we can simultaneously target
+moments of output loss and expectations about the duration of the ELB episode.
+
+Our analysis suggests that had the Federal Reserve been able to credibly announce and implement HD-
+NGDPT or SDTR, the path of the Federal Funds Rate expected by market participants would have been
+considerably flatter (compare to Figure A.20a in the Appendix). The expected duration at the ELB would
+have been about three times higher (12.9 and 13.4 quarters for HD-NGDPT and SDTR, respectively).33
+  33 These numbers are different than the ones reported in Column 2 in Table 3 because in this section we condition on having
+
+reached the ELB. This makes the numbers comparable to the survey forecast of four quarters at the ELB. In Table 3 we report the
+unconditional expectation, i.e. from the point in time when the shock hits. Both metrics can differ because of the presence of regime
+
+
+
+                                                                                    33
+                5
+
+
+                0
+
+
+               -5
+
+
+              -10
+               Q3-07             Q1-10               Q3-12           Q1-15              Q3-17          Q1-20
+
+
+                3
+
+              2.5
+
+                2
+
+              1.5
+
+                1
+               Q3-07             Q1-10               Q3-12           Q1-15              Q3-17          Q1-20
+
+
+
+                4
+
+                3
+
+                2
+
+                1
+
+                0
+               Q3-07             Q1-10               Q3-12           Q1-15              Q3-17          Q1-20
+
+                         FRBNY Rule            PLT           NGDPT           HD-NGDPT           SDTR           data
+
+                          (a)                     ^ ), inflation (p ) and nominal interest rate (i)
+                                Paths for output (Y
+
+                5
+
+
+
+
+                0
+
+
+
+
+               -5
+               Q3-07             Q1-10               Q3-12           Q1-15              Q3-17          Q1-20
+
+
+
+               10
+
+                5
+
+                0
+
+                -5
+
+               -10
+
+               -15
+                Q3-07            Q1-10               Q3-12           Q1-15              Q3-17          Q1-20
+                        FRBNY Rule            PLT            NGDPT           HD-NGDPT           SDTR           data
+
+                                     (b)                           ^ ), nominal output ( N
+                                           Paths for price level ( P                     ^)
+
+Figure 9: Dynamic response to a preference shock and a correlated cost push shock in FRBNY model, under
+different policy rules. Dotted red line is data. The two-state Markov shocks switch to low state in Q4-07 and revert
+                                                                                   ^t , P
+to the absorbing state after 32 quarters (32nd contingency). The vertical axes for Y    ^ and N
+                                                                                              ^ report deviations from
+detrended steady state, in percentage points (annualised figures). The vertical axes for p and i report annualised
+percentage points. The horizontal axis shows quarter and calendar year. See Section A.3 for details on data and Section
+A.5.2 for calibration. The list of acronyms is detailed in Table 1.
+
+
+
+
+                                                               34
+This change is solely due to a difference in policy, as the fundamental shock to the economy is held
+constant.
+
+Table 3, Figures 10 and A.17 show the results for the full set of reaction functions.34 Comparing the welfare
+loss across rules, we see that HD-NGDPT and SDTR outperform all others. Our proposals generate a loss
+that is only a third of the one under the FRBNY Rule, since they imply substantial additional stimulus.
+Indeed, the expected duration at the ELB (Column 2 in Table 3) is much longer than any alternative
+proposal. Of the remaining policies, ATR and SUP again show good performance and come the closest to
+our two candidate rules. Appendix A.6.2 discusses the case of the ELB constraint not being imposed.
+Our two proposed rules are again among the best performing ones.
+
+                    5
+
+
+                    0
+
+
+                    -5
+
+
+                -10
+                 Q3-07               Q1-10              Q3-12              Q1-15               Q3-17              Q1-20
+
+
+
+                    3
+
+                   2.5
+
+                    2
+
+                   1.5
+
+                    1
+
+                   Q3-07             Q1-10              Q3-12              Q1-15               Q3-17              Q1-20
+
+                                   FRBNY Rule          ATR          SUP          HD-NGDPT           SDTR           data
+
+                    4
+
+                    3
+
+                    2
+
+                    1
+
+                    0
+                   Q3-07             Q1-10              Q3-12              Q1-15               Q3-17              Q1-20
+
+        Figure 10: Dynamic response to a preference shock and a correlated cost push shock in FRBNY model, under
+        baseline policy rules. Coloured lines show paths for output (Y ^t ), inflation (p ), the nominal interest rate (i), and nominal
+        GDP ( N ^ ). Dotted red line is data. The two-state Markov shocks switch to low state in Q4-07 and revert to the absorbing
+        state after 32 quarters (32nd contingency). The vertical axes for Y ^t and N^ report deviations from detrended steady state,
+        in percentage points (annualised figures). The vertical axes for p and the i report annualised percentage points. The
+        horizontal axis shows quarter and calendar year. See Section A.3 for details on data and Section A.5.2 for calibration.
+        The list of acronyms is detailed in Table 1. FRBNY Rule refers to Equation (A.7).
+
+
+
+
+0.
+     34 Appendix   A.7.6 shows impulse response functions and additional variables for all rules.
+
+
+                                                                     35
+                                Welfare Loss     E0 [t + k t    ~]
+                                                                T               ^
+                                                                     Volatility Y   Volatility p     Volatility i           ^
+                                                                                                                     Impact Y   Impact p                ^
+                                                                                                                                           Realized avg Y   Realized P^ Q1 2020
+                                    (1)                (2)               (3)            (4)              (5)           (6)        (7)            (8)                (9)
+
+
+                FRBNY Rule       8.531 10    4          0.855            0.013      1.3509 10    5   7.3857 10   5    -2.525       2.799       -5.070              -3.586
+
+                PANEL A: baseline rules
+                FRBNY Rule           1.000              1.000            1.000           1.000           1.000          1.000      1.000       -5.070              -3.586
+                HD-NGDPT             0.340             15.132            0.319           1.680           5.081          0.603      1.119       -1.010               0.396
+                SDTR                 0.330             15.689            0.303           1.987           5.150          0.559      1.143       -0.337               4.211
+                ATR                  0.457              7.611            0.441           1.477           2.662          0.778      1.070       -1.912               2.530
+                SUP                  0.435              5.194            0.417           1.535           2.788          0.675      1.105       -3.162               0.014
+
+                PANEL B: additional rules
+                PLT                  0.600             10.321            0.590           1.222           3.137          0.773      1.052       -3.738               0.057
+                NGDPT                0.581              9.936            0.571           1.205           3.065          0.772      1.058       -3.439              -0.106
+                TTRP                 0.852              1.320            0.850           0.989           1.051          0.955      1.038       -3.493              -0.084
+
+
+
+
+36
+                TTRS-1               0.603              2.470            0.592           1.312           1.724          0.849      1.058       -3.858               0.918
+                TTR                  0.772              5.552            0.765           1.214           2.182          0.866      1.027       -4.603               0.508
+                TTR-1                0.712              4.774            0.703           1.246           2.067          0.860      1.035       -4.391               0.603
+                AIT                  0.707              5.109            0.700           1.108           2.060          0.856      1.042       -3.731              -0.967
+                TTR+1                0.852              6.184            0.847           1.175           2.252          0.889      1.017       -4.838               0.405
+                FLFG                 0.825              7.800            0.818           1.229           2.671          0.711      1.100       -4.919              -3.436
+
+
+
+     Table 3: Some metrics for interest rate rules in the FRBNY model in the presence of a preference shock and correlated cost push shock. All rows except the first show values
+     normalised with respect to the modified Taylor rule in Del Negro, Giannoni and Patterson (2013) (FRBNY Rule, first row). Column (1) reports the welfare loss computed from a
+     quadratic loss function for the central bank with equal weights and an inflation target, see Equation (A.8); Column (2) displays the unconditional expected duration of the Effective
+     Lower Bound (regimes 1 and 2); Columns (3)-(5) report a summary measure of deviations of the endogenous variables from target, computed according to Equation A.6; Columns (6)
+     and (7) show the response on impact, in annual percentage points, of the output gap and inflation to a preference shock and a correlated cost push shock such that output falls by 8.5%
+     and inflation by 0.5% under FRBNY Rule; Columns (8) shows average annualised absolute deviations of the output gap from steady state, for contingency 32; Finally, Column (9)
+     reports the relative deviation of the price level from trend in 2020-Q1, for contingency 32. Figures in Columns (8) and (9) are not normalised with respect to the FRBNY Rule. See
+     Section A.5.2 for details on calibration and specification of FLFG rule. The list of acronyms is detailed in Table 1.
+6    Conclusions
+We provide a toolkit to solve DSGE models that involve occasionally binding constraints. The solution
+method generalises that of Eggertsson and Woodford (2003) and exploits the properties of a two-state
+Markov process for the exogenous disturbances. The toolkit performs well even in the presence of a large
+number of state variables and features a tractable stochastic structure. This modelling assumption is
+particularly relevant in the analysis of macroeconomic problems where uncertainty is important, as in
+the case of forward guidance.
+
+We use the toolkit to study the performance of policy rules in economies that experience the ELB. Our
+two newly proposed strategies, a History-Dependent Nominal GDP Target and a Symmetric Dual-Objective
+Target, consistently outperform most rules documented in the literature, especially reaction functions
+based on price-level or nominal-GDP targeting. We show that the latter two lack sufficient stimulus
+during economic downturns characterised by small drop in the price level, as experienced in the recent
+U.S. Great Recession episode. In addition, our rules are easy to communicate to the public in the form of
+a state-contingent strategy, and are robust to different crisis scenarios.
+
+Finally, we evaluate their performance in a medium-scale DSGE model for the U.S. economy. Our analysis
+suggests that our make-up strategies ­ if credibly conveyed to market participants by the Federal Reserve ­
+would have resulted in a much longer expected duration at the ELB after the Great Recession, and in an
+80-percent reduction in lost output. Similarly, the Fed's monetary policy strategy outlined in the recently
+revised Consensus Statement (Powell 2020) would have reduced the output contraction by more than a
+quarter.
+
+
+
+
+                                                      37
+References
+Adam, Klaus, and Roberto M. Billi. 2006. "Optimal Monetary Policy under Commitment with a Zero
+  Bound on Nominal Interest Rates." Journal of Money, Credit and Banking, 38(7): 1877­1905.
+
+            ephane, and Michel Juillard. 2011. "Accuracy of the Extended Path Simulation Method
+Adjemian, St´
+  in a New Keynesian Model with Zero Lower Bound on the Nominal Interest Rate." Unpublished
+  manuscript.
+
+            ephane, and Michel Juillard. 2013. "Stochastic Extended Path Approach." Unpublished
+Adjemian, St´
+ manuscript.
+
+Aspen Publishers. 2008-12. "Blue Chip Financial Forecasts." Various issues from 2008-12.
+
+Benigno, Pierpaolo, Gauti B. Eggertsson, and Federica Romei. 2020. "Dynamic Debt Deleveraging and
+  Optimal Monetary Policy." American Economic Journal: Macroeconomics.
+
+Blanchard, Olivier Jean, and Charles M. Kahn. 1980. "The Solution of Linear Difference Models under
+  Rational Expectations." Econometrica, 48(5): 1305­1311.
+
+Board of Governors of the Federal Reserve System. 2019. "Projections materials released with December
+  10-11, 2019 FOMC Meeting Statement."
+
+Boneva, Lena Mareen, R. Anton Braun, and Yuichiro Waki. 2016. "Some Unpleasant Properties of
+  Loglinearized Solutions when the Nominal Rate is Zero." Journal of Monetary Economics, 84: 216­232.
+
+Burstein, Ariel, and Christian Hellwig. 2008. "Welfare Costs of Inflation in a Menu Cost Model." Ameri-
+  can Economic Review, 98(2): 438­43.
+
+Campbell, Jeffrey, Charles L. Evans, Jonas Fisher, and Alejandro Justiniano. 2012. "Macroeconomic
+  Effects of Federal Reserve Forward Guidance." Brookings Papers on Economic Activity, 43(1): 1­80.
+
+Christiano, Lawrence J., Martin S. Eichenbaum, and Mathias Trabandt. 2015. "Understanding the
+ Great Recession." American Economic Journal: Macroeconomics, 7(1): 110­67.
+
+Del Negro, Marco, Marc Giannoni, and Christina Patterson. 2013. "The Forward Guidance Puzzle."
+  Federal Reserve Bank of New York Staff Reports 574. October 2012. Revised May 2013.
+
+Del Negro, Marco, Stefano Eusepi, Marc Giannoni, Argia M. Sbordone, Andrea Tambalotti, Matthew
+ Cocci, Raiden B. Hasegawa, and M. Henry Linder. 2013. "The FRBNY DSGE Model." Federal Reserve
+ Bank of New York Staff Reports 647.
+
+Denes, Matthew, Gauti B Eggertsson, and Sophia Gilbukh. 2013. "Deficits, public debt dynamics and
+  tax and spending multipliers." The Economic Journal, 123(566): F133­F163.
+
+Eggertsson, Gauti B., and Masayuki Inui. 2020. "The Dual Mandate Revisited." Unpublished
+  manuscript.
+
+Eggertsson, Gauti B., and Michael Woodford. 2003. "The Zero Bound on Interest Rates and Optimal
+  Monetary Policy." Brookings Papers on Economic Activity, 2003(1): 139­233.
+
+Eggertsson, Gauti B., and Paul Krugman. 2012. "Debt, Deleveraging, and the Liquidity Trap: A Fisher-
+  Minsky-Koo Approach." The Quarterly Journal of Economics, 127(3): 1469­1513.
+
+Eggertsson, Gauti B., and Sanjay R. Singh. 2019. "Log-linear Approximation Versus an Exact Solution
+  at the ZLB in the New Keynesian Model." Journal of Economic Dynamics and Control, 105: 21­43.
+
+
+                                                  38
+Eggertsson, Gauti B., and Sergei K. Egiev. 2020. "Fundamental Driven Liquidity Traps: A Unified
+  Theory of the Great Depression and the Great Recession." Working paper.
+
+Fair, Ray C., and John B. Taylor. 1983. "Solution and Maximum Likelihood Estimation of Dynamic
+  Nonlinear Rational Expectations Models." Econometrica, 51(4): 1169­1185.
+
+Fern´
+    andez-Villaverde, Jesus,                irez, and Frank Schorfheide. 2016. "Chapter 9 - Solu-
+                         ´ Juan F. Rubio-Ram´
+  tion and Estimation Methods for DSGE Models." In . Vol. 2 of Handbook of Macroeconomics, 527­724.
+  Elsevier.
+
+FRED. 2020. "Federal Reserve Economic Data ­ Federal Reserve Bank of St. Louis."
+
+Guerrieri, Luca, and Matteo Iacoviello. 2015. "OccBin: A Toolkit for Solving Dynamic Models with
+  Occasionally Binding Constraints Easily." Journal of Monetary Economics, 70: 22­38.
+
+Gust, Christopher, Edward Herbst, David Lopez-Salido,
+                                             ´           and Matthew E Smith. 2017. "The empirical
+ implications of the interest-rate lower bound." American Economic Review, 107(7): 1971­2006.
+
+Hatzius, Jan, and Sven Jari Stehn. 2011. "The Case for a Nominal GDP Level Target." Goldman Sachs US
+  Economics Analyst, 11: 41.
+
+Holden, Tom. 2016. "Computation of Solutions to Dynamic Models with Occasionally Binding Con-
+ straints." Working paper.
+
+Holden, Tom, and Michael Paetz. 2012. "Efficient Simulation of DSGE Models with Inequality Con-
+  straints." University of Surrey, School of Economics Discussion Papers.
+
+Judd, Kenneth L. 1998. Numerical Methods in Economics. Vol. 1 of MIT Press Books, The MIT Press.
+
+Jung, Taehun, Yuki Teranishi, and Tsutomu Watanabe. 2005. "Optimal Monetary Policy at the Zero-
+  Interest-Rate Bound." Journal of Money, Credit and Banking, 37(5): 813­835.
+
+Kiley, Michael, and John Roberts. 2017. "Monetary Policy in a Low Interest Rate World." Brookings
+  Papers on Economic Activity, 48(1 (Spring)): 317­396.
+
+Kim, Sunghyun Henry, Robert Kollmann, and Jinill Kim. 2010. "Solving the Incomplete Market Model
+  with Aggregate Uncertainty using a Perturbation Method." Journal of Economic Dynamics and Control,
+  34(1): 50 ­ 58.
+
+King, Robert G, and Mark W Watson. 1998. "The Solution of Singular Linear Difference Systems under
+  Rational Expectations." International Economic Review, 1015­1026.
+
+   een, Stefan, and Lars E.O. Svensson. 2011. "Anticipated Alternative Policy Rate Paths in Policy
+Las´
+  Simulations." Internation Journal of Central Banking.
+
+Maliar, Lilia, and Serguei Maliar. 2015. "Merging Simulation and Projection Approaches to Solve
+ High-dimensional Problems with an Application to a New Keynesian Model." Quantitative Economics,
+  6(1): 1­47.
+
+Mertens, Thomas M., and John C. Williams. 2019a. "Monetary Policy Frameworks and the Effective
+  Lower Bound on Interest Rates." 109: 427­432.
+
+Mertens, Thomas M., and John C. Williams. 2019b. "Tying down the anchor: monetary policy rules and
+ the lower bound on interest rates." Federal Reserve Bank of New York Staff Reports 887.
+
+
+
+
+                                                     39
+Miao, Jianjun, and Phuong V. Ngo. 2019. "Does Calvo Meet Rotemberg at the Zero Lower Bound?"
+  Macroeconomic Dynamics, 1­22.
+
+                     ´ Steinsson. 2018. "High-Frequency Identification of Monetary Non-Neutrality:
+Nakamura, Emi, and Jon
+ The Information Effect." The Quarterly Journal of Economics, 133(3): 1283­1330.
+
+                ´ Steinsson, Patrick Sun, and Daniel Villar. 2018. "The Elusive Costs of Inflation:
+Nakamura, Emi, Jon
+  Price Dispersion during the U.S. Great Inflation." The Quarterly Journal of Economics, 133(4): 1933­1980.
+
+Nakov, Anton. 2008. "Optimal and Simple Monetary Policy Rules with Zero Floor on the Nominal
+  Interest Rate." International Journal of Central Banking, 4(2): 73­127.
+
+Powell, Jerome. 2020. "New Economic Challenges And The Fed's Monetary Policy Review at "Navigating
+  The Decade Ahead: Implications For Monetary Policy"." An Economic Policy Symposium Sponsored By
+  The Federal Reserve Bank Of Kansas City, Jackson Hole.
+
+Preston, Bruce, and Mauro Roca. 2007. "Incomplete Markets, Heterogeneity and Macroeconomic Dy-
+  namics." NBER Working Paper No. 13260.
+
+Reifschneider, David, and David Wilcox. 2019. "Average Inflation Targeting Would Be a Weak Tool
+  for the Fed to Deal with Recession and Chronic Low Inflation." Peterson Institute for International
+  Economics Policy Briefs PB19-16.
+
+Reifschneider, David, and John C Williams. 2000. "Three Lessons for Monetary Policy in a Low-inflation
+  Era." Journal of Money, Credit and Banking, 936­966.
+
+Rotemberg, Julio J, and Michael Woodford. 1997. "An optimization-based econometric framework for
+  the evaluation of monetary policy." NBER macroeconomics annual, 12: 297­346.
+
+Rotemberg, Julio J., and Michael Woodford. 1999. "Interest Rate Rules in an Estimated Sticky Price
+  Model." Monetary Policy Rules, 57­126. University of Chicago Press.
+
+Schmitt-Groh´  e, Stephanie, and Mart´  in Uribe. 2009. "Liquidity Traps with Global Taylor Rules." Inter-
+  national Journal of Economic Theory, 5(1): 85­106.
+
+Sumner, Scott. 2012. "The Case for Nominal GDP Targeting." Mercatus Research.
+
+Taylor, John B., and John C. Williams. 2010. "Simple and Robust Rules for Monetary Policy." In Handbook
+  of Monetary Economics. Vol. 3 of Handbook of Monetary Economics, , ed. Benjamin M. Friedman and Michael
+  Woodford, Chapter 15, 829­859. Elsevier.
+
+Wolman, Alexander L. 2005. "Real Implications of the Zero Bound on Nominal Interest Rates." Journal of
+  Money, Credit and Banking, 37(2): 273­296.
+
+Woodford, Michael. 2003. Interest and Prices: Foundations of a Theory of Monetary Policy. Princeton Univer-
+ sity Press.
+
+Woodford, Michael. 2012. "Methods of Policy Accommodation at the Interest-rate Lower Bound." Pro-
+  ceedings - Economic Policy Symposium - Jackson Hole, 185­288.
+
+
+
+
+                                                      40
+

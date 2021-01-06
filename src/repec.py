@@ -8,17 +8,115 @@ import traceback
 import xml.etree.ElementTree as et
 from bs4 import BeautifulSoup
 from datetime import datetime
-from random import uniform
+from random import uniform, randint
 from time import sleep
 
+class Proxy:
+
+    def __init__(self):
+        self.proxy_user = os.environ['PROXY_USER']
+        self.proxy_password = os.environ['PROXY_PASSWORD']
+        self.proxy_host = os.environ['PROXY_HOST']
+        self.proxy_port = os.environ['PROXY_PORT']
+
+    def get_server(self):
+        server = [
+            'tia',
+            'eze',
+            'bne',
+            'mel',
+            'per',
+            'syd',
+            'vie',
+            'bru',
+            'gig',
+            'gru',
+            'sof',
+            'yul',
+            'tor',
+            'yvr',
+            'scl',
+            'bog',
+            'sjo',
+            'zag',
+            'prg',
+            'cph',
+            'tll',
+            'hel',
+            'bod',
+            'mrs',
+            'par',
+            'fra',
+            'ath',
+            'bud',
+            'rkv',
+            'bom',
+            'del',
+            'dub',
+            'tlv',
+            'lin',
+            'nrt',
+            'sel',
+            'rix',
+            'lux',
+            'kul',
+            'gdl',
+            'kiv',
+            'ams',
+            'akl',
+            'los',
+            'osl',
+            'lim',
+            'waw',
+            'lis',
+            'otp',
+            'beg',
+            'sin',
+            'bts',
+            'lju',
+            'jnb',
+            'mad',
+            'vlc',
+            'sto',
+            'zrh',
+            'tpe',
+            'iev',
+            'dxb',
+            'iad',
+            'atl',
+            'bos',
+            'clt',
+            'chi',
+            'dal',
+            'den',
+            'hou',
+            'las',
+            'lax',
+            'mia',
+            'msy',
+            'nyc',
+            'phx',
+            'sjc',
+            'sea'
+        ]
+
+        return server
+
+    def get_proxy(self):
+        server = self.get_server()
+        index = randint(0, len(server) - 1)
+        proxy = f'socks5://{self.proxy_user}:{self.proxy_password}@{server[index]}.{self.proxy_host}:{self.proxy_port}'
+
+        return proxy
 
 class RePEc:
     '''
     This class processes the XML API into a tabular DataFrame and save the output to .csv format.
     '''
 
-    def __init__(self, nber_id):
+    def __init__(self, nber_id, proxy):
         self.nber_id = nber_id
+        self.proxy = proxy
         self.url = 'http://citec.repec.org/api/plain/RePEc:nbr:nberwo:'
 
     def string_id(self):
@@ -39,7 +137,7 @@ class RePEc:
         while status_code != 200:
             try:
                 url = f'{self.url}{self.string_id()}'
-                response = requests.get(url)
+                response = requests.get(url, proxies={'http': self.proxy, 'https': self.proxy})
                 status_code = response.status_code
                 xml = et.fromstring(response.text)
                 # either cites or citedBy
@@ -62,7 +160,7 @@ class RePEc:
         while status_code != 200:
             try:
                 url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
-                response = requests.get(url)
+                response = requests.get(url, proxies={'http': self.proxy, 'https': self.proxy})
                 status_code = response.status_code
                 parser = et.XMLParser(encoding='utf-8')
                 xml = et.fromstring(response.text, parser=parser)
@@ -71,6 +169,7 @@ class RePEc:
                 if status_code == 200:
                     try: return reference
                     except UnboundLocalError: return None
+                    except IndexError: return None
             except et.ParseError: return None
             except AttributeError: sys.exit(0)
             except Exception as err:
@@ -124,7 +223,8 @@ def main(start, end, interval):
     avg = AverageTime()
     timestamp = []
     while start < end:
-        repec = RePEc(start)
+        proxy = Proxy().get_proxy()
+        repec = RePEc(start, proxy)
         _interval = round(uniform(interval, interval+1), 3)
         file_check = os.path.exists(f'data/repec/{start}.json')
         if not file_check:
