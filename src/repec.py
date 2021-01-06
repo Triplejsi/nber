@@ -38,7 +38,7 @@ class Proxy:
         '''
         server = self.get_server()
         index = randint(0, len(server) - 1)
-        proxy = f'socks5://{self.proxy_user}:{self.proxy_password}@{server[index]}.{self.proxy_host}:{self.proxy_port}'
+        proxy = f'socks5h://{self.proxy_user}:{self.proxy_password}@{server[index]}.{self.proxy_host}:{self.proxy_port}'
 
         return proxy
 
@@ -68,21 +68,15 @@ class RePEc:
         '''
         status_code = None
         while status_code != 200:
-            try:
-                url = f'{self.url}{self.string_id()}'
-                response = requests.get(url, proxies={'http': self.proxy})
-                status_code = response.status_code
-                xml = et.fromstring(response.text)
-                if status_code == 200:
-                    try: return xml
-                    except UnboundLocalError: return None
-            except et.ParseError: return None
-            except AttributeError: pass
-            except ConnectionError: pass
-            except Exception as err:
-                print(traceback.print_exc())
-                print(f'{err}: {self.nber_id}')
-                sys.exit(1)
+            url = f'{self.url}{self.string_id()}'
+            response = requests.get(url, proxies={'http': self.proxy}, timeout=10)
+            status_code = response.status_code
+            if status_code == 200:
+                try:
+                    xml = et.fromstring(response.text)
+                    return xml
+                except UnboundLocalError: return None
+                except et.ParseError: return None
 
     def reference(self):
         '''
@@ -90,25 +84,19 @@ class RePEc:
         '''
         status_code = None
         while status_code != 200:
-            try:
-                url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
-                response = requests.get(url, proxies={'http': self.proxy})
-                status_code = response.status_code
-                parser = et.XMLParser(encoding='utf-8')
-                xml = et.fromstring(response.text, parser=parser)
-                text = list(xml)[0]
-                reference = [list(x)[0].text for x in text if 'isreferencedby' not in x.tag]
-                if status_code == 200:
-                    try: return reference
-                    except UnboundLocalError: return None
-                    except IndexError: return None
-            except et.ParseError: return None
-            except AttributeError: pass
-            except ConnectionError: pass
-            except Exception as err:
-                print(traceback.print_exc())
-                print(f'{err}: {self.nber_id}')
-                sys.exit(1)
+            url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
+            response = requests.get(url, proxies={'http': self.proxy}, timeout=10)
+            status_code = response.status_code
+            if status_code == 200:
+                try:
+                    parser = et.XMLParser(encoding='utf-8')
+                    xml = et.fromstring(response.text, parser=parser)
+                    text = list(xml)[0]
+                    reference = [list(x)[0].text for x in text if 'isreferencedby' not in x.tag]
+                    return reference
+                except UnboundLocalError: return None
+                except IndexError: return None
+                except et.ParseError: return None
 
     def save(self):
         '''
@@ -156,22 +144,27 @@ def main(start, end, interval):
     avg = AverageTime()
     timestamp = []
     while start < end:
-        proxy = Proxy().get_proxy()
-        repec = RePEc(start, proxy)
-        _interval = round(uniform(interval, interval+1), 3)
-        file_check = os.path.exists(f'data/repec/{start}.json')
-        if not file_check:
-            print(f'[DOWNLOAD \U0001F4BE]: {repec.url}{repec.string_id()}')
-            start_timestamp = avg.current_timestamp()
-            repec.save()
-            print(f'[SUCCEED \U00002705]: {repec.url}{repec.string_id()}\n[SLEEP \U0001F634]: {_interval} seconds')
-            end_timestamp = avg.current_timestamp()
-            timestamp.append(avg.subtract(start_timestamp, end_timestamp))
-            sleep(_interval)
-            if sum(timestamp) >= 10800:
-                break
-        else:
-            print(f'[IGNORE \U0001F4C1]: {repec.url}{repec.string_id()}')
+        try:
+            proxy = Proxy().get_proxy()
+            repec = RePEc(start, proxy)
+            _interval = round(uniform(interval, interval+1), 3)
+            file_check = os.path.exists(f'data/repec/{start}.json')
+            if not file_check:
+                print(f'[DOWNLOAD \U0001F4BE]: {repec.url}{repec.string_id()}')
+                start_timestamp = avg.current_timestamp()
+                repec.save()
+                print(f'[SUCCEED \U00002705]: {repec.url}{repec.string_id()}\n[SLEEP \U0001F634]: {_interval} seconds')
+                end_timestamp = avg.current_timestamp()
+                timestamp.append(avg.subtract(start_timestamp, end_timestamp))
+                sleep(_interval)
+                if sum(timestamp) >= 10800:
+                    break
+            else:
+                print(f'[IGNORE \U0001F4C1]: {repec.url}{repec.string_id()}')
+        except Exception as err:
+            print(traceback.print_exc())
+            print(f'{err}: {start}')
+            pass
         start += 1
 
     return avg.result(timestamp)
