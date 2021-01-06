@@ -1,0 +1,2854 @@
+                                NBER WORKING PAPER SERIES
+
+
+
+
+                    ROBUST IDENTIFICATION OF INVESTOR BELIEFS
+
+                                          Xiaohong Chen
+                                          Lars P. Hansen
+                                          Peter G. Hansen
+
+                                        Working Paper 27257
+                                http://www.nber.org/papers/w27257
+
+
+                      NATIONAL BUREAU OF ECONOMIC RESEARCH
+                               1050 Massachusetts Avenue
+                                 Cambridge, MA 02138
+                                      May 2020
+
+
+
+
+We thank Fernando Alvarez, Stephane Bonhomme, Winston Dou, Darrell Duffie, Bo Honore,
+Bryan Kelly, Yueran Ma, Andrey Malenko, Per Mykland, Stefan Nagel, Diana Petrova, Monika
+Piazessi, Eric Renault, Azeem Shaikh, Ken Singleton, Grace Tsiang, Harald Uhlig, and Xiangyu
+Zhang for helpful comments and suggestions. We gratefully acknowledge the research assistance
+of Han Xu and Zhenhuan Xie. We thank the Alfred P. Sloan Foundation Grant [G-2018-11113]
+for financial support. We provide a Jupyter Notebook on https://github.com/lphansen/Beliefs with
+computational details on the implementation. The views expressed herein are those of the authors
+and do not necessarily reflect the views of the National Bureau of Economic Research.
+
+At least one co-author has disclosed a financial relationship of potential relevance for this research.
+Further information is available online at http://www.nber.org/papers/w27257.ack
+
+NBER working papers are circulated for discussion and comment purposes. They have not been peer-
+reviewed or been subject to the review by the NBER Board of Directors that accompanies official
+NBER publications.
+
+© 2020 by Xiaohong Chen, Lars P. Hansen, and Peter G. Hansen. All rights reserved. Short sections
+of text, not to exceed two paragraphs, may be quoted without explicit permission provided that full
+credit, including © notice, is given to the source.
+Robust Identification of Investor Beliefs
+Xiaohong Chen, Lars P. Hansen, and Peter G. Hansen
+NBER Working Paper No. 27257
+May 2020
+JEL No. E03,E22,E44,G02,G12,G14,G40
+
+                                         ABSTRACT
+
+This paper develops a new method informed by data and models to recover information about
+investor beliefs. Our approach uses information embedded in forward-looking asset prices in
+conjunction with asset pricing models. We step back from presuming rational expectations and
+entertain potential belief distortions bounded by a statistical measure of discrepancy.
+Additionally, our method allows for the direct use of sparse survey evidence to make these
+bounds more informative. Within our framework, market-implied beliefs may differ from those
+implied by rational expectations due to behavioral/psychological biases of investors, ambiguity
+aversion, or omitted permanent components to valuation. Formally, we represent evidence about
+investor beliefs using a novel nonlinear expectation function deduced using model-implied
+moment conditions and bounds on statistical divergence. We illustrate our method with a
+prototypical example from macro-finance using asset market data to infer belief restrictions for
+macroeconomic growth rates.
+
+Xiaohong Chen                                  Peter G. Hansen
+Department of Economics                        MIT Sloan School of Management
+Yale University                                100 Main Street
+28 Hillhouse Avenue                            Cambridge, MA 02142
+P.O. Box 208268                                pghansen@mit.edu
+New Haven, CT 06520-8268
+xiaohong.chen@yale.edu
+
+Lars P. Hansen
+Department of Economics
+The University of Chicago
+1126 East 59th Street
+Chicago, IL 60637
+and NBER
+lhansen@uchicago.edu
+1    Introduction
+Prices in asset markets reflect a combination of investor beliefs and their risk preferences.
+Researchers, as well as policymakers, look to asset market data as a barometer of public
+beliefs. Derivative claims prices potentially enrich what we can infer about conditional
+probability distributions of future events, but events of interest often entail components
+of macroeconomic uncertainty for which there will be a paucity of information along some
+dimensions. Moreover, since a central tenet of asset pricing is that investors must be
+compensated for exposure to macroeconomic shocks that are not diversifiable, beliefs about
+the macroeconomic performance are paramount to understanding asset prices.
+    To disentangle the contributions of risk aversion from beliefs, many empirical approaches
+in the last few decades have focused on models of investor preferences by assuming rational
+expectations. Using the implied moment conditions of the investor's portfolio choice prob-
+lem in conjunction with this restriction gives a directly applicable and tractable approach
+for estimating and testing alternative model specifications. This approach, however, often
+leads to large risk prices in some time period, an arguably extreme level of estimated risk
+aversion, or a statistical rejection of the model. As a consequence, some researchers have
+explored mechanisms that could account for this evidence via a different channel, namely
+beliefs which differ from rational expectations. In particular, this has led to a reexami-
+nation of early models of investor beliefs such as extrapolative expectations proposed by
+Metzler (1941) and adaptive expectations proposed by Nerlove (1958). It is sometimes ar-
+gued, but typically not justified formally, that these alternatives are small departures from
+rational expectations. These "belief distortions" relative to rational expectations alterna-
+tively could reflect the lack of investor confidence about how to go about the assignment of
+probabilities to future events. This has been modeled and captured formally as ambiguity
+aversion or concerns about model misspecification.
+    A substantively distinct, but mathematically related, literature studies the martingale
+decomposition of the stochastic discount factor. This decomposition expresses the stochas-
+tic discount factor as the product of a martingale component and a transitory component.
+The martingale component can be interpreted as a change of probability measures that
+imposes risk neutrality in valuation over long investment horizons. Kazemi (1992) and
+Alvarez and Jermann (2005) show that the reciprocal of the gross holding period return on
+a long-term bond is the stochastic discount factor net of a martingale component. Omit-
+ting the martingale component is mathematically equivalent to an incorrect assumption of
+
+
+                                             1
+rational expectations.
+    This paper proposes a formal methodology for analyzing moment restriction models
+where the moment restrictions are presumed to hold under a distorted probability measure.
+With observations on a complete set of asset prices and a known stochastic discount factor,
+we could identify uniquely the belief distortion. Given our interest in macroeconomic
+risk compensation, we presume a more modest set of data is available to use as empirical
+inputs. As a consequence, even with a known stochastic discount factor, there may be
+an extensive family of beliefs that is consistent with the underlying pricing restrictions
+expressed as conditional moments. Rather than estimating and testing a specific model of
+distorted beliefs, we study families of probabilities that are restricted to be close to rational
+expectations in accordance to a statistical measure of divergence.
+    In contrast to some earlier research applied to so-called "risk neutral probabilities," we
+do not view a minimal distortion computation as a way to identify beliefs. Instead, we use it
+as an input into characterizing families of beliefs that have similar statistical divergences.
+We will be led to characterize the implications in terms of bounds. A common way to
+represent a probability distribution of a random vector is through how it assigns expecta-
+tions to functions of that random vector. Since we have multiple probability distributions
+in play, we characterize our bounds by building what is called a "nonlinear expectation"
+that minimizes expectations over members of the family of probability distortions that we
+identify.
+    When the moment restrictions are indexed by unknown parameters, instead of con-
+structing "confidence sets" as in standard statistical analyses, we build "misspecification
+sets" of parameters that i) require distorted beliefs to satisfy the moment restrictions, and
+ii) among the permissible belief distortions are the ones that satisfy a pre-specified di-
+vergence bound from the rational expectations. Thus, our results feature the estimation
+of sets of models with similar magnitudes of belief distortions. The "least misspecified"
+specification of beliefs is a special case of our analysis.
+    Our paper builds on popular methods of estimation in moment restriction models such as
+generalized method of moments (GMM) and generalized empirical likelihood (GEL). GEL
+estimates parameters and probabilities jointly in hopes of improving higher-order statistical
+efficiency over GMM estimates. Rather than improving the statistical performance of a
+correctly specified moment restrictions model, we entertain and in fact feature a form of
+model misspecification: investor beliefs diverge from rational expectations premise that
+the data generating process is known to investors. In addition, some of the popular GEL
+
+
+                                               2
+divergence criteria such as the empirical likelihood and Hellinger divergence are problematic
+for our analysis even though they have been used extensively for other applications of
+statistical approximation.1 Moreover, we extend the use of divergence measures to be
+applicable to a misspecified dynamic setting pertinent to macroeconomic and financial
+economic applications.
+    In summary, we view our methodology as a way to (i) extract information on investor
+beliefs from asset market and survey data and (ii) to provide revealing diagnostics for model
+builders that embrace specific formulations of belief distortions.
+
+
+1.1     Literature Review
+There is a long intellectual history exploring the impact of expectations on investment
+decisions. As was well-appreciated by economists such as Pigou, Keynes, and Hicks, in-
+vestment decisions are in part based on people's views of the future. Alternative approaches
+for modelling expectations of economic actors were suggested including static expectations,
+Metzler's extrapolative expectations, Nerlove's adaptive expectations, or appeals to data
+on beliefs; but these approaches leave open how to proceed when using dynamic economic
+models to assess hypothetical policy interventions. A productive approach to this modeling
+challenge has been to add the hypothesis of rational expectations. Motivated by long histo-
+ries of data, this hypothesis pins down beliefs by equating the expectations of agents inside
+the model to those of the data generating distribution. This approach to completing the
+specification of a stochastic equilibrium model was initiated by Muth (1961) and developed
+fully in Lucas (1972).
+    Recently there has been a renewed interest in alternative belief distortions within the
+asset pricing literature. See for example, Fuster et al. (2010), Hirshleifer et al. (2015), Bar-
+beris et al. (2015), Adam et al. (2016), and Bordalo et al. (2019). The Adam et al. (2016)
+reference, in particular, points to "small departures" from rational expectations. Lead-
+ing contributors to the characterization and study of martingale components of stochastic
+discount factors are Alvarez and Jermann (2005), Hansen and Scheinkman (2009), Bakshi
+and Chabi-Yo (2012), Borovi     cka et al. (2016) Some of these contributions emphasize the
+explicit connection to a change in probability measure.
+    Our choice to focus on bounds on the potential belief distortions allows us to build on
+the approach of Hansen and Jagannathan (1991) and its extensions to produce meaningful
+   1
+     Schennach (2007) also demonstrates a problematic aspect of empirical likelihood but with a substan-
+tially different aim than ours.
+
+                                                   3
+bounds on a multiplicative component of stochastic discount factors. Precursors to our
+exploration of asset pricing under model misspecification include Back and Brown (1993),
+Stutzer (1995), Hansen and Jagannathan (1997), Luttmer et al. (1995), Almeida and Garcia
+(2012), Hansen (2014) and Ghosh et al. (2017). While there are overlapping ideas and
+motivations in this literature, there is a substantially novel component to the methods we
+develop.
+     Generalized empirical likelihood (GEL) estimators for over-identified moment restriction
+models have been advocated as alternatives to generalized method of moments (GMM) es-
+timators. See, for example, the empirical likelihood alternative by Qin and Lawless (1994),
+and the relative entropy alternative by Imbens (1997) and Kitamura and Stutzer (1997).
+Both are special cases of a larger class of GEL methods based on discrepancies suggested
+by Cressie and Read (1984), Smith (1997) and Imbens et al. (1998). These GEL methods
+proceed by allowing for distortions of the empirical distribution that satisfy the moment
+conditions in sample, and selecting the distortion that minimizes some divergence mea-
+sure. Econometricians and statisticians have defended GEL methods by showing that the
+resulting parameter estimators have higher-order asymptotic efficiency gains over common
+implementations of GMM estimators; see Newey and Smith (2004). But such methods pay
+little attention to enhancing our understanding of the often encountered empirical finding
+that there is substantial evidence against the moment conditions.2 While there is an overlap
+between our analysis and these earlier statistics and econometrics literatures, we adopt a
+rather different perspective by openly acknowledging the potential global misspecification,
+using the implied belief distortions as barometers of private sector belief distortions, and
+recasting the analysis within a dynamic setting. As we will show, these differences matter
+in important ways.
+     Our approach to measuring misspecification differs in an essential way from the measures
+of Shanken (1987) and Hansen and Jagannathan (1997) motivated explicitly by asset pricing
+applications. Within the setting of linear factor models, Shanken (1987) quantifies the
+expected return errors induced by using misspecified proxies for a market return. Relatedly,
+Hansen and Jagannathan (1997) compute maximal pricing errors relative to mean-square
+norms of the asset payoffs. In the case of linear factor models, their measure collapses
+to the maximum of the expected return errors (the 's) relative to the return standard
+   2
+    When the moment conditions are misspecified, the existing GEL literature typically features the es-
+timation of a pseudo-true parameter value, but not properties of the probabilities needed to repair the
+models.
+
+
+
+                                                  4
+deviations. In both cases, first and second moments are computed using historical data.
+Our analysis is different by allowing for investors to use probabilities distinct from those
+governing the data-generating process.
+
+
+1.2    Outline of the Paper
+Section 2 introduces the framework used in this paper posed as the moment restrictions
+implied by an asset pricing model. Section 3 studies the problem of bounding beliefs using
+statistical divergence constraints. We follow the GEL literature by using the Cressie and
+Read (1984) family of divergences between probability measures. We illustrate how some
+divergences may be problematic for identifying (global) misspecification. Using relative
+entropy divergence, we propose a nonlinear expectation functional for bounding investor
+expectations subject to model-implied and a divergence constraint. We also give dual
+representations that make evaluating the nonlinear expectation computationally tractable.
+Section 4 discusses the implied minimum divergence as a measure of model misspecification,
+and how to construct sets of parametric models consistent with small statistical divergence.
+We also explore the interaction of our nonlinear expectation functional with parameter
+identification. Section 5 gives a dynamic version of the divergence constraint motivated by
+large deviation theory and gives a recursive dual formulation to the corresponding nonlinear
+expectation. Section 6 presents an empirical illustration of our methodology. Section 7
+concludes.
+
+
+2     Asset Pricing with Distorted Beliefs
+In standard economic applications, moment conditions are justified via an assumption of
+rational expectations. This assumption equates population expectations with those used
+by economic agents inside the model. These expectations are therefore presumed to be
+revealed by the Law of Large Numbers applied to time series data.
+    Let p, G, P q denote the underlying probability space and I  G represent information
+available to investors. The original moment equations under rational expectations are of
+the form
+                                    E rf pX, q | Is " 0.                             (1)
+
+where the function f captures the parameter dependence () of either the payoff or the
+stochastic discount factor along with variables (X ) observed by the econometrician and
+
+                                             5
+used to construct the payoffs, prices, and the stochastic discount factor.
+   A typical asset pricing example is as follows: Let R denote an n-dimensional vector of
+gross returns corresponding to payoffs on financial or physical assets over some investment
+horizon, let S denote the corresponding stochastic discount factor for this horizon, and let
+I denote the investor information set. The underlying asset pricing equation is
+
+                                        ErSR ´ 1n |Is " 0
+
+where 1n is an n-dimensional vector of ones. Both the stochastic discount factor and the
+return vector R may depend on unknown parameters, giving rise to (1).3
+
+
+2.1     Market beliefs
+We allow for the beliefs that are revealed by the market to differ from the rational expec-
+tations beliefs implied by (infinite) histories of data. We represent what we call "market
+beliefs" by introducing a positive random variable M with a unit conditional expectation.
+Thus, we consider moment restrictions of the form:
+
+                                      E rM f pX, q | Is " 0.                                      (2)
+
+The random variable M provides a flexible change in the probability measure, and is
+sometimes referred to as a Radon-Nikodym derivative or a likelihood ratio. The dependence
+of M on random variables not in the information captured by I defines a relative density
+that informs how rational expectations are altered by market beliefs. By changing M ,
+we allow for alternative densities. Notice that we are restricting the implied probability
+measures to be absolutely continuous with respect to the original probability measure. That
+is, we restrict the market beliefs so that any event that is in the conditioning information set
+(measurable with respect to Iq, has probability measure zero under the original distribution
+will continue to have probability zero under this change in distribution. We will, however,
+allow for investors to assign probability zero to events that actually have positive probability
+under rational expectations.
+    The introduction of M into the analysis is seemingly an innocuous change in formulating
+the observable implications. But it has rather dramatic consequences for econometric
+  3
+   The vector of returns can be parameter dependent when the investment is in a physical asset with an
+unobserved return.
+
+
+
+                                                  6
+analyses. Equation (1) under rational expectations may not have solutions for any  under
+rational expectations. That is, equation (1) may be misspecified. Once we relax rational
+expectations by introducing M , equation (2) will in general be satisfied for an infinite
+dimensional set of possible M 's for each value of . Thus, the parameter vector  and the
+corresponding M fail to be identified in a rather spectacular way. The characterizing of
+the set of M 's associated with a given value of  will be of particular interest to us.
+    Two classes of asset pricing models that have received considerable attention provide
+motivation for our analysis. One is that subjective beliefs differ from those implied by
+rational expectations because of "market psychology." Alternative models of expectations
+from behavioral finance imply alternative specifications of M . Another class of asset pric-
+ing models include investors that are ambiguity averse. Associated with many such models
+are belief specifications that emerge as altered probabilities encoded in asset prices. These
+distortions reflect some form of caution depending on modeling details. While both lit-
+eratures derive counterparts to M , our methods put very modest structure on the beliefs
+beyond potentially small statistical departures from rational expectations and can provide
+revealing diagnostics for assessing models that impose specific distortions in expectations.
+
+
+2.2     Incorporating survey evidence
+When constructing our moment conditions, we could also include direct data on investor
+expectations to help inform the direction and magnitude of the subjective belief distortion
+from historical evidence. This would entail augmenting the moment conditions used to
+constrain beliefs to include the variable being forecasted minus the observed forecast all
+scaled by M .
+    Suppose we have data on beliefs B that reflect subjective expectations of X
+                                                                              r . This could
+include data survey responses or analyst forecasts. We may include this in our analysis by
+imposing the conditional moment condition:
+                                           ´       ¯
+                                          E M X | I " B.
+                                              r                                                       (3)
+
+In words, this restriction says that B is the best forecast of X
+                                                               r under the subjective belief
+measure. Note that we can incorporate probabilistic forecasts into our framework by letting
+Xr be an indicator function.4
+   4
+    See Manski (2018) and the published comments for an overview and discussion of the use of survey
+data in macroeconomics and Bordalo et al. (2020) for a probe into the impact of heterogeneity in the study
+
+
+                                                    7
+Remark 2.1. Time series of survey data are often shorter relative to data on returns or
+macroeconomic variables. This can be accommodated in our framework provided that there
+is sufficient time series variation for these data to add nontrivial incremental information to
+the analysis.
+
+
+2.3     Risk-neutral pricing
+Under risk-neutral pricing, the reciprocal of the gross one-period riskless return acts as a
+stochastic discount factor. Thus, in this case:
+
+                                      M S " M pRf q´1 .
+
+Stutzer (1996) and Avellaneda (1998) target the M 's with the smallest divergence to use
+in pricing derivative claims. We map this type of problem into our analysis by viewing the
+empirically relevant distribution as the "correct distribution" and the risk neutral transfor-
+mation as a way to correct for model misspecification. As in Stutzer (1996) and Avellaneda
+(1998), the measures of particular interest to us are the ones with a small divergence, al-
+though we explore more probabilities than just the M with the minimal divergence. While
+not our primary motivation, the methods we develop in this paper allow the user to obtain
+robust bounds on risk neutral expectations of macroeconomic variables that incorporate
+information embedded in asset prices.
+
+
+2.4     Martingale component to an SDF process
+A stochastic discount factor process compounds the one-period stochastic discount factors.
+Many structural models of asset pricing have stochastic discount factor processes with
+martingale components that dominate risk prices over long investment horizons. These
+components can reflect permanent shocks to the macroeconomy or forward-looking com-
+ponents to valuation. These components are present when investors have recursive utility
+preferences in which the intertemporal composition of risk matters or when they are averse
+to ambiguity in assigning probabilities to future events.
+    Since the work of Alvarez and Jermann (2005), the martingale component is referred to
+as the permanent component to the cumulative stochastic discount factor process. In pro-
+viding a more formal mathematical characterization, Hansen and Scheinkman (2009) and
+of over-reaction.
+
+
+                                              8
+Qin and Linetsky (2020) find it more revealing to appeal to probabilistic characterization
+of this component. As emphasized by Borovi    cka et al. (2016), the probability measure as-
+sociated with the martingale absorbs long-term risk adjustments for stochastically growing
+cash flows.5
+    To relate this to our analysis, suppose that this martingale component is missing from
+the model specification. In such circumstances, Kazemi (1992) justifies the use of the
+reciprocal of the gross holding period return on a long-term bond, Rh , as the stochastic
+discount factor: S " pRh q´1 . When there is a martingale component, Alvarez and Jermann
+(2005) advocated bounding its magnitude by, in effect, using this return reciprocal as a
+misspecified stochastic discount factor. For this application, we use
+
+                                             S " M pRh q´1
+
+as the stochastic discount factor where M  0 has conditional expectation equal to one and
+thus induces a change of a probability measure that absorbs long-term risk adjustments.
+Our methods applied to this problem complement and extend those of Alvarez and Jermann
+(2005) and Bakshi and Chabi-Yo (2012).
+
+
+2.5      Recursive utility
+Consider a recursive utility model as in Kreps and Porteus (1978) and Epstein and Zin
+(1991). While much of the asset pricing literature appeals to a large risk aversion coefficient,
+we impose  " 1 and instead explore belief distortions as an alternative expectation. We
+follow Campbell (1993) by allowing for market segmentation and avoid the direct use of
+consumption data. We then ask what implications asset market data have for predicted
+consumption growth rates.
+    Let Rw denote a presumed observable return on wealth. As noted by Epstein and
+Zin (1991), the one-period stochastic discount factor under rational expectations is the
+reciprocal of the gross return on wealth. Thus, under distorted beliefs represented by M ,
+
+                                             S " M pRw q´1
+
+where S is the one-period stochastic discount factor under rational expectations. We use
+this setup for our illustration in section 6.
+  5
+      It is also the measure that Ross-recovery algorithm as given in Ross (2015) produces.
+
+
+                                                     9
+    Our subsequent analysis seeks to measure divergence bounds on the family of M 's that
+satisfy the model-implied moment conditions. We show pitfalls with some of the measures
+used previously, and we add methodological rigor to the associated empirical investigations.
+
+
+3    Bounding beliefs
+For any parameter vector  in equation (2), there are typically many specifications of beliefs
+M that will satisfy the model implied moment conditions. Rather than imposing ad hoc
+assumptions to resolve this identification failure, we will characterize the multiplicity by
+using bounds on statistical divergence. A statistical divergence quantifies how close two
+probability measures are. In our analysis, one of these probability measures governs the
+data evolution while the other governs the investment decisions or the equilibrium pricing
+relations. We define a range of allowable probability measures, and we consider a family
+of divergences commonly used in the statistics literature. We then study which of these
+divergences are most revealing for assessing misspecification in asset pricing models. Proofs
+and supporting analyses for this section are given in appendix A.
+    For the moment, fix  and write f pX q. Initially we will also abstract from the role of
+conditioning information, but the expectations can be interpreted as being conditioned on
+sigma algebra I. Later we will investigate the role of conditioning information explicitly.
+Introduce a convex function  defined on R` for which p1q " 0. As a scale normalization
+we will assume that 2 p1q " 1. The corresponding divergence of a belief M from the
+underlying data generation is defined by ErpM qs. By Jensen's inequality, we know that
+
+                                     ErpM qs  p1q " 0
+
+since ErM s " 1. The family of divergences Erp¨qs are known as f -divergences. Special
+cases include:
+
+ (i) pmq " ´ log m (negative log likelihood)
+                     ?
+ (ii) pmq " 4 p1 ´       mq (Hellinger distance)
+
+(iii) pmq " m log m (relative entropy)
+
+(iv) pmq " 1
+           2
+             pm2 ´ mq (Euclidean divergence).
+
+
+
+                                              10
+    These four cases are widely used in the GEL literature, and are nested in the family of
+f -divergences introduced by Cressie and Read (1984) defined by
+                                         #
+                                                 1
+                                              p1` q
+                                                     rpmq1` ´ 1s    0
+                               pmq "            1
+                                                                                                       (4)
+                                              p1` q
+                                                    rpmq1` ´ ms     0
+
+For  " ´1, 0, we can apply L'H^       opital's rule to obtain cases (i) and (iii) respectively.
+The divergence corresponding to  " ´ 1      2
+                                              is equivalent to the Hellinger distance between
+probability densities. Empirical likelihood methods use the  " ´1 divergence. This
+same divergence is also featured in the analysis of Alvarez and Jermann (2005) in their
+characterization of the martingale component to stochastic discount factors. Two cases of
+particular interest to us are  " 0 and  " 1. We refer to the divergence for  " 0 as
+relative entropy. We refer to the  " 1 case as a quadratic or Euclidean divergence, which
+is known to have close links to GMM.
+    Given our interest is in sets of belief distortions, our method is distinct from those de-
+signed for estimation under correct specification. In particular, our motivation and assump-
+tions differ substantially from the literature on GEL methods. The so-called pseudo-true
+parameter value that is often the centerpiece of misspecification analysis in the econometrics
+literature plays a tangential role in our analysis as does point identification.
+
+
+3.1     Problematic divergences
+For the purposes of misspecification analysis, we show that monotone decreasing divergence
+functions are problematic. For instance, the Cressie and Read divergences defined by (4)
+and used in the GEL literature are decreasing whenever   0. Our finding that the
+empirical likelihood p " ´1qand Hellinger (the case  " ´ 1   2
+                                                               ) divergences are problematic
+under model misspecification is noteworthy, as both have been widely used in statistics and
+econometrics.6 Our negative conclusion about monotone decreasing divergences leads us
+to focus on divergences for which   0 as robust measures of probability distortions.
+    To understand why monotone decreasing divergences are problematic, we study the
+corresponding population problem:
+Problem 3.1.
+                                               inf ErpM qs
+                                              M 0
+   6
+    In particular, Hellinger distance has been used for the purpose of local robustness under misspecifica-
+tion.
+
+                                                    11
+subject to
+
+                                                   ErM s " 1
+                                             ErM f pX qs " 0.
+
+When the constraint set is empty, we adopt the convention that the optimized objective is
+8. We call a model misspecified if
+
+                                              E rf pX qs  0.
+
+When f depends on an unknown parameter , we presume this inequality applies for all 
+in a prespecified parameter space. This leads us to ask if this inequality is revealed by a
+strictly positive minimized objective in problem 3.1.
+    For a divergence to be of interest to us, the greatest lower bound on the objective
+should inform us as to how big of a statistical discrepancy is needed to satisfy equation
+(2). Therefore the infimum should be strictly positive whenever Erf pX qs  0. Conversely,
+notice that under correct specification, E rf pX qs " 0, and M " 1 is in constraint set of
+problem 3.1. By the design of a divergence measure, for M " 1 the minimized objective
+for problem 3.1 is zero.
+
+Theorem 3.2. Assume that pmq is decreasing in m, Erf pX qs  0, f pX q is absolutely
+continuous w.r.t. the Lebesgue measure on Rd , and there exists a convex cone C  Rd such
+that f pX q has strictly positive density on C and ´Erf pX qs P intpC q. Then for any   0
+there exists a belief distortion M such that i) M  0 on supprf pX qs; ii) ErM s " 1; iii)
+ErM f pX qs " 0; iv) ErpM qs  .
+
+    Theorem 3.2 shows dramatically that when the vector f pX q has unbounded support,
+problem 3.1 can become degenerate. The infimized divergence can be equal to zero even
+though Erf pX qs  0 so the model is misspecified. In this case the infimum is not attained
+by any particular M , but can be approximated by sequences that assign small probability
+to extreme realizations of f pX q.7 We view the assumption of unbounded support as empiri-
+cally relevant, since moment conditions coming from asset pricing typically have terms that
+   7
+    An explicit construction of such sequences is given in appendix A. Heuristically, we perturb the original
+distribution of f pX q by shifting a very small amount of probability mass into an extreme tail so that the
+moment condition ErM f pX qs " 0 is satisfied. These perturbed distributions will converge weakly to the
+original distribution, and the divergence will approach zero.
+
+
+
+                                                     12
+are multiplicative in the returns. Note that gross returns have no a priori upper bound,
+and excess returns have no a priori upper or lower bounds.
+   The condition in Theorem 3.2 that pmq is decreasing in m is crucial to the degeneracy.
+As we noted, this condition is satisfied for the Cressie-Read family whenever   0.
+   To further understand the degeneracy for   0 it is helpful to consider the associated
+dual problem to problem 3.1. The dual problem is typically easier to solve than the primal
+problem, and is often the starting point for generalized empirical likelihood estimation.
+Consider:
+                        sup inf E rpM q ` M  ¨ f pX q `  pM ´ 1qs                      (5)
+                        , M 0
+
+where  and  are Lagrange multipliers. Minimizing over M leads us to the dual problem:
+
+Problem 3.3.
+                         "                       1`
+                                                    i
+                    1                                        1
+            sup, ´ 1` 
+                       E  p´  r  ¨ f p X q `  sq      ´    p1` q
+                                                                   ´   if  P p´1, 0q
+                    sup, E plogr ¨ f pX q `  sq ` 1 ´                   if  " ´1
+
+provided that  ¨ f pX q `   0.
+
+   The optimized objective from problem 3.3 is necessarily less than or equal to that of
+the original primal problem 3.1. When the solution to the dual problem:
+                                                                   1
+                               M ° " p´ r° ¨ f pX q `  ° sq 
+
+is feasible for the primal problem, then the two optimized objectives will coincide. The
+support restriction on  ¨ f pX q `  can be problematic under misspecification, sometimes
+leading to a degenerate solution of the form ° " 0 and  ° " 1 with the implied M ° not
+being feasible.
+
+Remark 3.4. Previously Schennach (2007) demonstrated problematic aspects of empirical
+likelihood estimators under misspecification. She showed that the pseudo-true parameter
+estimator obtained by solving the empirical likelihood estimator computed using the dual
+problem may fail to be root-T consistent under model misspecification, where T is the sample
+size. She also discusses when population dual problem may have a zero objective even though
+the model is misspecified. In relation to this, we showed that the primal problem may also
+fail to detect misspecification for any monotone decreasing divergence. This includes the
+ " ´1 divergence used in empirical likelihood methods. As we emphasized previously, the
+
+                                              13
+methods we develop are not concerned with the point identification of pseudo-true parameter
+values.
+
+
+3.2     Robust Bounds
+We derive a nonlinear expectation functional that summarizes conveniently bounds on
+expectations in the presence of a divergence constraint on the probability distortion. We
+focus primarily on the case in which  " 0 (relative entropy divergence), although we
+discuss briefly the corresponding result for  " 1 (quadratic divergence).
+    Formally we study constrained optimization problems that will allow us to character-
+ize either bounds on expectations of functions of the data or the divergence implied by
+pre-specified bounds. We initially pose these problems without reference to unknown pa-
+rameters and conditioning information. We discuss both of these important extensions
+later in our investigation.
+
+3.2.1   Minimal divergence
+
+An important input into our calculations is the minimum divergence, which we now show
+how to compute. Formally, we solve:
+
+Problem 3.5.
+                                   " inf E rM log M s
+                                       M 0
+
+subject to:
+
+                                     E rM f pX qs " 0,
+                                     E rM s " 1.
+
+    Instead of solving this problem directly, we investigate the conjugate or dual problem.
+By standard arguments, the maximized objective of the dual problem is less than or equal
+to the minimizing solution for problem 3.5. When the M implied by the dual problem
+satisfies the constraints for problem 3.5, the two optimized objectives coincide and this
+same M solves problem 3.5.
+    To formulate the dual problem, introduce two Lagrange multipliers p,  q on the respec-
+tive constraints.
+                      sup inf E rM log M ` M  ¨ f pX q `  pM ´ 1qs .
+                      , M 0
+
+
+
+                                             14
+   As known from a variety of sources and reproduced in the appendix, the dual problem
+reduces to:
+Problem 3.6.
+                                   sup ´ log E pexp r´ ¨ f pX qsq .
+                                     
+
+The first-order conditions for this problem are ErM ° f pX qs " 0 where M ° is constructed
+using
+                                         exp r´° ¨ f pX qs
+                                M° "                         .                         (6)
+                                       E pexp r´° ¨ f pX qsq
+where ° is the maximizing choice of .
+    For this candidate M ° to be a valid solution, we restrict the probability distribution
+of f pX q. Notice that  pq " Epexpr´ ¨ f pX qsq, when viewed as a function of ´, is the
+multivariate moment-generating function for the random vector f pX q. We include `8 as
+a possible value of  in order that it be well defined for all . The negative of its logarithm
+is a concave function, which is the objective for the optimization problem that interests
+us. A unique solution to the dual problem exists under the following restrictions on this
+generating function.
+Restriction 3.7. The moment generating function  satisfies:
+  (i)  is continuous in ;
+
+ (ii) lim||Ñ8  pq " `8.8
+     A moment generating function is infinitely differentiable in neighborhoods in which it
+is finite. To satisfy condition (i) of restriction 3.7, we allow for  to be infinite as long
+as it asymptotes to `8 continuously on its domain. In particular,  does not have to be
+finite for all values of . Condition (ii) requires that  tends to infinity in all directions.
+Restriction 3.7 is satisfied when the support sets of the entries of f pX q are not subsets
+of either the positive real numbers or negative real numbers. More importantly for us,
+restriction 3.7 allows for f pX q to have unbounded support.
+Theorem 3.8. Suppose that restriction 3.7 is satisfied. Then problem 3.6 has a unique
+solution ° . Using this ° to form
+
+                                               expr´° ¨ f pX qs
+                                     M° "                         ,
+                                             E pexpr´° ¨ f pX qsq
+   8
+    This condition rules out redundant moment conditions as well as f pX q's which only take on nonnegative
+or nonpositive values with probability one.
+
+                                                    15
+this choice of M ° satisfies the two constraints imposed in problem 3.5. Thus the optimized
+objective for both problems is
+
+                                     .
+                                     " ´ log E expr´° ¨ f pX qs
+
+with M ° as the implied solution for M .
+
+       The minimal relative entropy  will be a core ingredient in computations that interest
+us.
+
+3.2.2      Bounding expectations
+
+To construct misspecified sets of expectations, we use    to bound the divergence of be-
+lief misspecification. This structure will allow us to explore belief distortions other than the
+one implied by minimal divergence. While we represent alternative probability distributions
+with alternative specifications of the positive random variable M with unit expectation, we
+find it most useful and revealing to depict bounds on the resulting expectations. Larger
+'s will lead to bigger sets of potential expectations.
+     Given a function g of X , we consider the following problem:
+
+Problem 3.9.
+                                             .
+                                       Kpg q " min E rM g pX qs
+                                                M 0
+
+subject to the three constraints:
+
+                                           E rM log M s  
+                                           E rM f pX qs " 0,
+                                           E rM s " 1.
+
+As before we can solve this problem using convex duality.9 The function g could define
+a moment of an observed variable of particular interest or it could be the product of the
+stochastic discount factor and an observed payoff to a particular security whose price we
+seek to bound.
+   9
+     There is an extensive literature studying the mathematical structure of more general versions of this
+problem including more general specifications of entropy. Representatives of this literature include the
+insightful papers Csiszar and Matus (2012) and Csiszar and Breuer (2018). We find it pedagogically
+simpler to study the dual problem directly rather than to verify regularity conditions in this literature.
+
+
+
+                                                   16
+    Consider now the set B of bounded Borel measurable functions g to be evaluated at
+alternative realizations of the random vector X . The mapping K from B to the real line
+can be thought of as a "nonlinear expectation," as formalized in the following proposition.
+
+Proposition 3.10. The mapping K : B Ñ R has the following properties10 :
+
+  (i) if g2  g1 , then Kpg2 q  Kpg1 q.
+
+ (ii) if g constant, then Kpg q " g .
+
+(iii) Kprg q " rKpg q,     for a scalar r  0
+
+(iv) Kpg1 q ` Kpg2 q  Kpg1 ` g2 q
+
+    All four properties follow from the definition of K. Property (iv) includes an inequality
+instead of an equality because we compute by solving a minimization problem, and the
+M 's that solve this problem can differ depending on g .
+
+Remark 3.11. While Kpg q gives a lower bound on the expectation of g pX q, by replacing
+g with ´g , we construct an upper bound on the expectation of g pX q. The upper bound will
+be given by ´Kp´g q. The interval
+
+                                          rKpg q, ´Kp´g qs
+
+captures the set of possible values for the distorted expectation of g pX q consistent with
+divergence less than or equal to .
+
+       Next we give a dual representation of Kpg q as justified in appendix A:
+                                         ^
+                                         ,,                   
+                                            1
+                      sup max ´ log E exp ´ g pX q `  ¨ f pX q ´ .                                 (7)
+                       0                    
+
+Notice that conditioned on  , the maximization over  does not depend on  because ´
+is additively separable.
+    It is convenient to explore the supremum over  for each   0. Write:
+                                                   ,,                   
+                                  .                   1
+                         Kp ; g q " sup ´ log E exp ´ g pX q ´  ¨ f pX q .
+                         p                                                                         (8)
+                                                      
+  10
+    The first two of these properties are taken to be the definition of a nonlinear expectation by Peng
+(2004). Properties piiiq and piv q are referred to as "positive homogeneity" and "superadditivity".
+
+                                                  17
+   We deduce  and the resulting moment bound by solving:
+
+                                 Kpg q " sup K
+                                             p p ; g q ´ .                               (9)
+                                           0
+
+
+Remark 3.12. For sufficiently large values of  used to constrain relative entropy, it is
+possible that this constraint actually does not bind. The additional moment restrictions
+by themselves limit the family of probabilities, and might do so in ways that restrict the
+implied entropy of the probabilities. Appendix A gives sufficient conditions under which
+the relative entropy constraint will bind, and provides examples suggesting that the relative
+entropy constraint may bind in many cases of interest even for arbitrarily large choices of
+.
+
+3.2.3   Alternative formulation
+
+There is a closely related problem that is sometimes more convenient to work with. We
+revert back to a minimum entropy formulation and augment the constraint set to include
+expectations of g pX q subject to alternative upper bounds. We may then deduce how
+changing this upper bound impacts the relative entropy objective. Stated formally,
+
+Problem 3.13.
+                                Lp; g q " inf E rM log M s
+                                           M 0
+
+subject to:
+
+                                      E rM f pX qs " 0,
+                                      E rM g pX qs  
+                                      E rM s " 1.
+
+Notice that Lp; g q increases as we decrease  because values of  make the constraint
+set more limiting. By imitating our previous logic for the minimum divergence problem
+subject to moment conditions, the corresponding dual problem is:
+
+Problem 3.14.
+                       sup ´ log E pexp r´g pX q ´  ¨ f pX qsq ´ .
+                       0,
+
+The variable  is a Lagrange multiplier on the moment restriction involving g . We may hit
+a relative entropy target varying .
+
+                                               18
+      A natural starting point is to take the tilted solution M ° from problem 3.5 and compute
+
+                                           ug " E rM ° g pX qs .
+
+By setting  " ug , the solution to problem 3.14 sets  " 0 and  " ° . This choice satisfies
+the first-order conditions. Lowering  will imply a binding constraint:
+
+                                          E rM g pX qs ´  " 0.
+
+The optimized objective gives an implied relative entropy. Given the binding constraint, we
+may view problem 3.13 as an extended version of problem 3.5 with an additional moment
+restriction added. This leads us to state following analog to theorem 3.8.
+
+Theorem 3.15. Suppose
+
+ i)   ug ;
+                                                        "               i1
+                                                                      1
+ ii) restriction 3.7 is satisfied for the random vector: g pX q f pX q .
+
+Then problem 3.14 has a unique solution p° , ° q for which
+
+                                   °  exp r´° g pX q ´ ° ¨ f pX qs
+                                M "                                  ,
+                                    E rexp r´° g pX q ´ ° ¨ f pX qss
+
+this choice of M ° satisfies ErM ° s " 1, ErM ° f pX qs " 0, and ErM ° g pX qs " . Thus
+objectives for problems 3.13 and 3.14 coincide.11
+
+    The relative entropy objective for problem 3.13 increases as we decrease . For instance,
+by decreasing  in this way we could hit the relative entropy threshold of problem 3.9. Both
+approaches feature the same intermediate problem in which we initially condition on  or
+ and optimize over . For computational purposes we deduce the implied expectation of
+g pX q and relative entropy by tracing out both as functions of the scalars  or .
+
+3.2.4      Bounding conditional expectations
+
+Consider an event  with Ppq " Er1 s  0 where 1 is the indicator function for the
+event A. Given a function g pX q of the data X , we can extend our previous arguments to
+ 11
+      While ° , ° , M ° depend on the choice of , to simplify notation we leave this dependence implicit.
+
+
+                                                    19
+produce a bound on the conditional expectation. Instead of entering E rM g pX qs   as an
+additional moment condition in problem 3.13, we include
+
+                                      E pM 1 rg pX q ´ sq  0
+
+in the constraint set and vary  to attain an entropy target. In practice, we solve the dual
+problem 3.6 as a function of  tracing out the family of implied relative entropies.
+
+
+3.3     Quadratic Divergence
+While the  " 0 divergence has many nice properties, it imposes restrictions on thinness of
+tails of the probability distribution of f pX q that may be too severe for some applications.12
+As an alternative, we now consider the quadratic or Euclidean divergence obtained when
+we set  " 1. We will not repeat the analysis of alternative bounds. Since a key input
+is the dual to a divergence bound problem, we will characterize the resulting solution for
+bounds and leave the extensions to the appendix. We study the counterpart to problem
+3.9.
+    We impose two assumptions to ensure non-degenerate bounds.
+
+Restriction 3.16. f pX q and g pX q have finite second moments.
+
+Restriction 3.17. There exists an M  0 such that ErM s " 1, E rM f pX qs " 0 and
+1
+2
+  ErM 2 ´ M s  .
+
+    The problem of interest is:
+
+Problem 3.18.
+                                             .
+                                       Qpg q " inf ErM g pX qs
+                                                M 0
+
+subject to:
+
+                                         1 " 2        
+                                           E M ´M 
+                                         2
+                                         ErM f pX qs " 0
+                                         ErM s " 1.
+ 12
+    For instance, if we specify S as an exponential-affine model of the form S " expp ¨ Z ` Z 1 W q where
+W is a conditionally Gaussian shock, then restriction 3.7 may be violated.
+
+
+
+
+                                                   20
+   We allow M to be zero with positive probability for mathematical convenience. Since
+there exists an M  0 for which E rM f pX qs " 0, we can form a sequence of strictly
+positive M 's with divergences that are arbitrarily close to bound we derive. Solving this
+problem for alternative bounded g 's gives us a nonlinear expectation function Q satisfying
+the properties in Proposition 3.10.
+
+Problem 3.19.
+                             »~                                    fi
+                               ,,                             ` ¸2
+                  .
+           p pg q "               1 1
+           Q         sup ´ E ­     ´ rg pX q `  ¨ f pX q `  s      fl ´  ´ .
+                     0,,  2       2 
+
+Proposition 3.20. Assume that restrictions 3.16 and 3.17 hold and that the supremum
+in problem 3.18 is attained with  °  0. Then Qpg q " Q         p pg q. Furthermore, the solution
+p ° ,  ° , ° q to problem 3.19, corresponds to the belief distortion
+                                ,,                         `
+                            °1   1           °           °
+                         M "   ´   rg pX q `  ¨ f pX q `  s
+                             2 °
+
+which satisfies the constraints of problem 3.18 with equality, and attains the infimum, i.e.
+ErM ° g pX qs " Qpg q.
+
+    Proposition 3.20 follows from theorem 6.7 of Borwein and Lewis (1992). It characterizes
+the solution to problem 3.18 when the divergence constraint binds. Otherwise, we can
+obtain the expectation bound by solving problem 3.19 for a fixed sequence of  's converging
+to zero where we maximize with respect to  and  given any  in this sequence.
+
+
+4     Parameter misspecification regions
+This section extends our earlier analysis to accommodate parameters  that reside in a
+space . In our previous analysis, we took the parameter  as given. While some of the
+applications we mentioned have pre-specified stochastic discount factors, many applications
+use stochastic discount factors that depend on unknown parameters. Moreover, in some
+investment-based asset pricing models, there may be unknown parameters in the implied
+physical or intangible returns.
+   Since the parameter  now enters in the function f , we write f pX, q explicitly. The
+expectation bounds we deduced in section 3 depended implicitly on . Moreover, when the
+
+
+                                              21
+expectation g is meant to be a price bound on a hypothetical asset, the function g itself
+may depend on  if it is constructed using the parameterized stochastic discount factor.
+Alternatively, g may simply select a parameter of interest that we seek to bound.
+   We extend the definitions of  to denote the dependence of  P . We use this notation
+regardless of whether f pX, q satisfies restriction 3.7. When for a given  there are no
+M  0's in the constraint set of problem 3.9, we adopt the convention commonly used in
+the convex analysis literature that Kpg ; q " 8 and similarly for Lpq.
+
+
+4.1    Divergence bound
+We start by deducing a lower bound on the divergence applicable to the entire parameter
+space. The entropy bound  now depends on . Incorporating unknown parameters gives
+us the divergence bound is
+                                       inf pq.                                     (10)
+                                          P
+
+Let  be the set of minimizers. Since we now minimize over  P , we do not need for
+there to be a solution to the dual problem for all , just for a subset of such 's. We
+could interpret  as the set of "pseudo-true" parameter values coming from the relative
+entropy procedure proposed by Imbens (1997) and Kitamura and Stutzer (1997). Note
+that while the existing econometrics literature typically assumes a unique "pseudo-true"
+parameter value, this identification is of little concern to us. The estimation and inference
+on the relative entropy bound (10) and the set of minimizers  could be done by applying
+results on partially identified nonlinear programs (or constrained M-estimation problems),
+see, e.g., Shapiro (1991), Chernozhukov et al. (2007), Chen et al. (2018), among others.
+
+
+4.2    Parameter Uncertainty and Implied Expectations
+Once we entertain the possibility of model misspecification, there is no a priori reason
+to focus only on the minimal divergence. For us, the minimum divergence problem is
+merely a starting point as we explore implications when   , and we find it revealing to
+characterize implications with a nonlinear expectation operator. This leads to extend our
+previous construction of a nonlinear expectation to accommodate parameter uncertainty
+by constructing:
+                                   Kpg q " inf Kpg ; q.
+                                            P
+
+   There is a special case of this construction that warrants special comment. Suppose
+
+
+                                             22
+that g depends only on  and not on X . While bounding g pq for a given  is trivial,
+the computation of Kpg q remains interesting as the minimum divergence conditioned on
+an arbitrary  may fail to be less than or equal to . Notice that the dual formulation of
+Kpg ; q simplifies to be:
+
+                       sup max g pq ´  log E exp r´ ¨ f pX, qs ´ .
+                        0   
+
+
+Given the linearity in  persists even after we maximized over , the outer sup problem
+merely checks the relative entropy constraint is satisfied or not for each  returning an
+objective of `8 if it is not. This is equivalent to solving:
+                                              "            i
+                                                ^
+                               max ´ log E exp ´ ¨ f pX, q
+                                   ^
+                                   
+
+
+for each  ascertaining if the relative entropy constraint is satisfied or not.
+    Proceeding in this manner amounts to restricting a scalar function of the parameter
+vector  that can be rationalized by beliefs with divergence less than some threshold. To
+provide a more complete characterization of a divergence set, set g pq " 1 where 1 is
+the first coordinate of . First deduce lower and upper bounds for 1 , say 1 and   ¯1 . For
+any fixed 1 in the interval p , ¯1 q produce upper and lower bounds for 2 in an analogous
+                               1
+manner.
+
+
+4.3    Econometric inference
+While we will develop and justify formal econometric methods in subsequent research, we
+now discuss briefly some similarities and differences with other econometric problems that
+have been studied formally. Since our starting point is belief distortion from rational expec-
+tations, we pose the estimation and inference problems differently than what researchers
+would under rational expectations. In contrast to some recent work in econometrics and
+operations research. Specifically, we take a global view of misspecification rather than
+a local view. Thus inferential characterizations of this misspecification are of particular
+interest. In contrast, for example, Duchi et al. (2018) use some very similar methods to
+construct robust confidence intervals for targets of estimation while localizing the impact
+of divergence. In light of our global perspective, inferences on the Lagrange multipliers are
+of particular interest as these objects are important for characterizing belief distortions
+that attain or approximate our bounds. These multipliers inform us how we must reshape
+
+                                             23
+the historical distribution to match the moment model implications.
+    Second, we are interested in the implications across a set of parameter values rather
+than targeting a so-called pseudo-true parameter value that is often done when studying
+misspecification. This opens the door to connections with the extensive econometric re-
+search on set identification. For instance, we conjecture that Monte Carlo or bootstrapping
+techniques could provide tractable and defensible approaches for inferences. For instance,
+Chamberlain and Imbens (2003) and Lee (2016) propose bootstrapping methods for setups
+related to ours, but without a particular focus on set-based inferences. Chernozhukov et al.
+(2007) and Chen et al. (2018) justify Monte Carlo approximations to statistical inferences
+that are valid for applications with set identification. Extending such techniques to account
+for weakly dependent data provides a promising direction for future research.
+    Third, blocking approaches are often advocated as way to allow for temporal dependence
+when applying GEL-type methods. See, for instance, Smith (1997) and Kitamura and
+Stutzer (1997). It is not evident, however, that these methods are directly applicable to
+the problems that interest us. Blocking requires special consideration in our setting because
+it alters the implied measure of relative entropy; but it does in ways that are potentially
+interpretable. In applications, however, it is typically the distorted conditional distributions
+or conditional moments that are of interest. As we will see in the next section, this leads
+us to an extension that applies recursive methods of optimization familiar from dynamic
+programming as an alternative way to confront the time series structure in the data.
+
+
+5     Intertemporal Divergence
+Asset pricing models imply conditional moment restrictions. This leads us to explore
+formally the impact of conditioning. In this section we propose and justify a dynamic
+extension that a) accommodates conditioning and b) uses the recursive structure of multi-
+period likelihoods.
+   The most direct extension of our static formulation in section 3, would simply apply
+the analysis in the section 3 conditioned on sigma algebra I including both the objective
+and the constraints. However, there are two interrelated limitations to this approach.
+First, the minimum divergence will depend on the conditioning information as well as the
+entropy constraints once we push away from the minimum. Second, the only probabilities
+that would be distorted are the conditional probabilities and not the probabilities over
+the conditioning information. In a dynamic environment, distorting one-period transition
+
+                                              24
+probabilities also alters the probabilities of conditioning information in the next period in
+ways that are inconsistent with probabilities over conditioning information in the current
+period. This inconsistency leads us to pose a dynamic counterpart to the analysis in
+Section 3 that imposes consistency requirements between conditional probabilities that
+govern transitions and the probabilities of the future conditioning information.
+    In this section we construct and use the dynamic counterpart to the statistical diver-
+gence constraint. By focusing initially on the case in which  " 0, we adopt a notion of
+relative entropy which frequently arises in the analysis of large deviations of stochastic pro-
+cesses with temporal dependence.13 As we will show, our application of relative entropy as
+formulated in this section has a direct interpretation in terms of statistical discrimination
+for broad classes of temporally dependent processes. In particular, it can be viewed as
+the rate at which the two probability measures become statistically discernible. We also
+describe briefly how to extend other divergences in analogous ways.
+
+
+5.1     Data generation
+While the applications that interest us use Markov formulations, we relax this assumption in
+order to entertain non-Markov distortions. For this reason, we initially consider a stationary
+and ergodic formulation that nests stationary, ergodic Markov processes.
+   We start with a baseline probability triple p, G, Pq and a measurable one-to-one trans-
+formation U which is measure-preserving and ergodic under P. We use U to construct
+stochastic processes and filtrations.14
+   Let I0  G depict information available at date zero. We use the transformation U to
+capture the information available at future dates via the recursion:
+                                             (                   (
+                      It "  P G : U´1  P It´1 "  P G : U´t  P I0
+
+We presume that information accumulates:
+
+                                              It  It`1 ,
+
+which in turn implies that tIt : ´8  t  `8u is a filtration. Similarly, for any random
+  13
+    See, for instance, Donsker and Varadhan (1975) or Dupuis and Ellis (1997).
+  14
+    A common specification of U is the shift transformation applied to the space of infinite sequences of
+vectors of real numbers.
+
+
+
+                                                   25
+variable B0 that is I0 measurable, we form Bt recursively
+                                                          "      
+                                 Bt p q " Bt´1 rUp qs " B0 Ut p q .
+
+Thus for each initial random vector B0 , there is a corresponding stochastic process tBt :
+t  0u that is adapted to the filtration tIt : t  0u. Since U is measure-preserving, the
+process tBt : t  0u is stationary.
+
+
+5.2     Alternative probabilities
+Let Q denote an alternative probability distribution on p, Gq that is measure-preserving
+and ergodic, and let Qt be the restriction of Q to It . We consider only Q's for which there
+exists an N1  0 that is I1 measurable and satisfies:
+                                          
+                                B1 dQ1 " E pN1 B1 | I0 q dQ0                            (11)
+
+for all bounded I1 measurable random variables B1 . This N1 necessarily satisfies E pN1 | I0 q "
+1.
+    Form the product
+                                             T
+                                      MT "      Nt .
+                                                       t"1
+
+Then under Q, the date T conditional expectation of a bounded, IT random variable BT is
+
+                                             E pMT BT | I0 q .
+
+We think of MT as a relative likelihood between two models over horizon T constructed
+recursively through the familiar likelihood factorization. We further restrict Q to imply
+stochastic stability:
+
+Definition 5.1. We say that Q induces stochastic stability if for any B0 that is I0
+                        
+measurable and satisfies |B0 |dQ0  8,15
+                                                               
+                                    lim E pMT BT | I0 q "         B0 dQ0 .
+                                    T Ñ8
+  15
+     Stochastic stability as defined here is satisfied when the process is beta-mixing (or absolutely regular);
+see, e.g., Theorem 3.29 in Bradley (2007).
+
+
+
+                                                      26
+Definition 5.2. The set N contains all N1 's for which they correspond a probability Q
+satisfying (11) and is stochastically stable.
+
+We presume that N1 " 1 is in this set and hence P is stochastically stable.
+
+
+5.3    Likelihoods
+We represent the expected log-likelihood ratio as a sum of contributions for each date by
+using the recursive structure of a relative likelihood:
+                                                ~                            ¸
+                                                         T
+                                                         ÿ
+                      E pMT log MT | I0 q " E MT               log Nt | I0        0.
+                                                         t"1
+
+
+Dividing by T and taking limits gives:
+                                                     ~                             ¸
+                                                               T                           
+       .      1                         1                      ÿ
+RpN1 q " lim E pMT log MT | I0 q " lim E MT                          log Nt | I0       "      E pN1 log N1 | I0 q dQ0 ,
+         T Ñ8 T                    T Ñ8 T
+                                                               t"1
+
+
+which is the measure of relative entropy that we will use in our analysis. Notice that there is
+an explicit connection between N1 and Q0 , which gives rise to a restriction that we impose
+when computing bounds.
+
+Remark 5.3. The relative entropy measure RpN1 q is the discrete-time analog to the relative
+entropy measure that is used in the Donsker-Varahadan large deviation theory applied to
+Markov processes.16
+
+Remark 5.4. Using positive random variables, MT , to depict alternative probabilities for
+date T events imposes absolute continuity (conditioned on date zero information). This
+same absolute continuity will not be true over the infinite future. Our division by T when
+constructing relative entropy purposefully allows for the altered probability to have different
+Law of Large Numbers limits.
+
+
+5.4    Moment bounds
+In formulating the computation, we will borrow an idea from the robust control literature.
+(See, for instance, Petersen et al. (2000) and Hansen and Sargent (2001). ) We will initially
+solve a problem with a relative entropy penalty indexed by a parameter   0 and show
+16
+  See Dupuis and Ellis (1997) and Varadhan (2008) and Dembo and Zeitouni (2009) (see chapter 3).
+                                                27
+how to solve a problem given  . We will then treat  as a Lagrange multiplier and trace
+out the implied relative entropies for each such  . In this way,  may be chosen to enforce
+a constraint. For notational simplicity we suppress the parameter dependence.
+Problem 5.5.
+                      µ " min E pN1 rg pX1 q `  log N1 ` v1 s |I0 q ´ v0
+                             N1 PN
+
+subject to the constraint:
+
+                                     E rN1 f pX1 q | I0 s " 0
+
+where v1 p q " v0 rUp qs and v0 is I0 measurable and µ is a real number. This equation
+determines the constant µ and the random variable v0 up to a translation by a constant.
+While we posed this problem in terms of date zero and date one, given our presumed
+stationary data generation the problem could equivalently be stated in terms of date t and
+date t ` 1 for t  0. The following objects are of interest from this problem:
+                                °
+    · the moment bound: E rN1     g pX1 q|I0 s dQ°
+                                                 0;
+
+                                                  °
+   · the corresponding conditional moment: E rN1    g pX1 q|I0 s;
+                                       °      °
+   · the implied relative entropy: E rN1 log N1 |I0 s dQ°
+                                                        0
+         °
+where N1   solves problem 5.5 and Q°0 is an implied stationary distribution.
+    There are two features of problem 5.5 that require further comment. First, the min-
+imization problem includes continuation value adjustments depicted by v0 and its next
+period counterpart v1 along with the numerical value µ. Second,  E pN1 log N1 | I0 q acts
+as a per period relative entropy penalty, but we may equivalently think of  as a Lagrange
+multiplier and subsequently maximize over  . We elaborate on both of these points in the
+discussion that follows.
+                                                                                     °
+    We motivate the µ and v0 in functional equation in problem 5.5 as follows. Let N1  be
+the solution and write:
+
+                                °
+                       µ° " E pN1                  °
+                                  rg pX1 q `  log N1    °
+                                                     ` v1    °
+                                                          ´ v0 s |I0 q .
+
+Let Q°
+     0 be the implied stationary measure, and
+
+                                                  T
+                                                  
+                                          °
+                                         MT   "         Nt° .
+                                                  t"1
+
+
+                                               28
+By iterating on functional equation, we find that
+                        ~                                       ¸
+                             T
+                             ÿ
+                       °
+             T µ° " E MT           rg pXt q `  log Nt° s | I0             ° °
+                                                                    ` E pMT              °
+                                                                            vT | I0 q ´ v0 .
+                             t"1
+
+
+Provided that g pXt q `  log Nt° has a finite unconditional expectation under Q, then the
+                 °
+same is true of v0 , and                            
+                                         ° °            °
+                               lim E pMT vT | I0 q " v0   dQ°
+                                                            0.
+                               T Ñ8
+
+It follows that
+            ~                                   ¸ 
+                   T
+        1       °
+                  ÿ
+   lim E MT                                            °
+                      rg pXt q `  log Nt° s | I0 " E pN1                  °
+                                                         rg pX1 q `  log N1 s | I0 q dQ°    °
+                                                                                       0 " µ .
+  T Ñ8 T
+                  t"1
+
+
+Thus µ° is the mean of rg pXt q `  log Nt° s under the distorted probability measure. This
+minimization problem aims to make µ° as small as possible where N1 is restricted to satisfy
+the conditional moment conditions.
+   To compute the bound µ° requires that we take into account that the choice of N1 has
+implications for future time periods. We capture this by the continuation values v1 and v0
+represented as random variables. If we subtract this mean, we obtain a more refined result:
+                                          ~                                            ¸
+                                                 T
+                                                 ÿ
+               °         °
+              v0 ´      v0 dQ°          °
+                             0 " lim E MT              rg pXt q `  log Nt° ´ µ° s | I0 .
+                                T Ñ8
+                                                 t"1
+
+                                   °
+Notice that the random variable v0   is only determined up to a translation. We incorporate
+v1 in the minimization because the choice of N1 has implications for the beliefs about future
+values of the objective function that are present when we solve the expectational difference
+equation forward.
+    While we formulated problem 5.5 in terms of the parameter  , as we noted previously,
+we may interpret it as a Lagrange multiplier. Thus, we use  to index alternative problems
+that penalize the increment to relative entropy. The value µ of this objective depends on
+ leading us to write µ° p q. To impose a specific relative entropy constraint , we solve
+
+                                          sup µ° p q ´ .
+                                            0
+
+
+                                                                                               dµ°
+Alternatively, we can back out the implied  for each  by computing the derivative               d
+
+
+
+                                                  29
+                                                               °
+or by computing directly the relative entropy associated with N1 . To determine the 
+sensitivity, many versions of the optimization problem could be solved in parallel using the
+dual approach that we next describe.
+
+
+5.5       Dual problem
+We pose the dual problem as a principal eigenvalue problem. This gives a revealing rep-
+resentation of the distorted measures that underlies the bounds and a revealing link to
+large deviation theory.
+       By imitating our earlier application of duality,
+                                   ,,^                               
+                                      1                      1
+                µ " max ´ log E exp ´ g pX1 q ` 0 ¨ f pX1 q ´ v1 | I0 ´ v0
+                     0                                       
+                                                               ´ ¯               ´     ¯
+where 0 is restricted to be I0 measurable. Let            " exp ´ µ
+                                                                  
+                                                                    and e0 " exp  ´ v0
+                                                                                     
+                                                                                         . Then
+a equivalent statement of the dual problem is:
+                                 ^ ,,                       ^       
+                                      1                      e1
+                        " min E exp ´ g pX1 q ` 0 ¨ f pX1 q     | I0 .
+                           0                                 e0
+
+In this optimization problem 0 is again restricted to be a I0 measurable random vector
+and e0 is restricted to be positive as is the real number .
+    When the state space is not discrete, this eigenvalue problem can have multiple solu-
+tions. While there could be multiple solutions to this eigenvalue problem, at most one of
+these is of interest to us.
+
+Lemma 5.6. When there are multiple positive eigenvalue solutions for a given 0 , at most
+one of them induces a probability measure that is stochastically stable.
+
+See appendix B for a proof.17
+
+Proposition 5.7. Problem 5.5 can be solved by finding the solution to:
+                                 ^       ,,                        ^                  
+                                     1                                 e1
+                        " min E exp ´ g pX1 q ` 0 ¨ f pX1 q                    | I0
+                           0                                           e0
+  17
+    Hansen and Scheinkman (2009) prove a counterpart to this result for continuous-time specifications in
+a Markovian environment. Qin and Linetsky (2020) extend their analysis by, among other things, relaxing
+the Markov assumption.
+
+
+
+                                                   30
+where
+
+                                               µ " ´ log
+                                              v0 " ´ log e0 .
+
+In this optimization problem, the random vector 0 is restricted to be a I0 measurable
+random vector, the random variable e0 is restricted to be I0 measurable and positive, and
+e1 p q " e0 rUp qs with probability one. The real number is positive. The implied solution
+for the probability distortion is:
+                                        "                                       i
+                                  exp       ´1
+                                             
+                                               g pX1 q   `   °
+                                                             0 pZ0 q   ¨ f pX1 q e°
+                                                                                  1
+                           °
+                          N1 "                               ° e°
+                                                                0
+
+
+where °                                           ° °
+        0 is the optimizing choice for 0 and p , e0 q are selected so that the resulting Q
+induces stochastically stable. The conditional expectation implied by the bound is
+
+                                                °
+                                            E rN1 g pX1 q | I0 s ,
+
+which in turn implies a bound on the unconditional expectation equal to
+                                    
+                                            °
+                                        E rN1 g pX1 q | I0 s dQ°
+                                                               0.
+
+
+The implied relative entropy is
+                                   
+                                            °      °
+                                        E pN1 log N1 | I0 q dQ°
+                                                              0.
+
+
+
+    Formally, the computed bound is for the unconditional expectation of g pX1 q, although
+                                            °
+we find the conditional expectation, E rN1    g pX1 q | I0 s that is a central part of the calcula-
+tion, to be of interest in its own right. Alternatively, given a discrete representation of the
+conditioning information, we could produce a bound analogous to that in section 3.2.4.
+    In our statement of problem 5.5, we suppressed the parameter dependence. Provided
+that we can compute the solution of the dual problem quickly, we can assess parameter
+sensitivity along the lines we mentioned previously by perhaps solving this problem many
+times in parallel.
+
+
+
+
+                                                     31
+5.6     Markov specification
+To proceed in a tractable way, we impose Markovian restrictions on the underlying data
+generating processes. Specifically we presume that tXt : t  0u is a time invariant function
+of Markov process, appropriately restricted.
+
+Assumption 5.8. tpXt , Zt q : t " 0, 1, ....u is a first-order Markov process for which the
+joint distribution of pXt`1 , Zt`1 q conditioned on pXt , Zt q depends only on Zt .
+
+Given this assumption, the tZt u process by itself is a first-order Markov process. We view
+both Xt and Zt as observable. The triangular structure for the dynamic evolution allows
+us to use a more sparse representation of the conditioning information. The alternative
+probabilities that we explore are not restricted to be Markov, but the solution to the
+minimization problem will be, for reasons that are familiar from dynamic programming.
+With the Markov specification, we solve the recursion
+                                 ^      ,,                                    
+                                    1
+                 epz q " min E exp ´ g pX1 q ` pz q ¨ f pX1 q epZ1 q | Z0 " z                          (12)
+                                    
+
+where by an abuse of notation, we now let e and  be functions of the Markov state Zt
+with z denoting a potential realized value. While the primal problem "imposed" stochastic
+stability, if suffices to verify the stability of the process that we obtain as our candidate
+solution. Since it is Markovian, this restriction is satisfied when the process tZt u is aperiodic
+and Harris recurrent.
+
+
+5.7     Connections to large deviation theory
+Our characterization is reminiscent of the results from large deviation theory for Markov
+processes. Large deviation theory also includes dynamic optimization in conjunction with
+a Laplace principle, making the two literatures closely related. As in our analysis, large
+deviation theory studies an undiscounted limiting problem. See, for instance, Dupuis and
+Ellis (1997) and Varadhan (2008) for a valuable treatise on large deviation theory.18
+    We investigate a more substantive link to large deviations that helps us interpret the
+relative entropy bounds that we input into our analysis. Suppose we use the empirical
+probability to detect potential departures from the baseline model. There is typically a
+  18
+    In particular, the analysis in Chapters 7 and 8 in Dupuis and Ellis (1997) features discrete-time Markov
+specifications and large sample approximation in the formulation of a Laplace principle.
+
+
+                                                    32
+positive probability that the empirical distribution mistakenly detects a departure. For a
+fixed criterion, the probability of this mistake becomes increasingly small as the sample size
+gets large. Large deviation theory characterizes this rate. Under some additional regularity
+conditions, remarkably, the decay can be made to be arbitrarily close to the minimum
+relative entropy bound that we compute. More generally, relative entropy provides what
+is called a "rate function." Of particular interest to us, it computes the small excursions,
+represented probabilistically, that make decay rate as small as possible. See appendix B
+for an elaboration.
+    While we draw on insights from large deviation theory, our ultimate aim is quite different
+from that theory. We characterize families of probabilities that correct the misspecification
+induced by imposing a constraint on the divergence from rational expectations. This is in
+contrast to the large deviation ambition of characterizing the most likely excursions from
+a baseline probability measure.
+
+
+5.8    Alternate divergences
+So far, we have imposed the relative entropy divergence. Relative entropy limits tail behav-
+ior of the probability distributions. For this reason we consider other divergences, choices
+of   0 and, in particular,  " 1. Indeed problem 5.5 has a counterpart when   0, but it
+requires some qualification and a dynamic extension that continues to exploit the recursive
+structure implied by the likelihood factorization.
+    Specifically, the analysis extends when we use:
+
+                                    T
+                                 1 ÿ
+                        R " lim        E pMt E rpNt`1 q | It s | I0 q .
+                            T Ñ8 T
+                                   t"1
+
+
+where  is a convex function used as a discrepancy for the one-period transition probability.
+The limiting version of this measure as implied by the Law of Large Numbers for stationary,
+ergodic processes is:
+                                     E rpN1 q | I0 s dQ.
+
+With this construction, our analysis for the  " 0 case extends.
+
+Problem 5.9. Find a pair pµ, v q that satisfy
+
+                      µ " min E pN1 rg pX1 q ` v1 s ` pN1 q | I0 q ´ v0
+                          N1 PM
+
+
+
+                                              33
+subject to:
+                                        E rN1 f pX1 q | I0 s " 0
+
+where N1 is I1 measurable and v1 " v0  U.
+
+       As before, this problem can be solved with convex duality methods.19
+
+Remark 5.10. Eckstein (2019) has extended the Laplace principle from Large Deviation
+theory include a class of intertemporal divergences that include the ones we use here. While
+he poses his problem with sufficient generality that constraints could be included, his for-
+mulation does not nest the restrictions of interest to us.
+
+
+6        Illustration
+Consider a recursive utility model as in Epstein and Zin (1991) with risk aversion  " 1.
+We impose a moderate risk aversion and instead explore belief distortions to explain the
+observed heterogeneity in expected returns. Let Rw denote a presumed observable return
+on wealth. As noted in section 2.5, under distorted beliefs represented by M ,
+
+                                            S " M pRw q´1                                            (13)
+
+where S is the one-period stochastic discount factor under rational expectations.
+  Epstein and Zin (1991) note the additional consumption Euler equation20
+
+                          E rM log Rw | Is " ´ log  ` E rM log G | Is
+
+where G is the ratio of consumption growth over two adjacent time periods. By deducing
+bounds on the left-hand side, we may infer bounds on  times the market expectation
+of consumption growth of equity market participants expressed in logarithms. Recursive
+utility preferences are specified in terms of continuation values that determine the rankings
+of prospective consumption processes. As a rough approximation, when   1 the wealth is
+positively related to the continuation value, where both are relative to current consumption.
+  19
+      Problems 5.5 and 5.9 are closely related to the value-function recursions coming from moment-
+constrained variational preferences proposed by Hansen (2020).
+   20
+      See equations (17) and (18) of Epstein and Zin (1991) except that we allow for more general expecta-
+tions.
+
+
+
+
+                                                   34
+Conversely, they are negatively related when   1.21 Thus for this model of investor
+preferences, whether  is larger or smaller than one impacts how we interpret the evidence
+based on conditioning information.
+    In our illustration, we draw on the literature that suggests returns can be predicted
+from dividend-price ratios. While there have been debates on how fragile this evidence
+is, we step aside from that discourse and take the predictability evidence on face value to
+illustrate our method. Given our direct use of dividend-price measures, we purposefully
+choose a very coarse conditioning of information and split the dividend price ratios into
+three bins using the three empirical terciles. We take the dividend-price terciles to be a
+three-state Markov process. Dividend-price ratios are known to be persistent, and this will
+be evident in our calculations.22
+    We implement our approach using quarterly data from 1954-2016. We proxy for the
+return on wealth using the return on CRSP value-weighted index. For asset returns, we use
+the return on a 3-month treasury bill, and the three Fama-French factor excess returns. We
+impose moment conditions for each return implied by equation (13), each scaled by three
+indicator functions for the terciles of the dividend-price ratio, giving a total of 12 moment
+conditions. All returns are converted from nominal to real returns using the deflator for
+nondurables consumption obtained from the BLS. We then apply the methods described
+in section 5 to bound functions of the return on wealth as measured by the value-weighted
+return.
+    In figure 1, we report the bounds on the beliefs about the expected log return, which
+under the assumption of unitary risk aversion coefficient are approximately proportional to
+the consumption growth rate belief when the subjective discount factor  is very close to
+one. The conditional expectation of log returns and the unconditional counterpart are all
+lower than their empirical counterparts. This observation follows by comparing the ,'s with
+the boxes where the top and bottom of the boxes are the upper and lower bounds with a
+relative entropy constraint imposed at a magnitude that is twenty percent higher than the
+minimum. The minimum relative entropy rate implies a half-life of about 24 quarters for
+reducing the probability by fifty percent of mistakenly rejecting the rational expectations.
+Increasing this by twenty percent, reduces the half-life by the same percentage to about 20
+quarters. Interestingly, it is when we condition on the low value of the dividend-price ratio
+  21
+     This follows by taking an approximation of the logarithm of the wealth-consumption ratio around
+ " 1.
+  22
+     As an alternative starting point, we could use the regime probabilities from Markov switching models
+of Maheu and McCurdy (2000) as possible states along with the implied return distributions.
+
+
+                                                   35
+Figure 1: Expected log market return. The ,'s are empirical averages and the boxes give
+the imputed bounds when we inflated the minimum relative entropy by 20%. The minimum
+relative entropy is .0284 with a half-life of 24.4 quarters.
+
+we find the box with the largest height (biggest difference between the upper and lower
+bounds). Also, the bounds on the unconditional distorted expectations are very similar to
+those we found for the low dividend-price ratio.
+    Not only are conditional means distorted, but so are the transition probabilities as re-
+ported in table 1. While the implied stationary probabilities are fairly evenly distributed
+over the three dividend-states, essentially by construction, the minimal entropy proba-
+bilities down-weight substantially the high dividend-price ratio state and up-weight the
+low-dividend price state. The high dividend-price state, in particular, has a very small sta-
+tionary probability under the minimum distorted stationary distribution. Consistent with
+this, the transition probabilities into this state are lower under the distortion and they are
+higher for exiting this state. The opposite happens for transitions in and out of the low
+dividend-price state. Thus, a hypothetical process that behaves in accordance with the
+minimum entropy distorted Markov transition matrix is likely to spend substantially more
+time in the low expected log return state and much less time in the high expected log-
+return state. When we increase the relative entropy bound by twenty percent, the implied
+distorted transition matrices are quite similar to the implied transition matrix recovered
+by the minimizing relative transition and depart from the empirical transition matrix in
+comparable ways.
+    There is a substantial asset pricing literature that studies time-varying risk compensa-
+tion, often appealing to high values of risk aversion. Belief distortions can imitate compo-
+
+                                             36
+                                         empirical  min       entropy
+                                     ¨            ¨                   
+                                     .96 .04 0     .98         .02 0
+                     transition      .05 .88 .07, .08          .88 .04,
+                     matrix
+                                      0 .08 .92     0          .17 .83
+
+                     stationary      "                  "           
+                                      .42 .31 .27        .76 .20 .04
+                     probabilities
+
+                Table 1: Empirical and distorted transition probabilities.
+
+
+
+
+Figure 2: Proportional risk compensations computed as log ERw ´ log ERf scaled to an
+annualized percent. The ,'s are the empirical averages and the boxes give the imputed
+bounds when we inflated the minimum relative entropy by 20%. The minimum relative
+entropy is .0284 with a half-life of 24.4 quarters.
+
+nents of this risk aversion. Thus, consider the bounds on the implied risk compensations
+when we restrict the risk aversion parameter to one. We report proportional risk premium
+using the ex-post real return on Treasury bills, Rf , as our riskless benchmark in figure 2.
+To construct these results, we compute bounds on log ERw ´ log ERf by extending the
+approach of section 5 as described in the appendix C. Not surprisingly, restricting investor
+risk aversion allows for belief distortions to capture the fluctuating empirical compensations
+for exposure to uncertainty.
+    Putting aside the empirical debate on return predictability, we see two possible con-
+clusions from these results. One possibility is that the statistical divergence (measured as
+relative entropy) for the distortions are high enough to challenge a "bounded rationality"
+
+
+                                              37
+view of the recursive utility model with a unitary risk aversion. The other possibility is that
+this divergence is defensible, in which case our dynamic implementation reveals the most
+statistically plausible distortions on the evolution of the dividend-price ratios. It remains
+a judgement call as to when the resulting statistical bounds we find here are implausible.
+Researchers that embrace rational expectations do not consider belief distortions, while
+behavioral finance researchers seldom consider the implied statistical divergence of their
+modeled beliefs. Neither practice uses tools for assessing statistical approximation as we
+have done in this paper.
+
+
+7    Conclusion
+In this paper, we developed new methods designed to extract information on investor beliefs
+from data on asset prices and investor surveys. Our approach presumes an econometric
+model of investor risk aversion, one that could be misspecified under rational expectations.
+We illustrated how limiting the statistical discrepancy between investor beliefs and ratio-
+nal expectations implies bounds on investors' expectations. Formally, we represented this
+relationship through a nonlinear expectation function and derived its dual representation.
+Additionally, we showed how to use the implied minimal statistical divergence as a measure
+of model misspecification, and discussed how to estimate sets of parametric models that
+can be rationalized by small statistical departures from rational expectations.
+    Our implementation uses empirical distributions in analogous manners as GMM and
+GEL methods with sparse clustering of conditioning information. Sieve methods could
+open the door to richer specifications of this information. For instance, our approach
+could also be applied in vector autoregressive settings using log-linear or even higher order
+approximation of structural models. Macroeconomic researchers sometimes introduce ad
+hoc belief distortions relative to rational expectations to repair the structured models.
+Alternatively, reduced-form models with hidden Markov processes could be taken as the
+empirical starting point.
+    Going forward, we see two types of applications of our methods. Deducing market
+expectations about the future from forward-looking asset prices is a common practice in
+both the public and private sectors. But this is typically done either informally or by
+targeting so-called risk neutral probabilities that confound beliefs and risk preferences. Our
+method provides a formal way to compute and represent information on investor beliefs
+constrained by a model of risk aversion along with a measure of statistical divergence.
+
+                                              38
+    Alternatively, we could use our approach to provide diagnostics for model misspecifica-
+tion under rational expectations. The bounds we deduce will help assess alternative models
+of subjective beliefs or ambiguity aversion. Implied belief bounds for small or moderate
+restrictions on the statistical divergence can give suggestive results for model-builders as to
+how to repair potentially misspecified models. By comparing models of subjective beliefs
+or ambiguity aversion supported by belief distortions to the implied bounds, applied re-
+searchers could assess whether such departures from rational expectations could be easily
+discerned from limited data.
+    Future applications of our methodology could incorporate information from survey data
+on investor beliefs. One approach would be to include survey data directly as additional
+moment conditions when constructing expectation bounds. Another approach would be to
+compare survey-implied expectations to expectation bounds on the corresponding variables
+formed without using the survey data as information. The latter approach would provide
+a check on how plausible the survey data are as a representation of investor beliefs used in
+decision-making.
+    While our paper makes reference to prior inferential results that can be used, we believe
+it will be fruitful to develop these links more formally in future research. Of particular
+interest are inferential methods for the nonlinear expectation function implied by the dy-
+namic relative entropy constraint using flexible conditioning information. In this regard,
+inferential methods for sieve-type estimation as surveyed by Chen (2007) could be adapted
+or extended to our setting. For instance, Christensen (2017) has applied this approach to
+the estimation of principal eigenvalues and eigenfunctions, and extensions could be applied
+to our dual formulation in a dynamic setting. In a different vein, the extended version
+of GMM estimation developed in Gagliardini et al. (2011) allows for applied problems in
+which a researcher wishes to use cross-sectional richness from asset markets in some of
+the observed time periods. Modifying this approach to allow for investor belief distortions
+would be another fruitful avenue to explore.
+
+
+References
+Adam, Klaus, Albert Marcet, and Juan Pablo Nicolini. 2016. Stock Market Volatility and
+ Learning. The Journal of Finance 71 (1):33­82.
+
+Almeida, Caio and Rene Garcia. 2012. Assessing Misspecified Asset Pricing Models with
+
+
+                                              39
+  Empirical Likelihood Estimators. Journal of Econometrics 170 (2):519 ­ 537.
+
+Alvarez, Fernando and Urban J. Jermann. 2005. Using Asset Prices to Measure the Per-
+  sistence of the Marginal Utility of Wealth. Econometrica 73 (6):1977­2016.
+
+Avellaneda, Marco. 1998. Minimum-Relative-Entropy Calibration of Asset-Pricing Models.
+  International Journal of Theoretical and Applied Finance 01 (04):447­472.
+
+Back, Kerry and David P. Brown. 1993. Implied Probabilities in GMM Estimators. Econo-
+  metrica 61 (4):971­975.
+
+Bakshi, Gurdip and Fousseni Chabi-Yo. 2012. Variance Bounds on the Permanent and
+  Transitory Components of Stochastic Discount Factors. Journal of Financial Economics
+  105 (1):191­208.
+
+Barberis, Nicholas, Robin Greenwood, Lawrence Jin, and Andrei Shleifer. 2015. X-
+  CAPM: An Extrapolative Capital Asset Pricing Model. Journal of Financial Economics
+  115 (1):1­24.
+
+Bordalo, Pedro, Nicola Gennaioli, Rafael La Porta, and Andrei Shleifer. 2019. Diagnostic
+  Expectations and Stock Returns. The Journal of Finance 74 (6):2839­2874.
+
+Bordalo, Pedro, Nicola Gennaioli, Yueran Ma, and Andrei Shleifer. 2020. Over-Reaction
+  in Macroeconomic Expectations. American Economic Review forthcoming.
+
+Borovicka, Jaroslav, Lars Peter Hansen, and Jos´
+                                               e A. Scheinkman. 2016. Misspecified Re-
+  covery. The Journal of Finance 71 (6):2493­2544.
+
+Borwein, Jonathan M. and Adrian S. Lewis. 1992. Partially Finite Convex Programming,
+  Part II: Explicit Lattice Models. Mathematical Programming 57 (1-3):49­83.
+
+Bradley, Richard. 2007. Introduction to Strong Mixing Conditions, Volume I. Heber City,
+  Utah: Kendrick Press.
+
+Campbell, John. 1993. Intertemporal Asset Pricing Without Consumption Data. American
+  economic review 83 (3):487---512.
+
+Chamberlain, Gary and Guido W. Imbens. 2003. Nonparametric Applications of Bayesian
+ Inference. Journal of Business and Economic Statistics 21 (1):12­18.
+
+
+                                          40
+Chen, Xiaohong. 2007. Chapter 76: Large Sample Sieve Estimation of Semi-Nonparametric
+ Models. In Handbook of Econometrics, vol. 6, Part B, edited by James J. Heckman and
+ Edward E. Leamer, 5549 ­ 5632. Elsevier.
+
+Chen, Xiaohong, Tim Christensen, and Elie Tamer. 2018. Monte Carlo Confidence Sets for
+ Identified Sets. Econometrica 86 (6):1965­2018.
+
+Chernozhukov, V., H. Hong, and E. Tamer. 2007. Estimation and Confidence Regions for
+ Parameter Sets in Econometric Models. Econometrica 75 (5):1243­1284.
+
+Christensen, Timothy M. 2017. Nonparametric Stochastic Discount Factor Decomposition.
+ Econometrica 85 (5):1501­1536.
+
+Cressie, Noel and Timothy R. C. Read. 1984. Multinomial Goodness-of-Fit Tests. Journal
+  of the Royal Statistical Society. Series B (Methodological) 46 (3):440­464.
+
+Csiszar, I. and Thomas Breuer. 2018. Expected Value Minimization in Information The-
+  oretic Multiple Priors Models. IEEE Transactions on Information Theory 64 (6):3957­
+  3974.
+
+Csiszar, I. and F. Matus. 2012. Generalized Minimizers of Convex Integral Functionals,
+  Bregman Distance, Pythagorean Identities. Kybernetika 48 (4):637­689.
+
+Dembo, Amir and Ofer Zeitouni. 2009. Large Deviations Techniques and Applications,
+  vol. 38. Springer Science & Business Media.
+
+Donsker, Monroe D. and S.R. Srinivasa Varadhan. 1975. Asymptotic Evaluation of Cer-
+ tain Markov Process Expectations for Large Time, I-IV. Communications on Pure and
+ Applied Mathematics 28 (1):1­47.
+
+Duchi, John, Peter Glynn, and Hongseok Namkoong. 2018. Statistics of Robust Optimiza-
+ tion: A Generalized Empirical Likelihood Approach.
+
+Dupuis, Paul and Richard Ellis. 1997. A Weak Convergence Approach to the Theory of
+ Large Deviations. New York: John Wiley and Sons, Inc.
+
+Eckstein, Stephan. 2019. Extended Laplace principle for Empirical Measures of a Markov
+  Chain. Advances in Applied Probability 51 (1):136­167.
+
+
+
+                                         41
+Ekeland, I. and R. T´
+                    emam. 1999. Convex Analysis and Variational Problems. Classics in
+  Applied Mathematics. Society for Industrial and Applied Mathematics.
+
+Epstein, Larry G. and Stanley E. Zin. 1991. Substitution, Risk Aversion, and the Temporal
+  Behavior of Consumption and Asset Returns: An Empirical Analysis. Journal of Political
+  Economy 99 (2):263---286.
+
+Fuster, Andreas, David Laibson, and Brock Mendel. 2010. Natural Expectations and
+  Macroeconomic Fluctuations. The Journal of Economic Perspectives: a journal of the
+  American Economic Association 24 (4):67.
+
+Gagliardini, Patrick, Christian Gourieroux, and Eric Renault. 2011. Efficient Derivative
+ Pricing by the Extended Method of Moments. Econometrica 79 (4):1181­1232.
+
+Ghosh, Anisha, Christian Julliard, and Alex P. Taylor. 2017. What is the Consumption-
+ CAPM Missing? An Information-Theoretic Framework for the Analysis of Asset Pricing
+ Models. Review of Financial Studies 30 (2):442­504.
+
+Hansen, Lars Peter. 2014. Nobel Lecture: Uncertainty Outside and Inside Economic Mod-
+  els. Journal of Political Economy 122 (5):945 ­ 987.
+
+Hansen, Lars Peter and Ravi Jagannathan. 1991. Implications of Security Market Data for
+  Models of Dynamic Economies. Journal of Political Economy 99 (2):225­62.
+
+------. 1997. Assessing Specification Errors in Stochastic Discount Factor Models. The
+  Journal of Finance 52 (2):557­590.
+
+Hansen, Lars Peter and Thomas J. Sargent. 2001. Robust Control and Model Uncertainty.
+  The American Economic Review 91 (2):60­66.
+
+Hansen, Lars Peter and Jos´
+                          e A. Scheinkman. 2009. Long-Term Risk: An Operator Ap-
+  proach. Econometrica 77 (1):177­234.
+
+Hansen, Peter G. 2020. New Formulations of Ambiguous Volatility with an Application to
+  Optimal Dynamic Contracting. Working paper.
+
+Hirshleifer, David, Jun Li, and Jianfeng Yu. 2015. Asset Pricing in Production Economies
+  with Extrapolative Expectations. Journal of Monetary Economics 76:87­106.
+
+
+
+                                           42
+Imbens, Guido W. 1997. One-Step Estimators for Over-Identified Generalized Method of
+  Moments Models. The Review of Economic Studies 64 (3):359­383.
+
+Imbens, Guido W., Richard H. Spady, and Phillip Johnson. 1998. Information Theoretic
+  Approaches to Inference in Moment Condition Models. Econometrica 66 (2):333­357.
+
+Kazemi, Hossein B. 1992. An Intertemporal Model of Asset Prices in a Markov Economy
+ with a Limiting Stationary Distribution. Review of Financial Studies 5 (1):85­104.
+
+Kitamura, Yuichi and Michael Stutzer. 1997. An Information-Theoretic Alternative to
+  Generalized Method of Moments Estimation. Econometrica 65 (4):861­874.
+
+Kreps, David M. and Evan L. Porteus. 1978. Temporal Resolution of Uncertainty and
+  Dynamic Choice. Econometrica 46 (1):185­200.
+
+Lee, Seojeong. 2016. Asymptotic Refinements of a Misspecification-Robust Bootstrap for
+  GEL estimators. Journal of Econometrics 192:86­104.
+
+Lucas, Robert E. 1972. Expectations and the Neutrality of Money. Journal of Economic
+  Theory 4 (2):103­124.
+
+Luttmer, Erzo, Lars P. Hansen, and John Heaton. 1995. Econometric Evaluation of Asset
+  Pricing Models. Review of Financial Studies 8:237­274.
+
+Maheu, John M. and Thomas H. McCurdy. 2000. Identifying Bull and Bear Markets in
+ Stock Returns. Journal of Business and Economic Statistics 18 (1):100­112.
+
+Manski, Charles F. 2018. Survey Measurement of Probabilistic Macroeconomic Expecta-
+ tions: Progress and Promise. NBER Macroeconomics Annual 32 (1):411­471.
+
+Metzler, Lloyd A. 1941. The Nature and Stability of Inventory Cycles. The Review of
+ Economics and Statistics 23 (3):113­129.
+
+Muth, John F. 1961. Rational Expectations and the Theory of Price Movements. Econo-
+ metrica: Journal of the Econometric Society 315­335.
+
+Nerlove, Marc. 1958. Adaptive Expectations and Cobweb Phenomena. The Quarterly
+  Journal of Economics 227­240.
+
+Newey, Whitney K. and Richard J. Smith. 2004. Higher Order Properties of GMM and
+  Generalized Empirical Likelihood Estimators. Econometrica 72 (1):219­255.
+
+                                         43
+Peng, Shige. 2004. Nonlinear Expectations, Nonlinear Evaluations and Risk Measures. In
+  Stochastic Methods in Finance: Lecture Notes in Mathematics, edited by M. Frittelli and
+  W. Runggaldier, 165­253. Berlin, Heidelberg: Springer Berlin Heidelberg.
+
+Petersen, Ian R., Matthew R. James, and Paul Dupuis. 2000. Minimax Optimal Control
+  of Stochastic Uncertain Systems with Relative Entropy Constraints. IEEE Transactions
+  on Automatic Control 45:398­412.
+
+Qin, Jin and Jerry Lawless. 1994. Empirical Likelihood and General Estimating Equations.
+  Ann. Statist. 22 (1):300­325.
+
+Qin, Likuan and Vadim Linetsky. 2020. Long-Term Risk: A Martingale Approach. Econo-
+  metrica 85 (1):299­312.
+
+Ross, Steve. 2015. The Recovery Theorem. The Journal of Finance 70 (2):615­648.
+
+Sanov, I. N. 1957. On the Probability of Large Deviations of Random Magnitudes.
+  Matiematicheskii Sbornik 42 (84):11­44.
+
+Schennach, Susanne M. 2007. Point Estimation with Exponentially Tilted Empirical Like-
+  lihood. Annals of Statistics 35 (2):634­672.
+
+Shanken, Jay. 1987. Multivariate Proxies and Asset Pricing Relations. Journal of Financial
+  Economics 18 (1):91 ­ 110.
+
+Shapiro, Alexander. 1991. Asymptotic Analysis of Stochastic Programs. Annals of Opera-
+  tion Research 30:169---186.
+
+Smith, Richard. 1997. Alternative Semi-Parametric Likelihood Approaches to Generalized
+  Method of Moments Estimation. Economic Journal 107:503­519.
+
+Stutzer, Michael. 1995. A Bayesian Approach to Diagnosis of Asset Pricing Models. Journal
+  of Econometrics 68 (2):367 ­ 397.
+
+------. 1996. A Simple Nonparametric Approach to Derivative Security Valuation. The
+  Journal of Finance 51 (5):1633­1652.
+
+Varadhan, S. R. 2008. Special Invited Paper: Large Deviations. The Annals of Probability
+  36 (2):397­419.
+
+
+                                           44
+       Online Appendix
+A         Proofs and Derivations for Section 3
+A.1         Proof of Theorem 3.2
+                                                            1
+Construct a sequence j OE 0 such that j                     2
+                                                                for all j . Then choose rj P Rd such that
+
+                                        p1 ´ j qErf pX qs ` j rj " 0
+
+i.e.                                              ^             
+                                                      1 ´ j
+                                         rj " ´                    Erf pX qs
+                                                        j
+Let B pr, q denote an open ball with center r and radius . Since ´Erf pX qs P intpC q there
+                                                                                           1
+exists an  0 such that the open ball B p´Erf pX qs, q  C . Since C is a cone and j  2
+it follows that B prj , q  C . Write v p q " volrB p0, qs  0.23 Now, construct a sequence of
+belief distortions Mj as follows:
+
+                                                            1
+                         Mj pxq " p1 ´ j q ` j                        1tf pxq P B prj , qu
+                                                      v p qh0 rf pxqs
+
+where h0 py q is the density of the random variable Y " f pX q under the objective probability
+measure P . By construction, we have that for all j P N
+
+       · Mj  0
+
+       · ErMj s " 1
+
+       · ErMj f pX qs " 0.
+
+Additionally note that Mj  p1 ´ j q with probability one. Since p¨q is decreasing, we
+have that pMj q  p1 ´ j q with probability one. By continuity, p1 ´ j q Ñ p1q " 0.
+By monotonicity of expectations we see that
+
+                           0  ErpMj qs  Erpp1 ´ j qqs " p1 ´ j q Ñ 0.
+
+The statement follows immediately.
+  23
+                                           
+       Here we use the definition volpS q " 1py P S qdy .
+
+                                                         45
+A.2       Derivation of Problem 3.3
+By standard duality arguments, the dual formulation of problem 3.1 is the saddlepoint
+equation
+                      sup inf E rpM q ` M  ¨ f pX q `  pM ´ 1qs                  (14)
+                               , M 0
+
+where  and  are Lagrange multipliers.
+   The objective function is separable over the realized values of M , and this leads us to
+minimize:
+                             pM q ` M  ¨ f pX q `  pM ´ 1q
+
+The first-order condition for optimizing over M is:
+
+                                       1 
+                                        M `  ¨ f pX q `  " 0.
+                                       
+
+Thus the minimizing M is
+                                                                  1
+                                       M " p´ r ¨ f pX q `  sq 
+
+Substituting the minimizing M back into (5) leads us to
+      ^                                        ^        
+           1           `1         1                 1                             `1           1
+  ´               M         ´          ´ "´                p´ r ¨ f pX q `  sq         ´            ´
+          1`                   p1 `  q             1`                                       p1 `  q
+
+as in dual problem 3.3.
+
+
+A.3       Proof of Theorem 3.8
+The negative of a log moment generating function is strictly concave. Conditions (i) and
+(ii) guarantee that the function  is continuous and coercive. It follows from (Ekeland
+and T´ emam, 1999, Proposition 1.2, Ch. II.1, p.35) that the supremum in Problem 3.6
+is attained uniquely at vector we denote ° . Since  is differentiable, ° is determined
+uniquely by solving the first-order conditions. Moreover, from known results about moment
+generating functions we may differentiate inside the expectation to conclude that the first-
+order conditions with respect to  imply
+                              ,,                       
+                               expp° ¨ f pX qq
+                            E                    f pX q " ErM ° f pX qs " 0.
+                              Erexpp° ¨ f pX qqs
+
+
+
+                                                   46
+This can be seen directly via the dominated convergence theorem. Thus M ° is feasible for
+Problem 3.5.
+   To verify that M ° solves Problem 3.5, note that for any other M  0 with ErM s " 1,
+
+                                   ErM plog M ´ log M ° qs  0,
+
+and thus
+                                   ErM log M s  ErM log M ° s.
+
+The first expression is nonnegative because it is the entropy of M relative to M ° .24 Compute
+
+                  ErM log M ° s " ErM p° ¨ f pX qqs ´ log E rexp p° ¨ f pX qqs .
+
+Thus if ErM f pX qs " 0,
+
+                            ErM log M ° s " ´ log E rexp p° ¨ f pX qqs .
+
+We conclude that
+                           inf ErM log M s  ´ log E rexp p° ¨ f pX qqs
+                            B
+
+where B " tM P L1 p, G, P q : ErM s " 1, ErM f pX qs " 0u. Furthermore, the right-hand
+side is attained by setting M " M ° and that other M P B that attains the infimum is
+equal to M ° with probability one.
+
+
+A.4      Derivation of equation (7)
+By standard duality arguments, the dual formulation of problem 3.9 is the saddlepoint
+equation
+
+               sup inf E rM g pX q `  pM log M ´ q `  ¨ M f pX q `  pM ´ 1qs                      (15)
+               0,, M 0
+
+
+where ,  and  are Lagrange multipliers. Since the objective function is separable in M ,
+we minimize
+                M g pX q `  pM log M ´ q `  ¨ M f pX q `  pM ´ 1q
+  24
+     Formally ErM plog M ´ log M ° qs " ErM ° pM {M ° qs with pxq " x log x, so the expectation is non-
+negative by Jensen's inequality.
+
+
+
+
+                                                  47
+with respect to M . The first-order condition is
+
+                              g pX q `  `  log M `  ¨ f pX q `  " 0.
+
+Thus,                                 ´                              ¯
+                                  exp ´ 1
+                                          r g p X  q `   ¨ f p X  qs
+                               M" "    ´                              ¯i .
+                                 E exp ´ 1
+                                            r g p X  q `   ¨ f p X qs
+
+Substituting back into equation (15) gives equation (7).
+    We can connect these results to our earlier analysis of dual Problem 3.6 by defining an
+alternative expectation E
+                        p using a relative density:
+                                                "           i
+                                            exp ´ 1
+                                                    g p X  q
+                                                 "            i
+                                           E exp ´ 1
+                                                     g  p X  q
+
+Then write the objective as
+                                                                     ,,       
+                          .                                             1
+                 Kp ; g q " sup ´ log E exp r´ ¨ f pX qs ´  log E exp ´ g pX q .
+                 p                    p
+                                                                        
+
+Since the last term does not depend on , we may appeal to Theorem 3.8 for the existence
+of a solution where Restriction 3.7 is imposed under the change of measure.25
+
+
+A.5        When will the relative entropy constraint bind?
+We first a give high-level sufficient condition under which the relative entropy constraint
+in problem 3.9 binds. Write
+                                              ,,   ^              
+                                               1
+                   Kpg ;  q " max ´ log E exp ´ g pX q `  ¨ f pX q ´ .
+                                               
+
+Let pg ;  q denote the maximizer in the definition of Kpg,  q, and define
+                                             "           i
+                                         exp ´ 1
+                                                 g p X  q
+                            M1 pg ;  q " ´    "            i¯
+                                        E exp ´ 1
+                                                  g  p X  q
+ 25
+      For computational purposes, there may be no reason to use the change of measure.
+
+
+
+                                                   48
+                                         "                              i
+                                     exp ´ 1
+                                             g p X  q `   p   q f p X  q
+                        M2 pg ;  q " ´    "                               i¯
+                                    E exp ´ 1
+                                              g  p X  q `   p   q f p X  q
+
+Restriction A.1.
+
+                        lim E rM1 pg ;  qg pX qs ´ E rM2 pg ;  qg pX qs  0
+                         Ó0
+
+
+Proposition A.2. Under restriction A.1,
+
+                                              B
+                                        lim     Kpg ;  q " 8
+                                         Ó0   B
+
+and therefore the relative entropy constraint in problem 3.9 binds for any value of   .
+
+Proof. An application of the Envelope Theorem gives that
+                         ^    ,,                         
+     B                           1                         1
+       Kpg ;  q " ´ log E exp ´ g pX q ` pg ;  q ¨ f pX q ´ ErM2 pg ;  qg pX qs ´ 
+     B                                                     
+                  1
+                " Hpg ;  q ´ 
+                  
+
+where
+                              ^,,                        
+                                  1
+         Hpg ;  q " ´ log E exp ´ g pX q ` pg ;  qf pX q  ´ ErM2 pg ;  qg pX qs.
+                                  
+
+Applying L'H^
+            opital's rule, we see that
+
+                lim Hpg ;  q " lim E rM1 pg ;  qg pX qs ´ E rM2 pg ;  qg pX qs  0.
+                 Ó0                Ó0
+
+
+The result follows.
+
+   Restriction A.1 is difficult to verify in practice. To make things more concrete, we give
+two somewhat general examples under which the relative entropy constraint will bind.
+   Example A.3 establishes that the relative entropy constraint will bind in problem 3.9
+whenever the target random variable g pX q has a lower bound g with arbitrarily small
+probability near that bound.
+
+Example A.3. For simplicity, omit the moment condition ErM f pX qs " 0. Suppose that
+
+
+                                                  49
+ (i) ess infrg pX qs " g  ´8,
+                             (
+ (ii) lim Ñ0 P g pX q  g `       " 0,
+
+Then for any   0, the relative entropy constraint in Problem 3.9 will bind.
+
+  Example A.3 rules out indicator functions for the choice of g . Bounding such functions
+may be of interest if the econometrician wishes to consider bounds on distorted probabilities.
+We consider a version that allows for these in example A.4
+
+Example A.4. We consider a scalar moment condition with a support condition and con-
+sider bounds on indicator functions of the moment function. Suppose
+
+ (i) f pX q is a scalar random variable;
+
+ (ii) ess suppf pX qq " u  8,
+
+(iii) lim Ñ0 P tf pX q  u ´ u " 0.
+
+(iv) g pX q " 1tf pX q´ru for r  0;
+
+Then for any   0, the relative entropy constraint in Problem 3.9 will bind.
+
+   The statement that the relative entropy constraint binds for any   0 in examples A.3
+and A.4 follows immediately from lemmas A.5 and A.6 respectively. These two examples
+suggest that the relative entropy constraint will bind in many cases of interest even for
+arbitrarily large choices of .
+
+
+A.6     Auxiliary results
+Lemma A.5. Let g " ess inf g pX q and assume that
+                                                      (
+                                  lim P g pX q  g `       " 0.
+                                   Ñ0
+
+
+Then for any   0, there exists a constant   g such that for any belief distortion M
+satisfying M  0, ErM s " 1, and ErM g pX qs   , we must have that ErM log M s  .
+
+
+
+
+                                             50
+Proof:
+
+Write
+                                                           (
+                                   hp q " P g pX q  g `
+
+and observe that hp q  0 and hp q Ñ 0 as Ñ 0. Define an event Ap q by
+                                                           (
+                                    Ap q " g pX q  g `
+
+   Now, let  " g ` 2 . Then for any M satisfying the constraints, we have that
+
+                       g`        ErM g pX qs
+                            2
+                                   "                 "               
+                                " E M g pX q1Ap q ` E M g pX q1Ap qc
+                                     "                  "         
+                                 g E M 1Ap q ` pg ` qE M 1Ap qc
+                                        "        
+                                 g ` E M 1Ap qc
+                                " g ` p1 ´ Qp ; M qq
+                  "       
+where Qp ; M q " E M 1Ap q . Rearranging, we obtain the bound
+
+                                         1
+                                            1 ´ Qp q
+                                         2
+
+which simplifies to
+                                               1
+                                          Qp q  .
+                                               2
+It follows that
+                                        ErM 1Ap q s Qp q    1
+                        E rM |Ap qs "     "       "             .
+                                         E 1Ap q    hp q  2hp q
+Additionally, since M  0 we have the trivial inequality
+
+                                       E rM |Ap qc s  0.
+
+Now, let F p q denote the  -algebra generated by the event Ap q. Applying Jensen's in-
+equality conditional on F p q to the relative entropy, we obtain
+
+                  ErM log M s  E rErM |F p qs log pErM |F p qsqs
+                                              ,,                   ^ 
+                                     Qp q        Qp q                 1
+                              " hp q      log          ` r1 ´ hp qs ´
+                                     hp q        hp q                 e
+
+                                              51
+                                    ,,       
+                               1         1      1
+                                log           ´
+                               2       2hp q    e
+
+where the second term comes from the fact that the function pmq " m log m is bounded
+from below by ´e´1 . Choosing sufficiently small so that the lower bound exceeds  gives
+the desired result.
+
+Lemma A.6. Let f pX q be a scalar random variable. Assume that M  0, ErM s " 1,
+ErM f pX qs " 0 and that P tf pX q  uu " 1. Then for any r  0
+
+                                                          u
+                                ErM 1pf pX q  ´rqs 
+                                                         u`r
+
+Proof.
+
+                     0 " ErM f pX qs
+                          "                        "                   
+                       " E M f pX q1tf pX q´ru ` E M f pX q1tf pX q´ru
+                            "                    "             
+                        ´rE M 1tf pX q´ru ` uE M 1tf pX q´ru
+                                   "               
+                        ´pu ` rqE M 1tf pX q´r`uu .
+
+Rearranging gives the desired result.
+
+   Note that this upper bound is sharp so long as X has strictly positive density near x and
+´r. It can be approximated by letting M approach a two-point distribution with a point
+                                 x                                                        r
+mass at x with probability  " x`   r
+                                     and a point mass at ´r with probability 1 ´  " x`      r
+                                                                                              .
+
+Lemma A.7. Let u " ess sup f pX q and assume that
+
+                                  lim Ppf pX q  u ´ q " 0
+                                   Ñ0
+
+
+Then for any   0 and r  0 such that Ptf pX q  ´ru  0, there exists a constant   0
+such that for any belief distortion M satisfying M  0, ErM s " 1, ErM f pX qs " 0 and
+
+                                                      u
+                                ErM 1tf pX q´ru s        ´ ,
+                                                     u`r
+
+we must have that ErM log M s  .
+
+Proof. Write
+                                  hp q " P pf pX q  u ´ q
+
+                                              52
+and observe that hp q  0 and hp q Ñ 0 as Ñ 0.
+   Now, take P p0, u ` rq and define the following events
+
+                                       A " tf pX q  ´ru
+                                    B p q " t´r  f pX q  u ´ u
+                                    S p q " tf pX q  u ´ u.
+
+Observe that A, B p q and S p q are mutually exclusive. Using the fact that 1B p q " 1 ´ 1A ´
+1S p q with probability one, we obtain
+
+                  0 " ErM f pX qs
+                   " ErM f pX q1A s ` ErM f pX q1B p q s ` ErM f pX q1S p q s
+                    ´rErM 1A s ` pu ´ qErM 1B p q s ` uErM 1S p q s
+                   " ´rErM 1A s ` pu ´ qErM p1 ´ 1A ´ 1S p q qs ` uErM 1S p q s
+                    pu ´ q ´ pu ` r ´ qErM 1A s ` ErM 1S p q s.
+
+Rearranging, we obtain the lower bound
+                                                    ^                           
+                                       pu ` r ´ q                     u´
+                       ErM 1S p q s                     ErM 1A s ´
+                                                                   pu ` r ´ q
+
+Now, for any M such that
+
+                                              u             r
+                            ErM 1A s             ´
+                                            u ` r 2 pu ` rqpu ` r ´ q
+
+we have that
+                                        ^                                          
+                           pu ` r ´ q   u               r          u´
+           ErM 1S p q s                     ´                  ´
+                                      u ` r 2 pu ` rqpu ` r ´ q pu ` r ´ q
+                                    ^                     
+                         pu ` r ´ q             r
+                        
+                                      2 pu ` rqpu ` r ´ q
+                         1 r
+                        
+                         2u`r
+
+It follows that
+                                             ErM 1S p q s    1     r
+                            ErM |S p qs "                              .
+                                              Er1S p q s   2hp q u ` r
+
+
+                                                  53
+Now, let F p q denote the  -algebra generated by the event S p q. Applying Jensen's in-
+equality conditional on F p q to the function pmq " m log m, we obtain
+
+           ErM log M s  E rErM |F p qs log pErM |F p qqs
+                                              ^                           ^ 
+                             ErM 1S p q s       ErM 1S p q s                 1
+                        hp q              log                 ` p1 ´ hp qq ´
+                               hp q               hp q                       e
+                                   ^              
+                        1 r               1     r       1
+                               log                  ´ .
+                        2u`r          2hp q u ` r       e
+
+Now choosing     sufficiently small so that the lower bound exceeds  gives the desired
+result.
+
+
+B     Proofs and derivations for section 5
+This appendix expands on results presented in section 5.
+
+
+B.1     Perron-Frobenius problem
+For an arbitrary 0
+                                 ,,^                              
+                                    1
+                       e0 " E exp ´ g pX1 q ` 0 ¨ f pX1 q e1 | I0
+                                    
+
+is recognizable as a Perron-Frobenius problem with eigenfunction e0 and eigenvalue . The
+eigenfunction e0 is in fact a random variable that is measurable with respect to I0 and only
+well-defined up to a positive scale factor. Notice that
+                               ^          ,,                      ^ 
+                                1            1                     e1
+                      N1 "             exp ´ g pX1 q ` 0 ¨ f pX1 q
+                                                                   e0
+
+is positive and has conditional expectation equal to one.
+    While this construction leads to a change in the one-period conditional expectation, this
+new probability measure does not necessarily satisfy the conditional moment restriction.
+The first-order conditions for minimizing with respect to 0 , however, imply that
+                               ^             ,,                      ^ °
+                       °           1            1         °           e1
+                      N1   "              exp ´ g pX1 q ` 0 ¨ f pX1 q
+                                   °                                  e°
+                                                                       0
+
+
+
+
+                                                  54
+satisfies:
+                                             °
+                                         E pN1 f pX1 q | I0 q " 0
+
+   Without imposing additional regularity conditions, there may be multiple solutions to
+Perron-Frobenius problems. We now show that there is at most one that is pertinent to
+our analysis.
+
+Lemma B.1. When there are multiple positive eigenvalue solutions for a given 0 , at most
+one of them induces a probability measure that is stochastically stable.
+
+Proof. By way of contradiction, we consider two possible solutions p~, e
+                                                                       ~0 q and p^, e
+                                                                                    ^0 q where
+e
+~0 {e
+    ^0 is not constant and ~  ^. Construct the corresponding N r1 and M  T and let Q    r be a
+measure-preserving probability consistent with N
+                                               r1 and is stochastically stable. Since,
+                                  ^     ,,                      ^ 
+                                   1       1                     e
+                                                                 ~1
+                           N
+                           r1 "      exp ´ g pX1 q ` 0 ¨ f pX1 q    ,
+                                   ~                             e
+                                                                 ~0
+
+it follows that                     ,, ^   ^ ^ 
+                                   E Nr1 e
+                                         ^1
+                                            |I0 "
+                                                  ^ e
+                                                    ^0
+                                         e
+                                         ~1       ~ e
+                                                    ~0
+Consider two cases.
+  First suppose that ~ " ^. Then
+                                          ,,   ^             
+                                                   e
+                                                   ^1              e
+                                                                   ^0
+                                        E N
+                                          r1               |I0 "
+                                                   e
+                                                   ~1              e
+                                                                   ~0
+
+                  e
+                  ^0
+implying that     e
+                  ~0
+                       is perfectly forecastable. Iterating on this relation implies that
+                                        ,,  ^  
+                                       E M T e
+                                             ^T
+                                                |I0 "
+                                                      e
+                                                      ^0
+                                             e
+                                             ~T       e
+                                                      ~0
+
+This contradicts the presumption that Qr is stochastically stable since the left-hand side
+does not converge to the corresponding unconditional expectation.
+   Next suppose that ~  ^. Then
+                                    ,, ^   ^ ^ 
+                                   E Nr1 e
+                                         ^1
+                                            |I0 "
+                                                  ^ e
+                                                    ^0
+                                         e
+                                         ~1       ~ e
+                                                    ~0
+
+
+
+
+                                                    55
+Since ^{~  1, by iterating this conditional expectation operator it follows that
+                                         ,,       ^               
+                                                      e
+                                                      ^T
+                                         E M
+                                           T                  |I0 Ñ 0
+                                                      e
+                                                      ~T
+
+which is contraction since e
+                           ^{e
+                             ~ is strictly positive and cannot have a zero expectation.
+
+
+B.2     Problem solution
+As in section 3, we solve the dual problem and verify that this satisfies the constraints for
+the primal problem. A comprehensive treatment of existence is beyond the scope of this
+paper. We will, however, provide two verification results, one for the dual and one for the
+primal problem.
+   Recall the functional equation for the dual problem:
+                                 ^
+                                ,,                       ^       
+                                   1                      e1
+                     " min E exp ´ g pX1 q ` 0 ¨ f pX1 q     | I0 .
+                        0                                 e0
+
+Lemma B.2. Let °                                                                   ° °
+                   0 solve the dual problem for the eigenvalue-eigenfunction pair p , e0 q.
+Moreover, suppose that the probability measure consistent with
+                                   ,,                       ^ ° 
+                          °           1         °             e1
+                         N1   " exp ´ g pX1 q ` 0 ¨ f pX1 q
+                                                              ° e°
+                                                                 0
+
+
+and
+                                                           T
+                                                           
+                                               °
+                                              MT "               Nt°
+                                                           t"1
+
+induces stochastic stability. Also let ^ denote another choice of . Then
+                                     ~    «                              ff^                  ¸
+                                              T                                     
+                          ° ´T              1 ÿ
+                                                       ^ t´1 ¨ f pXt q         e°
+                                                                                T
+           1  lim inf p q        E exp     ´ g pXt q `                                 | I0
+                 T Ñ8
+                                       t"1
+                                                                               e°
+                                                                                0
+
+
+Proof. Note that for all T  1,
+          «                             ff              «                                     ff^ 
+          T ´                                             T
+   °
+         ÿ
+              ^ t´1 ´ °
+                          ¯
+                                               ° ´T
+                                                          ÿ    1             ^                   e°
+                                                                                                  T
+  MT exp              t´1   ¨ f p X t q    " p  q   exp      ´   g p X t q `   t´1 ¨ f p X t q
+         t"1                                             t"1
+                                                                                                 e°
+                                                                                                  0
+
+
+
+
+                                                       56
+Since °
+      0 solves the dual problem,
+
+                                 ^
+                                 ,,                         ^ °      
+                          ° ´1        1        ^ 0 ¨ f pX1 q e1
+                  1  p q E exp ´ g pX1 q `                      | I0
+                                                             e°
+                                                              0
+                       ´      "´          ¯        i     ¯
+                         °
+                    " E N1 exp   ^ 0 ´ ° ¨ f pX1 q | I0                                   (16)
+                                        0
+
+
+Iterating on inequality (16) for T time periods gives
+                             ~         «                            ff    ¸
+                                           T ´
+                                           ÿ               ¯
+                           °
+                     1  E NT exp                 ^ t´1 ´ °
+                                                         t´1 ¨ f pXt q | I0 .
+                                        t"1
+
+
+Thus                             ~          «                  ff    ¸
+                                      T ´
+                                      ÿ              ¯
+                                °
+                  1  lim inf E NT exp     ^ t´1 ´ °
+                                                  t´1 ¨ f pXt q | I0
+                         T Ñ8
+                                              t"1
+
+with probability one.
+
+Remark B.3. Suppose that °       0 is essentially unique. Then (16) is satisfied with a strict
+inequality holding with positive probability. Under geometric ergodicity of process induced
+by the ° probability, the right-hand-side converges to limit that is strictly greater than one.
+
+   Next consider the primal problem.
+
+                        µ " min E pN1 rg pX1 q `  log N1 ` v1 s |I0 q ´ v0
+                             N1 PN
+
+
+subject to the constraint:
+
+                                      E rN1 f pX1 q | I0 s " 0
+
+To use the dual problem to construct a solution, we must verify that the first-order con-
+ditions for 0 are satisfied. This in turn implies that the candidate solution from the dual
+problem satisfies the constraint.
+
+Lemma B.4. Let pµ° , v0    °    °
+                             , N1 , °    °
+                                    0 , 0 q be constructed by solving the dual problem where
+  °                                    °                                          °
+N1  satisfies the constraint and 0        is the multiplier on the constraint E pN1 | I0 q " 1.
+                °
+Suppose that v0 is bounded. Let N        ^1 be some other change of probability measure that
+induces stochastic stability. Then
+                             ´ "                        i    ¯
+                        µ°  E N                 p1 ` v ° | I0 ´ v ° .
+                              p1 g pX1 q `  log N
+                                                      1          0
+
+
+                                                    57
+Proof. From the dual problem:
+               ´ "                                          i   ¯
+            °                          °              °   °         °   °
+           µ  E N1 g pX1 q `  log N1 ` 0 ¨ f pX1 q ` v1 ` 0 | I0 ´ v0
+                p                 p                                   ´ 0                             (17)
+
+Since N
+      p1 satisfies the conditional moment restriction and has conditional expectation one,
+the Lagrange multiplier contributions drop out of:
+                           ´ "                        i    ¯
+                      µ°  E N                 p1 ` v ° | I0 ´ v ° .
+                            p1 g pX1 q `  log N
+                                                    1          0                                      (18)
+
+Let
+                                                     T
+                                                     
+                                              M
+                                              xT "         N
+                                                           pt .
+                                                     t"1
+
+Iterating on relation (18) gives:
+                           ~        «                             ff              ¸
+                                        T
+                                        ÿ
+                 T µ°  E M
+                         xT                                     xT v ° | I0
+                                                           pt ` M
+                                            g pXt q `  log N        T
+                                                                                         °
+                                                                                      ´ v0 .
+                                    t"1
+
+
+Dividing by T and taking limits implies that
+                  ~       «                          ff       ¸
+                              T
+                xT 1                                                         1 " ´x °
+                              ÿ                                                             ¯     i
+       °                                                                                        °
+      µ  lim E M           g pXt q `  log N
+                                          pt | I0                      ` lim    E MT vT | I0 ´ v0
+         T Ñ8       T t"1                                               T Ñ8 T
+          ´ "                      i    ¯
+        " E N p1 g pX1 q `  log Np1 | I0 dQ p0
+
+                     °
+which follows since v0 is bounded and the ^
+                                          ¨ probability induces stochastic stability.
+                                                  °
+Remark B.5. For the Markov specification, v0        is a time-invariant function of only Z0 .
+                                                °
+For a bounded support set for Z0 , bounding v0 would seem to be widely (but not always)
+applicable. On the other hand, we suspect that there are weaker restrictions that would be
+of particular interest when the support set of Z0 is not bounded.
+
+Remark B.6. Suppose that equation (17) is satisfied with strictly positive probability. Then
+we may write           ´ "                            i    ¯
+                µ°  E N   p1 g pX1 q `  log Np1 ` v ° | I0 ´ v ° ´ b0
+                                                    1            0
+
+where the random variable b0  0 is strictly positive with positive probability. Provided that
+
+
+
+
+                                                    58
+b0 remains strictly positive with positive probability under the ^
+                                                                 ¨ probability measure,
+                                   ´ "                  i    ¯
+                          °
+                         µ        E N
+                                    p1 g pX1 q `  log N
+                                                      p1 | I0 dQ
+                                                               p0 .
+
+
+For the Markov specification b0 can be written as a function of Z0 only, so any change
+in measure that preserves the support of Z0 will result in a strict inequality. This support
+restriction will be satisfied provided that the distorted Markov process is irreducible.
+
+
+B.3     Statistical discrimination
+In what follows, we briefly consider large deviation theory applied to empirical averages
+constructed in Markov settings. Consider the joint distribution of pXt , Zt , Zt´1 q which is
+replicated over time in accordance with a stationary and ergodic Markov process. Under the
+rational expectations E rf pXt q | Zt´1 s " 0, but without rational expectations this restriction
+could be violated. To assess the empirical plausibility of this restriction, select a pZt´1 q
+and note that
+                                    E rpZt´1 q ¨ f pXt qs " 0.
+
+We could form a test of this restriction by checking if
+
+                                   T
+                                1 ÿ
+                                      pZt´1 q ¨ f pXt q  ´c  0.                             (19)
+                                T t"1
+
+Of course, other tests are also possible including ones that look across a family of pZt´1 q's
+and other empirical averages that include g pXt q.
+    For a finite sample, the event (19) has positive probability under P. But the probability
+of this event will decline as the sample size becomes arbitrarily large. In other words, it
+will be increasingly rare that the expectation implied by the empirical distribution will be
+less than ´c. Large deviation theory informs us about the limit
+                                      #                         +
+                                        T
+                              1         ÿ
+                                log P      pZt´1 q ¨ f pXt q  ´c ,
+                              T        t"1
+
+
+telling us how quickly these probabilities decay to zero.
+    The initial version of this is the type of large deviation approximation applied to em-
+pirical distributions is due to Sanov (1957) for iid sequences. It has been extended to
+
+
+                                               59
+Markov processes as discussed by Dupuis and Ellis and Varadhan. Under some additional
+regularity conditions, remarkably, the decay can be made to be remarkably close to the
+minimum relative entropy over the set of possible probability measures relative to P used
+for representing the evolution of the pXt , Zt q. In terms of this literature, relative entropy
+serves as what is called a "rate function".
+    We now turn to our dual formulation (12). When  is sufficiently large, the contribution
+of g effectively drops out of our analysis. Dropping g , gives the minimal entropy bound
+needed to satisfy the conditional moment restrictions. For the moment, fix . Large
+deviation theory studies the limit
+                                 #                                  +
+                                   T
+                         1         ÿ
+                           log P      pZt´1 q ¨ f pXt q  0 | Z0 " z
+                         T        t"1
+
+
+Following Donsker and Varadhan, we compute the decay rate in this by solving
+
+                      epz q " min E pexp rrpZ0 q ¨ f pX1 qs epZ1 q | Z0 " z q
+                              r0
+
+
+The decay rate bound is ´ log ~ where p~, e~q solve this problem. Instead of minimizing
+over this scalar random variable, we have multiple conditional moment conditions, and this
+leads us to minimize by choice of the vector function  of the Markov realization z as a
+convenient way of enforcing the conditional moment restriction. The ´ log ° that solves
+this functional equation
+
+                     epz q " min E pexp rrpZ0 q ¨ f pX1 qs e1 pZ1 q | Z0 " z q
+                               
+
+
+is the minimal relative entropy bound for dynamic time series evolution. When the decay
+rate, ´ log ° , is small, we view the conditional moment conditions to be particularly hard
+to reject.
+
+
+C      Bounding risk premia
+To compute the lower and upper bounds on risk premium that we report in section 6, we
+extend our previous approach as follows.
+
+    · set g pxq " Rw ´ Rf where  is a "multiplier" that we will search over;
+
+
+                                               60
+                               °
+  · for alternative  , deduce N1 p q and Q°
+                                          0 p q as described in the paper;
+
+
+  · compute:
+                                                                 
+                                                                     " °           
+               log          °
+                        E rN1 p qRw   |   I0 s dQ°
+                                                 0 p q   ´ log      E N1 p qRf | I0 dQ°
+                                                                                      0 p q
+
+
+    and minimize with respect to  ;
+
+  · set g pxq " ´Rw ` Rf , repeat, and use the negative of the minimizer to obtain the
+    upper bound;
+
+  Two observations:
+
+i) the objective is not globally convex;
+
+ii) a similar approach may be used to deduce upper and lower bounds on other functions
+    of moments such as volatility.
+
+
+
+
+                                                   61
+

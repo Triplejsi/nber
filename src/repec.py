@@ -2,6 +2,8 @@ import argparse
 import os
 import pandas as pd
 import requests
+import sys
+import traceback
 import xml.etree.ElementTree as et
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -45,9 +47,12 @@ class RePEc:
                 if status_code == 200:
                     try: return xml
                     except UnboundLocalError: return None
+            except et.ParseError: return None
+            except AttributeError: sys.exit(0)
             except Exception as err:
+                print(traceback.print_exc())
                 print(f'{err}: {self.nber_id}')
-                continue
+                sys.exit(1)
 
     def reference(self):
         '''
@@ -64,13 +69,14 @@ class RePEc:
                 text = list(xml)[0]
                 reference = [list(x)[0].text for x in text if 'isreferencedby' not in x.tag]
                 if status_code == 200:
-                    try:
-                        return reference
-                    except UnboundLocalError:
-                        return None
+                    try: return reference
+                    except UnboundLocalError: return None
+            except et.ParseError: return None
+            except AttributeError: sys.exit(0)
             except Exception as err:
+                print(traceback.print_exc())
                 print(f'{err}: {self.nber_id}')
-                continue
+                sys.exit(1)
 
     def create(self):
         '''

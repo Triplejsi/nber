@@ -1,0 +1,2518 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+              AN ECONOMIC APPROACH TO REGULATING ALGORITHMS
+
+                                       Ashesh Rambachan
+                                         Jon Kleinberg
+                                      Sendhil Mullainathan
+                                          Jens Ludwig
+
+                                      Working Paper 27111
+                              http://www.nber.org/papers/w27111
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                            May 2020, Revised January 2021
+
+
+
+
+We thank Alex Frankel, Ed Glaeser, Jonathan Guryan, Robert Minton, Joshua Schwartzstein,
+participants at the Labor/Public Breakfast at Harvard University, the Seminar in Law, Economics
+& Organization at Harvard Law School, AEA Session on Algorithmic Fairness and Bias and the
+NBER Conference on the Economics of AI for valuable feedback. We are especially grateful to
+Joshua Gans, Paul Milgrom and Hal Varian for their constructive comments and feedback as
+conference discussants. Rambachan gratefully acknowledges financial support from the NSF
+Graduate Research Fellowship (Grant DGE1745303). All errors are our own. The views
+expressed herein are those of the authors and do not necessarily reflect the views of the National
+Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Ashesh Rambachan, Jon Kleinberg, Sendhil Mullainathan, and Jens Ludwig. All
+rights reserved. Short sections of text, not to exceed two paragraphs, may be quoted without
+explicit permission provided that full credit, including © notice, is given to the source.
+An Economic Approach to Regulating Algorithms
+Ashesh Rambachan, Jon Kleinberg, Sendhil Mullainathan, and Jens Ludwig
+NBER Working Paper No. 27111
+May 2020, Revised January 2021
+JEL No. C54,D6,J7,K00
+
+                                         ABSTRACT
+
+There is growing concern about "algorithmic bias" - that predictive algorithms used in decision-
+making might bake in or exacerbate discrimination in society. We argue that such concerns are
+naturally addressed using the tools of welfare economics. This approach overturns prevailing
+wisdom about the remedies for algorithmic bias. First, when a social planner builds the algorithm
+herself, her equity preference has no effect on the training procedure. So long as the data,
+however biased, contain signal, they will be used and the learning algorithm will be the same.
+Equity preferences alone provide no reason to alter how information is extracted from data - only
+how that information enters decision-making. Second, when private (possibly discriminatory)
+actors are the ones building algorithms, optimal regulation involves algorithmic disclosure but
+otherwise no restriction on training procedures. Under such disclosure, the use of algorithms
+strictly reduces the extent of discrimination relative to a world in which humans make all the
+decisions.
+
+Ashesh Rambachan                                Sendhil Mullainathan
+Department of Economics                         Booth School of Business
+Harvard University                              University of Chicago
+1805 Cambridge Street                           5807 South Woodlawn Avenue
+Cambridge, MA 02138                             Chicago, IL 60637
+asheshr@g.harvard.edu                           and NBER
+                                                Sendhil.Mullainathan@chicagobooth.edu
+Jon Kleinberg
+Department of Computer Science                  Jens Ludwig
+Department of Information Science               Harris School of Public Policy
+Cornell University                              University of Chicago
+Ithaca, NY 14853                                1307 East 60th Street
+kleinber@cs.cornell.edu                         Chicago, IL 60637
+                                                and NBER
+                                                jludwig@uchicago.edu
+1      Introduction
+The growing use of algorithms to inform consequential decisions such as hiring, credit
+approvals, pre-trial release and medical testing has been accompanied by growing con-
+cerns of "algorithmic bias." Lacking a single definition, the blanket term algorithmic bias
+is often used to describe fears that algorithmic decision-making may exacerbate existing
+discrimination and inequality.1 These fears arise in part because the data used to train
+algorithms often reflect historical discrimination and inequality. For example, resume
+screening software is trained upon past hiring decisions, which themselves might have
+been discriminatory. Criminal records used in recidivism prediction may bake in differen-
+tial arrest rates by police or conviction rates by judges. A theoretical literature, largely in
+computer science, explores how such biases arise and how their presence should change
+the design and use of algorithms.
+     Concerns about algorithmic bias, at their heart, are questions of optimal policy and
+existing research typically misses three ingredients that economists view as central to any
+policy analysis. First, there is rarely a clear specification of the social planner's prefer-
+ences over outcomes (and how they are distributed across the population) from which
+optimal policy can be derived. Instead, in most existing work, fairness is often defined
+as a property of the algorithm that is imposed as an additional constraint on the train-
+ing procedure, rather than being derived from the outcomes produced by the resulting
+decisions. Second, there is rarely a description of the policy tools available that could
+influence outcomes beyond constraining the algorithm itself. Finally, incentive problems
+are often overlooked; instead it is assumed that the algorithm designer shares society's
+preferences.
+     In this paper, we incorporate the new issues raised by the use of supervised machine
+learning algorithms in decision-making into a canonical welfare economics framework
+that includes these three ingredients. We focus on situations in which an empirically-
+based supervised machine learning algorithm informs a screening decision - a situation
+where one or more people must be selected from a larger pool based upon a prediction of
+an uncertain outcome of interest for each of them. We model a supervised machine learn-
+ing algorithm as consisting of two components: a "predictive algorithm," which takes in
+training data consisting of outcomes and observed characteristics for a set of individu-
+als and returns a prediction function, and a "decision rule," which uses the constructed
+prediction function to make decisions. A policymaker therefore has two distinct tools
+    1 The literature on algorithmic bias is vast.
+                                             Barocas et al. (2019) is a textbook introduction to the computer
+science literature on this topic. Chouldechova and Roth (2020) provides a recent overview of this literature
+as well. Cowgill and Tucker (2019) provides a survey for economists.
+
+
+                                                     2
+available: influencing the design of the predictive algorithm and influencing how the de-
+cision rule uses the predictions. The social welfare function is defined over the resulting
+outcomes of the screening problem, incorporating both a concern for efficiency and an
+explicit preference for more equitable outcomes across groups. We take the social wel-
+fare function as a primitive and derive its implications for algorithm construction and
+regulation in two policy environments.
+     We first study the algorithm choice of a social planner who wishes to maximize social
+welfare and makes the screening decisions herself - the "first-best problem." We find
+an equity irrelevance result: the planner's equity preferences have no effect on how the
+predictive algorithm is constructed. All characteristics, including group membership, are
+given to the predictive algorithm, and fairness concerns do not lead the social planner to
+place any additional constraints on her training procedure. Since the predictive algorithm
+simply summarizes information in the observed training data, the social planner does
+not wish to destroy potentially useful information no matter her preferences. This is
+robust to a wide variety of common concerns surrounding sources of algorithmic bias.
+It holds even if the observed outcome in the training data differs from the outcome of
+interest in some way that is systematically related to group membership, or if there are
+differences in the conditional base rates of the outcome of interest across groups, or if
+there are differences in the distribution of characteristics across groups.
+     As an illustrative example, consider an employer with a fixed number of job openings
+available and a large pool of applicants that apply to the job openings. Each applicant is
+described by observed characteristics that are gleaned from their resume. Applicants
+fall into two groups: an advantaged group (e.g., whites, males) and a disadvantaged
+group (e.g., Blacks, females). The employer must make predictions about each appli-
+cant's on-the-job productivity based on their observed characteristics. In doing so, the
+employer has access to a historical dataset that consists of the resumes of its employees
+along with some measure of their on-the-job performance, such as performance reviews.
+The employer may attempt to learn the relationship between the information available
+in resumes and whatever available measure of productivity using a supervised machine
+learning algorithm. In this example, our first best analysis focuses on the case in which
+the employer shares society's goals and wishes to hire more members from the disadvan-
+taged group. Our equity irrelevance result establishes that possible biases in the historical
+data, for example biased performance reviews, do not change the benevolent employer's
+desire to use the algorithm. Indeed so long as the data, as biased as they are, include any
+signal that is relevant for underlying worker productivity, the employer will wish to use
+these data.
+
+
+                                             3
+     Next, we consider the "second best" regulation problem, where the social planner nei-
+ther makes the screening decisions nor the algorithm design choices; instead private ac-
+tors, some with discriminatory preferences, do so. For example, in hiring, individual
+firms decide who to hire and how to do that hiring. Therefore producing equitable em-
+ployment outcomes involves implementing regulations around the hiring process. Our
+model of this regulation problem analyzes an environment in which some private actors
+are taste-based discriminators in the spirit of Becker (1957), there are no average group
+differences in the outcome of interest conditional on observable characteristics and that
+the social planner has no further equity preferences beyond limiting discrimination (i.e.,
+no explicit affirmative action motive).
+     We begin by analyzing optimal regulation absent algorithms in which the regulator
+must decide what kinds of characteristics a human decision-maker can use in their de-
+cision (e.g. hiring) rules. The model captures many of our existing intuitions about the
+difficulty of regulating discrimination and we show that optimal regulation resembles
+existing anti-discrimination policy: prohibitions against disparate treatment (direct use
+of protected characteristics to treat individuals differently) as well as tests for disparate
+impact (use of ostensibly neutral factors that wind up disproportionately harming one
+group). Intuitively, the social planner faces a "flexibility tradeoff" in regulation ­ allow-
+ing more characteristics to be used leads to more accurate predictions, but the flexibility
+to use extra characteristics may also be used to screen out members of the disadvantaged
+group. The equilibrium level of discrimination is strictly positive in this market, meaning
+that the flexibility tradeoff poses a fundamental challenge to regulating discrimination.
+     We then consider the case in which private actors use an algorithm in their screening
+decisions. Optimal regulation changes substantially as long as there is full disclosure of
+all parts of the algorithm: the data, training procedure and decision rule. We refer to such
+disclosures as an algorithmic audit (Kleinberg et al., 2018, 2020). With such algorithmic
+audits in place, it is now optimal to allow the predictive algorithm to access to any char-
+acteristic that is predictive of the outcome of interest. The ability to carry out algorithmic
+audits enables the social planner to enforce that all human decision-makers (discrimina-
+tory or non-discriminatory) with the same prediction function select the same admissions
+rule. This mechanism strictly reduces the equilibrium level of discrimination relative to
+a world in which algorithms are not used. With the correct regulatory system in place
+­ specifically, one that allows algorithmic audits to be conducted ­ the introduction of
+predictive algorithms into screening decisions leads to not only improved prediction, but
+simultaneously makes it easier to detect discrimination in the market.
+     Returning to the hiring example, now consider the case in which firms make their
+
+
+                                              4
+own hiring decisions and some wish to discriminate against the disadvantaged group.
+The social planner may influence firms by placing restrictions on the characteristics used
+in hiring decisions.2 Absent algorithms, the social planner's flexibility tradeoff summa-
+rizes the well-known difficulties of detecting discrimination in hiring decisions. The more
+applicant characteristics firms are able to use, the better able they are to accurately predict
+productivity. At the same time, discriminating firms are also more able to find character-
+istics that help predict group membership as well, thereby enabling these firms to screen
+out members of the disadvantaged group. The flexibility tradeoff arises because the social
+planner faces two sources of asymmetric information relative to the firms ­ she neither
+knows which firms are discriminatory nor which characteristics are predictive of produc-
+tivity. In sharp contrast, if firms adopt predictive algorithms in their hiring decisions and
+there is full algorithmic disclosure, the social planner's regulation problem fundamen-
+tally changes. Under full algorithmic disclosure, the social planner no longer faces asym-
+metric information over which characteristics are predictive of productivity. For a set of
+firms that face the same relationship between applicant characteristics and productivity
+(i.e., firms for whom the underlying prediction function is the same), the social planner
+can now force discriminatory and non-discriminatory firms to make the same hiring de-
+cisions. Under such a disclosure regime, our results establish that it is optimal to let any
+characteristic that is predictive of the outcome of interest be used in hiring decisions and
+the equilibrium level of discrimination is zero.
+     Implicit throughout our analysis is the important assumption that there is a consensus
+on the choice of outcome. By explicitly writing a social welfare function, we are assum-
+ing that there is social consensus on the outcome of interest, yet in some settings there
+may be substantive disagreement. For example, in pre-trial release decisions, does so-
+cial welfare only depend on pre-trial misconduct rates among the released? In criminal
+sentencing, does social welfare only depend on future recidivism (Doleac and Stevenson,
+2019)? Similarly, in the regulation problem, we assume that the firms' payoffs depend
+on the same outcome as the social welfare function. Yet, is there a common definition of
+a "good employee" in our running example on hiring decisions? Recent empirical work
+has documented that documented algorithmic bias in some settings is driven precisely by
+disagreement over the outcome (Passi and Barocas, 2019). For example, Obermeyer et al.
+(2019) analyzed an algorithmic decision tool that generated large racial disparities across
+patients. These disparities arose because the underlying prediction function was trained
+   2 This is consistent with the observation that regulators rarely dictate to firms exactly how many people
+to hire in practice, but regulators do tell firms how they are allowed to select those people they do hire - for
+example, prohibiting firms from explicitly using group membership itself as a criteria in hiring decisions.
+
+
+
+                                                       5
+to predict the cost of caring for the patient, which the health care provider cares about, as
+opposed to a measure of patient health. Understanding how disagreement over the out-
+come shapes the design and regulation of algorithmic decision-making is an important
+avenue for future research that lies beyond the scope of this paper.
+
+Related literature: Our approach is different from that taken by a large community of
+researchers in computer science. Existing research typically begins by noting that a su-
+pervised machine learning algorithm generates a mapping from observed data into pre-
+dictions or decisions and then formally defines what it means for these mappings to be
+"fair." Given a particular definition, researchers then ask how to construct such fair map-
+pings from data and whether a given algorithm satisfies this property. This framework is
+enormously influential, generating numerous important insights in the study of algorith-
+mic decision-making. Canonical papers in computer science include Dwork et al. (2012),
+Zemel et al. (2013), Feldman et al. (2015), Hardt et al. (2016), Corbett-Davies et al. (2017),
+Raghavan et al. (2017) and Chouldechova (2017).
+    In contrast, we define fairness in terms of preferences over the resulting outcomes
+of the screening decision using a social welfare function. We take the preferences sum-
+marized by the social welfare function as our primitive and derive its implications for
+algorithm construction. Several papers in computer science also examine the connec-
+tions between definitions of predictive fairness in computer science and social welfare.
+See, for example, Hu and Chen (2018), Heidari et al. (2018), Balashankar et al. (2019) and
+Hu and Chen (2020). However, this research tends to focus on the first-best problem in
+which a benevolent planner controls the design and implementation of the algorithm,
+overlooking agency problems that arise when algorithms are designed and implemented
+by third-party decision-makers. Our analysis of the regulation problem is a new contri-
+bution, highlighting the value of an economic perspective. We discuss the connections to
+the literature in computer science in more detail in Section 3 after we establish our frame-
+work. Appendix A discusses how our framework accommodates and relates to several
+common worries surrounding algorithmic bias.
+    Finally, we highlight several recent papers in economics that also incorporate insights
+from economics into the study of algorithmic decision-making. Athey et al. (2020) studies
+the optimal delegation rule of a principal that may either delegate decision-making to an
+algorithmic decision-rule or a human decision-maker. Cowgill and Stevenson (2020), ap-
+plying classic strategic communication models, highlights that if predictions are manipu-
+lated by a planner, then human decision-makers may optimally ignore these predictions
+in their decisions. Finally, our formal analysis of the regulation problem formally builds
+
+
+                                              6
+upon ideas first discussed in Kleinberg et al. (2018, 2020).
+
+2     The Screening Decision and the Social Welfare Function
+We introduce the key building blocks of our model by defining the screening decision and
+the social welfare function. There is a population of individuals that are to be screened
+into a program based on predictions of an unknown outcome of interest. Each individual
+is described by a vector of observable characteristics, and these characteristics may be
+used to predict the outcome of interest. The social welfare function is defined in terms of
+the resulting outcomes of the screening decisions.
+
+2.1    The population of individuals
+There is a unit mass of individuals divided into two groups, denoted G  {0, 1}. We refer
+to G = 1 as the "disadvantaged group." Each individual in the population is described by
+a vector of characteristics W := (W1 , . . . , WJ )  {0, 1} J . Each individual is also associated
+with two real-valued, discrete labels Y   {y1                        ~  {y
+                                                     , . . . , y  }, Y                  ~ K }, where the label
+                                                                           ~1 , . . . , y
+                                                                 L
+                                                        ~
+Y is the "outcome of interest" and the label Y is the "measured outcome." Assume,
+without loss of generality, that the labels are ordered, meaning y1                 . . .  y and y       ~1 
+                                                                                                  L
+...  y ~ K . The population of individuals is summarized by a joint distribution P over the
+random vector (Y  , Y   ~ , G , W ).
+     Let P( g, w) := P { G = g, W = w} , P(w) := P {W = w} be the fraction of individuals
+that belong to group g with characteristics w  {0, 1} J and the fraction of individuals
+with characteristics w respectively. Assume that P( g, w) > 0 for all ( g, w)  {0, 1} J +1 .
+Finally, let   ( g, w) := E [Y  | G = g, W = w],    ~ ( g, w ) : = E Y  ~ | G = g, W = w denote the
+average outcome of interest Y  and the average measured outcome Y                      ~ among individuals
+that belong to group g with characteristics w. In Appendix A, we discuss in more detail
+how our setting nests several common sources of bias mentioned in the computer science
+literature on algorithmic bias.
+
+2.2    The screening decision
+Individuals in the population may be granted admission into a program. The program
+is capacity constrained and only a fraction C  [0, 1] of the population may be granted
+admission. The information available when making the admissions decisions are the ob-
+served characteristics W and group membership G. A decision rule denoted t( g, w)  [0, 1]
+describes the probability that an individual in group g with characteristics w is admitted
+
+
+
+
+                                                      7
+into the program. The capacity constraint implies that
+
+                                                     t ( g, w ) P ( g, w )  C .                     (1)
+                                 ( g,w){0,1} J +1
+
+
+    As we will see next, the social planner would like to make the admissions decisions
+based on the outcome of interest Y  . However, since Y  is not observed for any given
+individual in the population at the time of the decision, the admissions decisions will
+instead be based upon predictions of the unknown outcome Y  . These predictions will
+use the observed characteristics ( G, W ) and the social planner's beliefs about the joint
+                      ~ , G, W ) in the population.
+distribution of (Y  , Y
+    Before continuing, we introduce two simple examples to illustrate how our model
+maps into common screening problems of interest.
+
+Example 1 (Hiring). Which applicants should be hired for a job? Applicants are described by a
+vector of characteristics (W) that may be gleaned from their submitted resumes. For example, these
+characteristics may include traditional information such as the applicant's education and work
+history. It may also include "high-dimensional" features that are parsed used natural language
+processing algorithms such as the frequency of certain words on the resume. Applicants have some
+unobserved productivity on the job (Y  ) and we wish to infer their productivity from the observed
+resume.
+
+Example 2 (Loan decisions). Which individuals should be granted a loan? Individuals submit
+an application and other information to a financial institution for a loan. Applicants are described
+by a vector of characteristics (W) that are contained in the application and other financial informa-
+tion that is available to the financial institution. For example, this may include traditional financial
+information such as the applicant's reported income, outstanding debt and stated purpose of the
+loan. It may also include a rich set of high-dimensional, high-frequency transaction level data that
+the financial institution has access to if the applicant is an existing customer. Applicants have
+an unobserved probability of repaying the loan (Y  ) and we wish to infer their probability of loan
+repayment from the application.
+
+2.3    The social welfare function
+The social welfare function defines society's preferences over the outcomes produced by
+the screening decisions. It is a weighted average of the outcome of interest among indi-
+viduals that are admitted into the program:
+
+                                                 g   ( g, w ) t ( g, w ) P ( g, w ),                (2)
+                              ( g,w){0,1} J +1
+
+                                                        8
+where g  0 are generalized social welfare weights placed upon individuals in group g.
+The social welfare weights imply that the outcome of interest may be valued differently
+across groups. If 1 > 0 , then the outcomes associated with the disadvantaged group
+are valued more than outcomes associated with the rest of the population, which implies
+that for a given average value of the outcomes among admitted people we would prefer
+to admit more members of the disadvantaged group, capturing a preference for "equity."
+Moreover, since the social welfare function is defined directly in terms of the average out-
+come of interest of the admitted group, it is larger whenever the admitted set has higher
+average values of the outcome of interest, holding fixed the fraction of the population that
+is admitted into the program and the composition of the admitted group. This captures a
+preference for more "efficient" outcomes.
+    In Appendix B, we provide a motivation for the social welfare function in Equation
+2. We sketch a setting in which the utility of each individual depends on some measured
+outcome and whether they are admitted into the program. The true outcome of interest is
+therefore the change in the utilities of an individual from being admitted into the program
+at a given value of the observed outcome. The social planner's welfare weights may be
+higher on the disadvantaged group because, for instance, the utility of an individual from
+the disadvantaged group may be uniformly lower than the utility of an individual from
+the advantaged group. This may capture either unmodeled discrimination against the
+disadvantaged group or existing disparities across groups in a reduced form manner.
+
+Example 1 (continuing from p. 8). More productive workers (higher Y  ) produce output if hired
+and the social welfare function depends on total output. However, the social planner wishes to
+protect Black workers (G = 1), and so places a larger weight on output produced by them in the
+social welfare function (1 > 0 ).
+
+Example 2 (continuing from p. 8). Loans are given out to consumers and more credit-worthy
+borrowers (higher Y  ) are less likely to default on their loans. The social welfare function depends
+on the total loan repayment rate. In addition, the social planner wishes to ensure that minority
+borrowers (G = 1) have access to credit, and places more weight on credit access among these
+groups.
+
+2.4   The training dataset
+From the social welfare function in Equation (2), it is immediate that the social planner
+wishes to select an admissions rule t( g, w) that is based on the average outcome of inter-
+est   ( g, w). If   ( g, w) were known, the social planner would simply construct a rank-
+ordering of the population in terms of the welfare-weighted average outcome of interest
+
+                                                 9
+g   ( g, w), admitting individuals into the program in descending order until she reaches
+the capacity constraint C. However, the average outcome of interest   ( g, w) is unknown,
+and the social planner faces a non-trivial "prediction policy problem" (Kleinberg et al.,
+2015).
+    To construct estimates of   ( g, w), the social planner has access to a training dataset
+that consists of N randomly drawn samples from the population of individuals. For each
+observation in the training dataset, the characteristics ( G, W ) and the measured outcome
+Y~ are recorded. Let D N = {(Y ~i , Wi , Gi )} N denote the observed training dataset. Even
+                                              i =1
+though the training dataset D N does not contain the outcome of interest Y  , it may still be
+useful in constructing predictions. For example, if the measured outcome Y    ~ is correlated
+with the outcome of interest Y  , then there may be useful information in the training
+dataset.
+Example 1 (continuing from p. 8). We would prefer to hire workers that are productive but
+productivity is unobserved. Instead, among currently hired employees, we observe performance
+        ~ which is a possible proxy for productivity. A training dataset D N may consist of the
+reviews Y,
+observed characteristics of past and current employees along with their performance reviews.
+Example 2 (continuing from p. 8). We would like to grant loans to applicants that will repay.
+Among current borrowers, we observe whether they have missed repayments or have made late
+payments Y,~ which is a possible proxy for repayment ability. A training dataset D N may consist
+of past and current loans along with their repayment history.
+
+3    The Social Planner's First-Best Algorithm Design
+In this section, we define the social planner's first-best problem and characterize its solu-
+tion. The social planner is a Bayesian decision-maker, specifying her prior beliefs about
+the conditional joint distribution of the measured outcome Y   ~ and the outcome of interest
+Y  given the characteristics ( G, W ). The social planner uses the observed training dataset
+D N to update these beliefs.
+    We then characterize the social planner's optimal algorithm that maximizes social
+welfare. For a fixed training dataset D N , the social planner's optimal algorithm ranks
+the population using her posterior beliefs about the average outcome of interest   ( g, w)
+and then admits individuals into the program based on this ranking, applying a group-
+specific threshold for admission. Next, as the size of the training dataset D N grows large,
+the ranking used by the social planner is equivalent to the ranking that would be pro-
+duced by constructing a consistent estimate of the average measured outcome           ~ ( g, w )
+and then applying an ex-post adjustment based on her prior beliefs about the relation-
+ship between the measured outcome and the outcome of interest. Together these results
+
+                                              10
+imply a strong form of equity irrelevance - the social planner's equity preferences only
+modify the decision rule, not the predictive algorithm.
+
+3.1   The social planner's beliefs
+We assume that the social planner knows the marginal distribution of the characteristics
+( G, W ) in the population and only faces uncertainty over the conditional joint distribu-
+tion of the measured outcome Y   ~ and the outcome of interest Y  . The social planner is a
+Bayesian decision-maker with prior beliefs about how the measured outcome relates to
+the outcome of interest.
+     Formally, for outcomes y   ~ k , define the parameters
+                             l ,y
+
+
+                 P Y  = y   ~   ~ k | G = g , W = w : = l ,k ( g , w )
+                         l ,Y = y                                                          (3)
+                                                       K
+                 P {Y  = y l | G = g , W = w } =  l ,k ( g , w ) : = l ( g , w )
+                                                                     
+                                                                                           (4)
+                                                      k =1
+                                                      L
+                 P Y  ~ k | G = g , W = w =  l ,k ( g , w ) : = 
+                   ~ =y                                         ~ k ( g, w ).              (5)
+                                                     l =1
+
+
+Let  := {l ,k ( g, w) : l  {1, . . . , L} k  {1, . . . , K }, g  {0, 1}, w  {0, 1} J } collect
+together these parameters at each possible value of the characteristics ( G, W ). The social
+planner's prior beliefs are a prior distribution  (·) over the finite dimensional parameter
+.
+    The social planner uses the observed training data to update her prior beliefs  (·),
+forming a posterior distribution  | D N . The likelihood function for the observed training
+data is simply
+                                   N      K
+                                                             ~
+                    L( D N ;  ) :=       ~ k ( Gi , Wi )1{Yi =y
+                                                              ~k }
+                                                                     P( Gi , Wi ).         (6)
+                                  i =1   k =1
+
+Since the marginal distribution of ( G, W ) is known, the likelihood function only depends
+on the observed training dataset D N and the parameters  but not the marginal distribu-
+tion P( g, w). Applying Bayes' rule, the social planner uses the observed training dataset
+to construct her posterior beliefs  | D N .
+
+3.2   Characterizing the social planner's first-best admissions rule
+Given the social welfare function and her prior beliefs  , the social planner selects an
+admission rule to maximize expected social welfare subject to her capacity constraint C 
+[0, 1]. This is the social planner's first-best problem.
+
+
+
+                                                11
+Definition 1. Given prior beliefs  , social welfare weights (0 , 1 ) and capacity constraint C,
+the social planner's first-best problem is
+                                                                                             
+
+                           max E 
+                        t ( g,w; D N )
+                                                         g E [  ( g, w)t( g, w; D N )] P( g, w)
+                                               ( g,w )
+
+                        s.t.             t ( g, w; D N ) P ( g, w )  C    with probability one.
+                               ( g,w )
+
+
+The solution t ( g, w; D N ) for all ( g, w)  {0, 1} J +1 is the social planner's first-best algorithm.
+
+The social planner's first-best problem is to select a data-driven algorithm t( g, w; D N )
+to maximize expected social welfare, where the social planner uses her prior beliefs 
+to average over possible realizations of the training dataset and the parameter  . The
+capacity constraint must hold at all realizations of the training dataset that occur with
+positive probability.
+    The social planner's first-best algorithm consists of two components: a decision rule,
+which is a threshold rule with group-specific thresholds for admission, and a predictive
+algorithm that rank-orders the population based upon a prediction of the outcome of
+interest.
+
+Proposition 1. The social planner's first-best admissions rule is a threshold rule with group-
+specific admissions thresholds
+
+                            t ( g, w; D N ) = 1 E | DN [  ( g, w)] >   ( g; C ) ,
+
+where ties with E | DN [  ( g, w)] =   ( g; C ) are handled such that the capacity constraint holds
+with equality.
+
+The social planner uses her prior beliefs  (·) and the observed training data D N to con-
+struct the best rank-ordering of the population in terms of the expected value of Y  given
+the observed characteristics G, W . This ranking is encapsulated in her posterior beliefs
+ | Dn , which conditions on the entire training dataset. The social planner's optimal deci-
+sion rule then takes these predictions as an input and applies group-specific thresholds
+for admission, which arise to differing social welfare weights on each group G. If the so-
+cial welfare weight on the disadvantaged group is larger than the social welfare weight on
+the rest of the population, then the social planner applies a lower threshold for admission
+for the disadvantaged group.3
+   3 This   intuition is analogous to results in Fryer Jr and Loury (2013), which emphasize the importance
+
+
+                                                                 12
+    Proposition 1 is quite general. In deriving this result, we placed no assumptions on
+how the measured outcome Y      ~ relates to the outcome of interest Y  , no assumptions on
+whether there are group differences in the average outcome of interest conditional on the
+characteristics   ( g, w) and no assumptions on how the distribution of the characteristics
+W may differ across groups. Additionally, if the social welfare weights  vary not only
+across groups but across other observable features in W , Proposition 1 generalizes natu-
+rally. The first-best algorithm still uses a threshold rule, and the admissions thresholds
+now vary based upon all characteristics that affect the social welfare weights.
+    A natural follow-up question is: under what conditions does the social planner use
+the observed training data D N in constructing her rank-ordering of the population? In-
+tuitively, we say that the social planner ignores the observed training data if her posterior
+expectation of the outcome of interest equals her prior expectation of the outcome of in-
+terest.
+
+Definition 2. The social planner ignores the observed training data D N if E | DN [  ( g, w)] =
+E [  ( g, w)] for all ( g, w)  {0, 1} J +1 and training datasets DN that occur with positive prob-
+ability.
+
+      If the social planner ignores the training dataset, then she learns nothing from the
+observed training dataset, and therefore, there would be no loss if the social planner dis-
+carded it. This holds if and only if the social planner's prior beliefs are such that mis-
+measured outcome Y      ~ is independent of Y  conditional on the observed characteristics
+( G , W ).
+
+Proposition 2. The social planner ignores the observed training dataset if and only if under her
+prior beliefs  , ~ is statistically independent of  .
+
+This result follows directly from Proposition 1 of Poirier (1998). Intuitively, the likelihood
+function in Equation (6) only depends on the parameter  through            ~ ( g, w).4 Therefore,
+if the prior beliefs of the social planner are such that the parameters         ~ ( g, w) are inde-
+pendent of the parameters   ( g, w), then the social planner learns nothing about   ( g, w)
+from learning about    ~ ( g, w). This result implies that if the measured outcome Y     ~ is statis-
+tically related to the outcome of interest Y  in any way under the social planner's beliefs,
+then the social planner will use the training dataset to construct her optimal algorithm.
+For example, the social planner may believe the measured outcome Y          ~ is mis-measured,
+
+of accurate within-group rankings in designing optimal affirmative action policies (see also, Fryer Jr et al.
+(2008)).
+   4 In other words, the likelihood function in Equation (6) is flat in the parameters   ( g, w ) given a partic-
+
+ular value of  ~ ( g, w), and so the parameters of interest are partially identified in this model.
+
+
+                                                       13
+negatively correlated with the outcome of interest, positively correlated with the outcome
+of interest or "biased" against the disadvantaged group in some way. In all of these cases,
+the measured outcome Y    ~ may still not be independent with the outcome of interest Y 
+under the social planner's beliefs, and so it remains optimal to learn from the training
+dataset.
+
+3.3   Algorithmic decision-making and the first-best admissions rule
+An appealing interpretation of Proposition 1 is that the social planner simply constructs
+an optimal prediction of the measured outcome Y      ~ from the observed training data and
+then uses her prior beliefs  to map these into predictions of the outcome of interest Y  .
+This intuition is valid asymptotically as the size of the training dataset grows large.
+    To develop this result, we first provide a simple definition of a predictive algorithm,
+which uses the observed training data to construct a prediction function, where the pre-
+diction function simply maps observed characteristics (W , G ) into predictions of the ob-
+served label Y~.
+
+Definition 3. A predictive algorithm A is a function that maps a training dataset D N to a
+prediction function A( D N ) = f^N , where f^N : {0, 1} J +1  [0, 1]K , where f^N ,k ( g, w) is the
+                           ~ =y
+predicted probability that Y  ~k .
+
+Definition 4. A predictive algorithm A is consistent if its prediction function f^N = A( D N )
+                                                                      ~ given the characteristics
+converges in probability pointwise to the conditional distribution of Y
+W , G, meaning that as N  
+
+                               p
+                f^N ,k ( g, w) -
+                                 ~ k ( g, w )   ( g, w)  {0, 1} J +1 and k = 1, . . . , K.
+
+    As the size of the training dataset grows large, the social planner's posterior beliefs
+about   ( g, w) at some fixed characteristics g, w are equivalent asymptotically to the so-
+cial planner's beliefs if she simply plugged in the predictions of a consistent predictive
+algorithm to her beliefs about the distribution of the outcome of interest Y  conditional
+on the measured outcome Y    ~ . Define  (  | ~ ) to be the conditional prior distribution of the
+              
+parameters  given the parameters        ~ . The social planner's posterior beliefs about   are
+asymptotically equivalent to the beliefs she would have if she plugged in the predictions
+of a consistent predictive algorithm into her conditional prior beliefs  (  |      ~ ).
+
+Proposition 3. Let A be a consistent predictive algorithm, and assume that the regularity condi-
+tions in Appendix C hold. The social planner's plug-in posterior beliefs  (  | f^N ) asymptotically
+
+
+
+                                                     14
+approximate the social planner's true posterior beliefs  (  | D N ) as N  , meaning
+
+                                                             p
+                                d TV  (  | Dn ),  (  | f^N ) -
+                                                              0,
+
+where d TV (·, ·) denotes the total variation distance between probability measures.
+
+Proposition 3 implies that the social planner's posterior beliefs are asymptotically equiv-
+alent to her beliefs if she constructed a consistent prediction function for the measured
+outcome in the training dataset and then ex-post mapped these into predictions of the
+outcome of interest. In other words, to construct her optimal predictive algorithm, the
+social planner first constructs an accurate predictor for the measured outcome and then
+modifies them according to her prior beliefs about the relationship between the measured
+outcome and the outcome of interest.
+    This result slightly generalizes Theorem 1 in Moon and Schorfheide (2012), which
+shows that the posterior beliefs of a Bayesian decision-maker about an unidentified pa-
+rameter given an identified parameter can be approximated asymptotically by their pos-
+terior beliefs about the unidentified parameter evaluated at the maximum likelihood es-
+timator for the identified parameter. Proposition 3 shows that the same result holds for
+any consistent estimator of the identified parameter under the same high-level regularity
+conditions as Moon and Schorfheide (2012), provided in Appendix C for completeness.
+    Together, Propositions 1-3 imply a strong-form of equity irrelevance - the social plan-
+ner's equity preferences modify the decision rule but not the predictive algorithm and the
+only factor in the social planner's choice of predictive algorithm is accuracy. The social
+planner does not wish to blind the predictive algorithm to group membership, nor re-
+move any characteristics W . Moreover, she does not wish for the predictive algorithm to
+satisfy any additional fairness constraints that may worsen predictive accuracy. The so-
+cial planner simply constructs an accurate prediction function of the measured outcome
+Y~ using the characteristics W and group membership G. Given this estimated prediction
+function, the social planner modifies the decision rule in two ways. First, she maps the
+predictions of the measured outcome into predictions of the outcome of interest using
+her prior beliefs  and second, she adjusts the admissions thresholds based on the social
+welfare weights.
+
+3.4   Connections to previous work
+Much of the literature in computer science approaches the problem of algorithmic fairness
+by first introducing a definition of a "fair" prediction function. Given a particular defi-
+nition, the problem of constructing fair prediction functions reduces to searching for the
+
+
+                                                15
+most accurate prediction function that satisfies the chosen definition. Because fairness
+is modelled as an additional constraint in the training procedure, this is commonly re-
+ferred to as "fairness-constrained" optimization. For example, Dwork et al. (2012) defines
+a prediction function to be fair if it satisfies a "Lipschitz constraint," which informally
+means that if two observations have similar observable characteristics, then they should
+receive similar predictions. Zemel et al. (2013) additionally defines a prediction function
+to be fair if it satisfies "statistical parity," meaning that the probability that a member of
+the disadvantaged group is assigned a particular classification is equal to the probability
+that a member of the non-disadvantaged group is assigned to that same classification.5
+Feldman et al. (2015) formally defines what it means for a prediction function to gener-
+ate "disparate impact" in terms of classification accuracy across groups and Hardt et al.
+(2016) introduce two additional notions of fair prediction, which they refer to as "equal-
+ized odds" and "equal opportunity." Mitchell et al. (2019) provides a recent review of the
+wide range of definitions of fairness that exist in the literature.
+     This approach is crucially different than our analysis of the first-best problem. We did
+not first introduce a definition of a fair prediction function and then search for the predic-
+tion function that maximizes social welfare among all that satisfy the chosen definition.
+Instead, we began with the social welfare function, which explicitly defines an equity
+preference in terms of the outcomes of the screening decisions. We placed no restrictions
+on the admissions rule, and searched among all admissions rule to find the optimum.
+This is a subtle, yet important difference as defining fairness in terms of properties of
+the underlying prediction function may be unsatisfying for several reasons. First, it is
+well known that many commonly used definitions of fairness in the computer science
+literature cannot be simultaneously satisfied (e.g. Raghavan et al., 2017; Chouldechova,
+2017; Pleiss et al., 2017). Second, in practice, prediction functions that satisfy a particu-
+lar definition of predictive fairness may nevertheless produce downstream, unequal out-
+comes.6 Given that our preferences for fairness are ultimately defined over downstream
+outcomes, it is conceptually attractive to directly summarize these preferences as a social
+welfare function.
+     Our result in Proposition 1 is most closely related to several recent papers in com-
+puter science. Corbett-Davies et al. (2017) show the optimal classifier that satisfies certain
+   5 This is sometimes referred to as "group fairness." Kamishima et al. (2011) and Kamishima et al. (2012)
+introduce regularization techniques that are designed to achieve a similar definition of group fairness.
+   6 For example, Liu et al. (2018) highlight that the commonly introduced definitions of fair predictions
+
+are static and only describe properties in a single, one-shot prediction exercise. When examined dynami-
+cally, the authors show that prediction functions that satisfy, for example, demographic parity may lead to
+declines in the average predicted outcome for disadvantaged group.
+
+
+
+                                                    16
+definitions of fairness takes the form of a threshold rule with group-specific thresholds.7
+Lipton et al. (2018) and Menon and Williamson (2018) provide similar results, character-
+izing the solutions to other "fairness-constrained" loss minimization problems. These are
+analogous to our result in Proposition 1, except, as mentioned, we show that the same
+form of the decision rule is globally optimal for any social welfare function that takes the
+form in Equation (2).
+    Several recent papers in computer science also consider connections between a social
+welfare approach and existing predictive notions of fairness in computer science. Hu and
+Chen (2018) consider a related yet different question than the one we pursue. Given a
+prediction that solves a particular loss minimization problem, the authors characterize
+the set of social welfare functions that would be optimized by the given prediction func-
+tion. Similarly, Hu and Chen (2020) assess the welfare impacts of common predictive
+notions of fairness, where welfare is defined over the resulting outcomes for groups and
+individuals. Heidari et al. (2018) proposes a training procedure to construct algorithms
+that minimize some predictive loss subject to a constraint on the average utility of an in-
+dividual in the population. In contrast, we allow the social planner to explicitly place
+different weights on payoffs of individuals associated with different groups and assume
+that the social planner does not value predictive accuracy separately from social welfare.
+Balashankar et al. (2019) introduce a notion of "pareto-efficient fairness," which searches
+for prediction functions that jointly maximize predictive accuracy over each group in
+the population. Building on the welfare framework developed here, Viviano and Bradic
+(2020) advocate for selecting decision rules that lie on the "pareto frontier" (i.e., decision
+rules that are not strictly dominated by another in terms of average welfare for any group)
+and develop statistical techniques for characterizing the fairest decision rule within this
+frontier. Similarly motivated by our welfare economics framework, Babii et al. (2020) de-
+velop computational algorithms to solve classification problems with general loss func-
+tions.
+    Finally, Kleinberg et al. (2018) also introduce an explicit social welfare function that
+is defined over both the average outcome of admitted individuals and the fraction of
+admits from the disadvantaged group. Our results differ in two ways. First, the social
+welfare function in Equation (2) is only defined in terms of the average outcomes of the
+admitted individuals and not directly on the composition of the admitted class. Second,
+we explicitly allow for the measured outcome to differ from the outcome of interest.
+   7 These fairness definitions are "statistical parity", "conditional statistical parity" and "predictive equal-
+ity." See Corbett-Davies et al. (2017) for details.
+
+
+
+
+                                                       17
+4      Regulating Discrimination and the Detection Problem
+In applications in which the social planner selects both the predictive algorithm and the
+decision rule, our focus on the first-best problem is the relevant policy problem. However,
+in many other settings, third-party firms or individuals control both the construction of
+the algorithm and the choice of the admissions rule. Such problems are better modeled
+as a regulation problem, in which the social planner interacts with a third-party decision-
+maker and has access to only a limited set of policy instruments to influence their choices.
+Throughout, we refer to the third-party decision-maker as a human decision-maker.
+    We now extend our model to analyze this regulation problem. The social planner
+oversees a market of human decision-makers, each of which faces their own screening
+decision. The human decision-makers have different preferences than the social planner,
+and some wish to discriminate against the disadvantaged group. The social planner faces
+a second-best problem as she must rely on possibly discriminatory human decision-makers
+to select admissions decisions that maximize social welfare and may only influence their
+decisions through policy instruments. Crucially in our analysis of the regulation problem,
+we focus on modeling the human decision-makers' and social planners' beliefs about
+what characteristics are predictive of the outcome of interest, putting aside the measured
+outcome.8
+    Our main results in this section demonstrate that this model captures many of our
+existing intuitions about regulating discrimination in the absence of algorithms and that
+the equilibrium level of discrimination in this purely human-driven decision-making en-
+vironment is strictly positive, highlighting the difficulty of detecting discrimination.
+
+4.1     The market of human decision-makers
+There is a market that consists of a unit mass of human decision-makers. Each human
+decision-maker faces her own screening decision, modeled as in Section 2. A human
+decision-maker is summarized by three components: preferences  := (0 , 1 ), prior
+beliefs m and a capacity constraint C  [0, 1].
+    The human decision-maker's preferences  govern her payoffs. Similar to the social
+welfare function, the human decision-maker's payoffs are a weighted average of the out-
+come of interest among individuals that are admitted into the program
+
+                        U ( t;  ) : =                       g   ( g, w ) t ( g, w ) P ( g, w ),        (7)
+                                        ( g,w){0,1} J +1
+    8 This
+        may be interpreted as assuming that the human decision-makers and the social planner share the
+same prior beliefs over the relationship between (Y ~ , Y  ) and the social planner simply knows less about
+what characteristics are predictive of the measured outcome.
+
+                                                           18
+where (0 , 1 ) are the relative weights placed on the outcomes of each group. If 0 > 1 ,
+then the human decision-maker underweights outcomes associated with the disadvan-
+taged group, leading to the following definition.
+
+Definition 5. The human decision-maker is discriminatory if 0 > 1 . The human decision-
+maker is non-discriminatory if 0 = 1 .
+
+Non-discriminatory human decision-makers place equal weight on the outcomes asso-
+ciated with each group, and therefore simply wish to select a decision rule that maxi-
+mizes the average outcome of interest among the admitted individuals. In this sense, dis-
+criminatory human decision-makers are taste-based discriminators in the spirit of Becker
+(1957). Given the form of the preferences in Equation (7), we normalize 0 = 1 with-
+out further loss of generality. We assume there are only two types of preferences in the
+market: non-discriminators with  = (1, 1) and discriminators with  = (1,       ¯ 1 ) and ¯ 1 < 1.
+    Let m  {1, . . . , J } denote a model, where Wm denotes the subvector of W = (W1 , . . . , WJ )
+associated with the indices in model m and W-m denotes the subvector of W that is not
+associated with model m. Let |m| denote the number of characteristics in model m.
+    The prior beliefs m describe the human decision-maker's beliefs about which charac-
+teristics W  {0, 1} J are relevant for predicting the outcome of interest Y  in her screening
+decision. Each prior m is associated with a particular model m  {1, . . . , J } and is de-
+fined such that human decision-makers with prior m believe that only the variables in
+model m contain signal for predicting the outcome of interest Y  . More concretely, m is
+a joint distribution over the parameters {  ( g, w) : ( g, w)  {0, 1} J +1 } satisfying
+
+                       Em [  ( g, wm , w-m )] = Em   ( g, wm , w-m )                         (8)
+
+for all g  {0, 1}, wm  {0, 1}|m| , w-m , w-m  {0, 1} J -|m| . For compactness, write
+  ( g, w ) : = E                                                    J
+  m      m       m [  ( g, w )], where w = ( wm , w-m ). There are 2 possible models and
+there is a prior m associated with each model that satisfies Equation (8). The human
+decision-maker's prior m can be thought of as her "mental" algorithm that summarizes
+which characteristics she believes to be predictive of the outcome of interest.
+    We assume that at each prior m , all characteristics in model m are relevant for pre-
+dicting the outcome of interest and that the human decision-maker believes that there are
+no group differences conditional on the characteristics in model m.
+
+Assumption 1 (Sufficiency and relevance). At each model m  {1, . . . , J } and associated
+beliefs m , assume that the characteristics in model m are
+
+  (i) sufficient, meaning  (0, w ) =   (1, w ) for all w  {0, 1}|m| ,
+                           m    m    m      m           m
+
+
+                                               19
+ (ii) relevant, meaning  ( g, w ) =   ( g, w ) for all w , w  {0, 1}|m| with w = w .
+                         m     m    m       m           m   m                 m   m
+
+With the sufficiency assumption, further write  ( w ) : =   ( g, w ), dropping the de-
+                                                m  m      m       m
+pendence on group membership.
+    Finally, each human decision-maker faces a capacity constraint C  [0, 1], meaning
+the human decision-maker may not admit more than fraction C of the population
+
+                                                       t ( g, w ) P ( g, w )  C .            (9)
+                                    ( g,w){0,1} J +1
+
+
+    The market of human decision-makers is characterized by a joint distribution  (, m , C )
+over possible combinations of preferences , beliefs m and capacity constraints C. This
+joint distribution has full support, meaning that  (, m , C ) > 0 for each possible com-
+bination of preferences, beliefs and capacity constraints. We additionally assume that the
+capacity constraint is independent of preferences and beliefs, meaning that (, m )    C
+under  and, therefore we factor this joint distribution into  (, m , C ) =  (, m ) × h(C ).
+
+4.2   The human decision-maker's screening problem
+Consider a human decision-maker with preferences , beliefs m and capacity constraint
+C. She selects a decision rule that maximizes her expected payoffs subject to the capacity
+constraint
+
+                        max
+                        t ( g,w )
+                                                        g 
+                                                           m
+                                                             ( w ) t ( g, w ) P ( g, w ),   (10)
+                                    ( g,w){0,1} J +1
+
+                          s.t.                         t ( g, w ) P ( g, w )  C .
+                                    ( g,w){0,1} J +1
+
+
+    This is exactly analogous to the social planner's first-best problem in Definition 1.
+Applying Proposition 1, the human decision-maker's optimal decision rule is a thresh-
+old rule that takes the form 1   ( w ) >  ( g; C,  ) , in which ties are handled such that
+                                  m
+the capacity constraint holds with equality. The threshold for admissions  ( g; C, ) de-
+pends on the human decision-maker's preferences. If the human decision-maker is non-
+discriminatory with  = (1, 1), then the threshold is constant across groups. If the human
+decision-maker is discriminatory with  = (1,    ¯ 1 ) and ¯ 1 < 1, then she applies a higher
+threshold for admission to the disadvantaged group.
+
+4.3   The social planner's regulation problem
+The social welfare function for a given screening problem is defined as before in Equa-
+tion (2). The social planner's preferences (0 , 1 ) are aligned with the preferences of non-
+
+                                                          20
+discriminatory human decision-makers.
+
+Assumption 2 (Alignment). The social planner's preferences are aligned with non-discriminatory
+human decision-makers at each prior beliefs m , meaning that 0 = 1 = 1.
+
+The assumption that the social planner's preferences are aligned with the non-discriminator's
+preferences is strong. An interpretation is that our model of the regulation problem as-
+sumes that a status quo in which the social planner's equity preference is only binding
+relative to discriminatory human decision-makers and it imposes that the social planner
+has no additional equity preference relative to the unconstrained choices that would be
+made by the non-discriminators.
+    The social planner does not directly observe the preferences , the beliefs m nor
+the capacity constraint C of any given human decision-maker. She only knows the joint
+distribution  of (, m , C ) in the market of human decision-makers. The social planner's
+payoffs are summarized by the aggregate social welfare function
+                                                                          
+
+                      C
+                                                E  
+                                                    m
+                                                      (w)t( g, w) P( g, w) h(C )dC.                    (11)
+                             ( g,w){0,1} J +1
+
+
+Given that the social planner's preferences do not equal the discriminators' preferences,
+the optimal decision rules of human decision-makers will not, in general, maximize the
+aggregate social welfare function.
+
+4.3.1   Model regulations
+
+The only policy instrument available to the social planner is model regulations, meaning
+that the social planner may regulate what characteristics can be used in decision rules.
+For example, the social planner may ban the decision rules from explicitly using group
+membership or it may ban the decision rules from using certain characteristics.9,10
+
+Definition 6. The social planner may place model regulations on the human decision-makers'
+decision rule. If the social planner implements model regulations m, then all decision rules must
+    9 The policy tool of banning certain characteristics from being used by human decision-makers has been
+
+considered before in the economics literature on the regulation of insurance markets and pre-existing con-
+ditions (Hoy, 1982; Crocker and Snow, 1986; Rothschild, 2011). This policy constraint is consistent with the
+observation that in practice regulators for example rarely tell firms exactly how many people to hire, that
+is, where to set admission thresholds.
+   10 Our set-up of the regulation problem is similar to the setting studied in Fryer Jr (2009). However, in
+
+Fryer Jr (2009), there are no observable characteristics, and therefore, the only policy tools available are
+quotas on the total level of hiring, whereas here we allow the regulator to directly influence the human
+decision-makers' hiring rules.
+
+                                                        21
+satisfy
+                                  t ( g, w m , w - m ) = t ( g, w m , w - m )
+
+for all g  {0, 1}, wm  {0, 1}|m| and w-m , w-m  {0, 1} J -|m| . If the social planner additionally
+bans group membership, then all decision rules must further satisfy, for all g, g  {0, 1},
+
+                                  t ( g, w m , w - m ) = t ( g , w m , w - m ).
+
+By assuming that the social planner may only place model regulations on human decision-
+makers, we are restricting the space of policy instruments that is available to the social
+planner. How the analysis changes under a broader set of potential policy levers is an
+important topic for future work. Additionally, we are assuming that these model regula-
+tions are enforceable and that human decision-makers comply with them in good faith.
+Assuming that model regulations can be enforced effectively implies that the social plan-
+ner observes the human decision-makers' decision rules, whereas in practice, the social
+planner may only observe a finite number of realized admissions decisions. Assuming
+that human decision-makers comply with model regulations in good faith implies that
+human decision-makers do not further manipulate characteristics that enter into their
+chosen model ­ once a characteristic is used, it is used only in a manner that is consistent
+with their prior beliefs.
+    Banning some characteristics from being used in decision rules forces human decision-
+makers to pool together groups in the population. This may lead human decision-makers
+to rank-order the population in a way that more closely matches the social planner's pre-
+ferred rank-ordering. To see this, consider a human decision-maker with preferences ,
+beliefs m ~ and capacity constraint C . At model controls m, she now maximizes
+
+
+                             g E 
+                                  ~
+                                  m
+                                    (Wm , W-m ) | Wm = wm , G = g                 t ( g, w m ) P ( g, w m ).   (12)
+     g{0,1} wm   {0,1}|m|
+
+
+The human decision-maker rank-orders based upon  g E [m        (W , W
+                                                              ~   m    -m ) | Wm = wm , G = g ]
+as she must pool together individuals that share the same characteristics in model m. Let
+ ~
+tm
+ ,C ( g, w; m ) denote the decision rule that would be selected by a human decision-maker
+with preferences , beliefs m    ~ and capacity constraint C at model controls m if she may
+use group membership.
+    Similarly, if the social planner additionally bans decision rules from depending on G,
+
+
+
+
+                                                      22
+then the human decision-maker maximizes
+                                                                    
+                                                                    
+           g E  m         
+                           ~
+                             (Wm , W-m ) | Wm = wm , G = g P( g|wm ) t(wm ) P(wm ).
+           |m|  g{0,1}
+                                                                    
+   wm {0,1}
+                                                                                         (13)
+Since she must further pool individuals across groups, the human decision-maker rank-
+orders the population using  g  g E    (W , W
+                                       ~
+                                       m   m
+                                                                                          ~
+                                                                                          m
+                                                -m ) | Wm = wm , G = g P ( g | wm ). Let t,C ( w; m )
+denote the decision rule that the human decision-maker would select if she cannot use
+group membership at model controls m.
+    The social planner searches over possible model controls to find the one that induces
+a rank-ordering most closely aligned with her first-best rank-ordering. This is the second-
+best problem.
+
+Definition 7. The social planner's second-best problem is to select the model regulations that
+maximize aggregate social welfare, taking the decision rules chosen by human decision-makers as
+given. She solves
+                                                                                           
+
+      m = arg     max
+                m{1,..., J } C
+                                                       E  
+                                                           ~
+                                                           m
+                                                                 ~
+                                                             (w)tm
+                                                                  ,C ( g , w ; m ) P ( g , w )
+                                                                                                h(C )dC.
+                                    ( g,w){0,1} J +1
+
+
+If she additionally bans human decision-makers from using group membership, she solves
+                                                                                          
+
+       m = arg      max
+                 m{1,..., J } C
+                                                        E  
+                                                            ~
+                                                            m
+                                                                  ~
+                                                              (w)tm
+                                                                   ,C ( w ; m ) P ( g , w )
+                                                                                             h(C )dC.
+                                     ( g,w){0,1} J +1
+
+
+The solution m is the social planner's second-best model regulations.
+
+     Finally, the "level of discrimination" at model controls m equals the fraction of dis-
+criminatory human decision-makers that select a decision rule that is different than the
+decision-rule chosen by non-discriminatory human decision-makers with the same be-
+liefs and capacity constraint.
+
+Definition 8. The level of discrimination at model controls m equals
+
+                      (m) := P tm
+                                ~           m~                     ¯
+                                ,C ( m ) = t(1,1),C ( m ) |  = (1, 1 ) ,
+
+
+where P · |  = (1,  ¯ 1 ) is the conditional joint distribution of beliefs m
+                                                                           ~ and the capacity con-
+straint C among discriminatory human decision-makers. The equilibrium level of discrimina-
+tion is (m ).
+
+                                                         23
+4.4   Characterizing the social planner's second-best model regulations
+We now characterize the social planner's second-best model regulations when she is faced
+with human decision-makers. To do so, we formalize what it means for the group G = 1
+to be disadvantaged. Disadvantage in this model means that characteristics associated
+with lower average values of the outcome of interest are more likely to occur among the
+disadvantaged group.
+
+Assumption 3 (Disadvantage condition). At each beliefs m , if w, w are such that  (w) 
+                                                                                  m
+  ( w ), then
+  m
+                               P(0, w)     P(0, w )
+                                                    ,
+                               P(1, w)     P(1, w )
+and this holds with strict inequality if  ( w ) >   ( w ).
+                                          m       m
+
+Together, the disadvantage condition (Assumption 3) and the sufficiency condition (As-
+sumption 1) imply that, conditional on all features at a given model, there are no aver-
+age differences in the outcome between members of the advantaged and disadvantaged
+group yet features associated with lower average levels of the outcome of interest are
+more likely to be observed among the disadvantaged group. Put in another way, we are
+assuming that disadvantage in the model only arises through the distribution of features
+across groups.
+    How exactly the social planner selects model regulations may be quite complex. It
+will depend on the relative fractions of discriminatory and non-discriminatory human
+decision-makers as well as the distribution of beliefs m across the market of human
+decision-makers. Therefore, in order to build intuition, we start by considering two sim-
+pler problems.
+    First, suppose that there are only non-discriminatory human decision-makers in the
+market and that all human decision-makers have the same beliefs m         ~ . In this case, pro-
+vided the disadvantage condition is satisfied at model m   ~ , the social planner lets the hu-
+man decision-makers use any model m that satisfies m     ~  m, meaning that it includes all
+characteristics that are believed to be predictive of the outcome of interest.
+
+Proposition 4. Suppose that there are only non-discriminatory human decision-makers with
+model m ~ in the market. Then, the social planner's second-best regulation m may be any model in
+the set {m : m~  m} and the social planner is indifferent to banning group membership G.
+
+Under Assumption 2, the social planner's preferences are sufficiently aligned with the
+non-discriminatory human decision-maker's preferences such that the social planner does
+not wish to change the rank-ordering of the non-discriminatory human decision-maker.
+
+                                              24
+Banning characteristics that are believed to be predictive of the outcome of interest only
+introduces mis-rankings that lower aggregate social welfare.
+    Next, suppose that there are only discriminatory human decision-makers in the mar-
+ket and that all human decision-makers have the same beliefs m     ~ . Intuitively, discrimina-
+tory human decision-makers have sufficiently different preferences than the social plan-
+ner that the social planner may find it optimal to place model regulations. Indeed, pro-
+vided that the disadvantage condition is satisfied at beliefs m~ , this is true ­ it is optimal
+for the social planner to implement model controls, forcing the discriminatory human
+decision-makers to use model m  ~ and ban them from using group membership.
+
+Proposition 5. Suppose that there are only discriminatory human decision-makers with model m      ~
+in the market and the disadvantage condition holds. Then, it is optimal for social planner to place
+model controls that force the human decision-makers to use model m ~ and ban group membership.
+
+The proof shows that at these model controls, the rank-ordering used by discriminatory
+human decision-makers is the same as the rank-ordering used by non-discriminatory hu-
+man decision-makers. This result is reminiscent of a "disparate treatment" test because
+the social planner wishes to force discriminatory human decision-makers to treat mem-
+bers of both groups the same given the characteristics in model m ~.
+    To this point, we considered special cases in which all human decision-makers had
+the same beliefs and the regulator knew those beliefs exactly. In general, there is an entire
+market of human decision-makers with different beliefs about which characteristics are
+predictive of the outcome of interest. This additional dimension of private information
+induces a trade-off. Banning group membership creates an incentive for a discriminatory
+human decision-maker to use more characteristics in her decision rule than she believes
+to be predictive of the outcome of interest in order to screen out members of the disad-
+vantaged group. In other words, it creates incentives for discriminatory human decision-
+makers to select decision rules that generate disparate impact.
+
+Proposition 6. Consider a discriminatory human decision-maker with model m~ and assume that
+P( G = 1|W = w) = P( G = 1|W = w ) for all w, w  {0, 1} J with w = w . If group
+membership G is banned, then the discriminatory human decision-maker's optimal decision rule
+is based on a rank-ordering that uses all characteristics W  {0, 1} J .
+
+Provided that the social planner bans group membership from being used in decision
+rules, human decision-makers may wish to use an additional characteristic for two rea-
+sons. Some human decision-makers may believe that it is predictive of the outcome of
+interest and others may wish to use it in order to screen out the disadvantaged group.
+
+                                                25
+This intuition produces the flexibility tradeoff in regulating discrimination. Letting hu-
+man decision-makers use more characteristics leads to more accurate rank-orderings of
+the population but it also makes it easier for discriminatory human decision-makers to
+screen out the disadvantaged group.
+
+Proposition 7. Suppose that the social planner bans human decision-makers from using group
+membership in their decision rules. Then, the second-best problem in Definition 7 is equivalent to
+
+
+  min
+m{1,..., J }
+                C
+                    E  (W )  
+                              ~
+                              m
+                                       ~
+                                (W ) t m          m~
+                                       ,C (W ) - t ND,C (W ; m ) h (C ) dC  ( m
+                                                                              ~)
+          ~
+          m
+
+          +  (D)              E  (W )  
+                                        ~
+                                        m
+                                                 ~
+                                          (W ) t m                 ~
+                                                                   m
+                                                 ND,C (W ; m ) - t D,C (W ; m ) h (C ) dC  ( m
+                                                                                             ~ | D ),
+                     ~
+                     m    C
+
+
+where (W ) = 0 P(0|w) + 1 P(1|w) and tm        ~
+                                               ,C (W ) denotes the social planner's first-best deci-
+sion rule at beliefs m
+                     ~ and capacity constraint C.
+
+The first term in Proposition 7 depends on the difference between the social planner's
+first-best decision rule at beliefs m ~ and the decision rule that non-discriminatory hu-
+man decision-makers with beliefs m     ~ would select at model controls m. Under the align-
+ment assumption (Assumption 2), for model controls satisfying m       ~  m, the rank-order
+used by the the non-discriminatory human decision-maker matches the social planner's
+first-best rank-order. Therefore, as the number of characteristics allowed grows, the first
+term declines to zero, capturing the gains from more accurate rank-ordering. The second
+term depends on the difference between the decision rule selected by non-discriminatory
+human decision-makers and discriminatory human decision-makers at the same beliefs
+m  ~ and model controls m. These differ only because of the different preferences  be-
+tween these human decision-makers. Once the model controls are such that m           ~  m,
+the decision rule selected by the non-discriminatory human decision-makers no longer
+changes but the discriminatory human decision-makers now use any extra features to
+screen out members of the disadvantaged group (Proposition 6). As the number of al-
+lowed characteristics increases, there are more differences between the decision rules
+of the non-discriminatory human decision-makers and discriminatory human-decision-
+makers, lowering social welfare. This effect captures the intuition that more permissive
+model regulations makes it easier for discriminatory human decision-makers to select
+decision rules that generate disparate impact.
+     Finally, we show that the equilibrium level of discrimination is non-zero in the second-
+best problem provided that there is a conflict in the preferred ranking-orderings of dis-
+criminatory and non-discriminatory human decision-makers.
+
+                                                  26
+Proposition 8. Suppose that for all beliefs m~ , there exists a pair of characteristics wm
+                                                                                         ~ , wm
+                                                                                              ~ such
+that
+                                             ¯                     ¯       
+                 ~
+                 m
+                   ( wm
+                      ~ ) >  m ~
+                                 ( wm
+                                    ~ ), and  ( w ) m   ~
+                                                          ( wm
+                                                             ~ ) >  ( w )  m~
+                                                                              ( wm
+                                                                                 ~ ),
+
+where  ¯ ( wm
+            ~ ) = P (0| w m
+                                ¯
+                          ~ ) + 1 P (1| w m
+                                          ~ ). Then, the equilibrium level of discrimination is strictly
+positive with (m ) > 0.
+                   
+
+
+Because the social planner must select a single model regulation for the entire market,
+there always exists some discriminatory human decision-makers that are given sufficient
+freedom to select a decision rule that differs from the corresponding non-discriminatory
+human decision-maker. In equilibrium, discrimination goes undetected. The stated con-
+dition in Proposition 8 imposes that discriminatory preferences induce a wedge in the
+preferred ranking-orderings.
+
+5     Algorithmic Decision-Making and Second-Best Model Reg-
+      ulations
+To this point, we considered the social planner's second-best problem when she oversees
+a market of human decision-makers without algorithms. The social planner faced two
+sources of asymmetric information: over the preferences  and over the beliefs m of the
+human decision-makers and both dimensions of asymmetric information gave rise to the
+flexibility tradeoff.
+    We now consider what happens when human decision-makers adopt predictive al-
+gorithms in their screening decisions. How this affects the social planner's second-best
+model regulations depends crucially on what human decision-makers must disclose about
+their predictive algorithms and decisions rules. First, we consider a full disclosure regime
+in which human decision-makers' are subject to algorithmic audits, meaning that they
+must disclose both their decision rule and predictive algorithm to the social planner. In
+this case, the social planner now finds it optimal to let any characteristic that is predictive
+of the outcome of interest be used in decision rules and the equilibrium level of discrim-
+ination is zero. Second, to highlight the importance of full disclosure, we consider the
+case in which human decision-makers' only disclose their decision rule but not their pre-
+dictive algorithm. In this case, optimal regulation is the same as the case with a purely
+human-driven decision loop.
+
+5.1    Introducing algorithmic decision-making
+We model the introduction of predictive algorithms as revealing the ground truth   ( g, w)
+in each screening problem to the human decision-makers. An interpretation is that the
+
+                                                  27
+human decision-makers receive access to a large, randomly sampled dataset from the
+population of individuals and using this training dataset to train a consistent predictive
+algorithm (Definition 4). Formally, each human decision-maker is now associated with a
+ground-truth model.
+
+Definition 9. A ground-truth model m summarizes the set of characteristics that are relevant
+in predicting the outcome of interest in a screening problem. It is associated with parameters
+E [Y  | G = g, W = w] =   ( g, w) that satisfy
+
+                                ( g, w m , w - m ) =   ( g , w m , w - m )
+
+for all g, g  {0, 1}, wm  {0, 1}|m| and w-m , w-m  {0, 1} J -|m| .
+
+The ground-truth model m is the human decision-maker's predictive algorithm. At the
+ground-truth model m, the characteristics Wm are sufficient and relevant for predicting
+the outcome of interest in the population of individuals. Denote the average outcome of
+interest at ground-truth model m as   ( g, wm , w-m ) := m         ( w ) for all g  {0, 1}, w
+                                                                       m                      -m 
+{0, 1} J -| m | .
+    Given their ground-truth model, preferences and capacity constraint, each human
+decision-maker selects a decision rule to maximize their payoffs, which are now defined
+as
+                                           
+                                         g m ( w ) t ( g, w ) P ( g, w ).                      (14)
+                              ( g,w){0,1} J +1
+
+The human decision-maker's optimal decision rule is a threshold rule 1 {m   ( w ) >  ( g; C ,  ) },
+
+in which ties are handled such that the capacity constraint holds with equality and the
+threshold  ( g; C, ) may vary across groups.
+    Finally, the market of human decision-makers is now summarized by a joint distribu-
+tion over ground-truth models m, preferences  and capacity constraints C and in a slight
+abuse of notation, we again denote this joint distribution by  . We continue to assume
+that the distribution has full support and that the capacity constraint is independent of
+the ground-truth model and preferences in the market of human decision-makers, mean-
+ing (m, )     C under  .
+
+5.2   Second-best model regulations in the presence of algorithmic au-
+      dits
+The adoption of predictive algorithms introduces a new policy tool to the social planner
+­ algorithmic audits. An algorithmic audit refers to the process in which the social planner
+
+
+                                                  28
+may access the underlying training data and training procedure that the human decision-
+maker used to construct her algorithm. Kleinberg et al. (2018, 2020) describe in detail how
+algorithmic audits may function in practice. We model algorithmic audits in a reduced-
+form manner as simply revealing the ground-truth model m of each human decision-
+maker to the social planner.
+                                                                    of each human decision-
+Definition 10. An algorithmic audit reveals the ground-truth model m
+maker in the market.
+
+    If the social planner may implement algorithmic audits, then the adoption of pre-
+dictive algorithms eliminates one dimension of private information between the social
+planner and the human decision-makers. She may now condition her model regulations
+on the ground-truth model m. This has important ramifications for how the social planner
+sets her optimal model regulations.
+    In the presence of algorithmic audits, the social planner's second-best problem is now
+to select her model regulations that maximize aggregate social welfare, conditional on the
+ground-truth model m revealed by the algorithmic audit.
+
+Definition 11. Suppose the social planner may conduct algorithmic audits. The social planner's
+algorithmic second-best problem is to select model regulations that maximize aggregate social
+welfare among all human decision-makers with ground-truth model m, taking the decision rules
+chosen by the human decision-makers as given. That is, she solves
+                                                                                               
+
+   m (m) = arg
+                  m
+                    max
+                  ~ {1,..., J } C
+                                                          E | m  m
+                                                                 
+                                                                   (w)tm             ~ ) P( g, w)  h(C )dC,
+                                                                        ,C ( g , w ; m
+                                       ( g,w){0,1} J +1
+
+
+where E|m [·] is an expectation over conditional distribution of preferences given the true model
+m,  (|m).
+
+    Our earlier results from Section 4 immediately imply that the social planner's second-
+best algorithmic regulations are simple if she may conduct algorithmic audits. At ground-
+truth model m, the social planner finds it optimal to set model controls m ~ = m and ban
+group membership. We state this in the next proposition.
+
+Proposition 9. In the presence of algorithmic audits, a second-best model regulation for the so-
+cial planner allows the human decision-makers decision-makers to use any characteristics that is
+predictive of the outcome of interest and bans group membership. That is, m (m ~) = m  ~ for all
+ground-truth models m  ~ .
+
+
+                                                          29
+Proof. This result follows immediately from Proposition 4 and Proposition 5, which imply
+that an optimum for the social planner is to set m (m
+                                                    ~) = m ~ and ban group membership
+G from being used in decision rules.
+
+The intuition underlying this result is quite simple. If there were only non-discriminators
+among human decision-makers with ground-truth model m        ~ , then the social planner would
+find it optimal to select any model controls m satisfying m  ~  m. If there were only dis-
+criminators among the human decision-makers with ground-truth model m            ~ , then the so-
+cial planner would find it optimal to select model controls m = m       ~ and ban the use of
+group membership. Proposition 9 follows immediately from these two results.
+    Moreover, the presence of algorithmic audits has strong implications for the equi-
+librium level of discrimination. If the social planner may conduct algorithmic audits,
+then the introduction of algorithmic decision-making lowers the equilibrium level of dis-
+crimination relative to its level without algorithms and in fact, the equilibrium level of
+discrimination goes to zero provided that the disadvantage condition holds.
+
+Proposition 10. If the social planner may conduct algorithmic audits, then the equilibrium level
+of discrimination is zero (i.e., (m ) = 0).
+
+Because the social planner no longer faces asymmetric information over both the human
+decision-makers' preferences and the ground truth model if she can conduct algorithmic
+audits, she is able to force discriminatory human decision-makers to select the same deci-
+sion rule as non-discriminatory human decision-makers. This highlights a core gain from
+the adoption of predictive algorithms ­ there is a reduction in the level of discrimination
+provided that the social planner may conduct algorithmic audits.
+
+5.3   Second-best model regulations with known decision rules
+Finally, we consider a disclosure regime in which human decision-makers must only dis-
+close their decision rule to the social planner. In this case, the introduction of predictive al-
+gorithms does not change the social planner's second-best regulation problem. Since she
+still faces asymmetric information over the ground-truth model of the human decision-
+makers, the social planner still faces the flexibility tradeoff in Proposition 7, highlighting
+the importance of full disclosure of both the ground-truth model and the decision rule in
+the previous regime. If human decision-makers must only disclose their decision rule, op-
+timal regulation does not change relative to the case with a purely human-driven decision
+loop.
+
+Proposition 11. Suppose that the human decision-makers adopt algorithms and the social planner
+bans human decision-makers from using group membership in their decision rules. Then, the social
+
+                                               30
+planner's second-best problem is again equivalent to
+
+
+      min
+    m{1,..., J }
+                    C
+                        E m
+                                  ~
+                                  m          m~
+                          ~ (W ) t,C (W ) - t ND,C (W ; m ) h (C ) dC  ( m
+                                                                         ~)
+              ~
+              m
+
+              +  (D)              E m
+                                            m~                 ~
+                                                               m
+                                    ~ (W ) t ND,C (W ; m ) - t D,C (W ; m ) h (C ) dC  ( m
+                                                                                         ~ | D ),
+                         ~
+                         m    C
+
+
+where tm~                                                                                  ~ and
+       ,C (W ) denotes the social planner's first-best decision rule at ground-truth model m
+capacity constraint C.
+
+Corollary 1. If at each ground truth model m, ~ there exists a pair of characteristics wm
+                                                                                        ~ , wm
+                                                                                             ~ such
+that
+                                              ¯                  ¯      
+                   m      ~ ) > m
+                     ~ ( wm          ~ ), and  ( w ) m
+                                ~ ( wm                ~ ( wm
+                                                           ~ ) > (w)m    ~ ( wm
+                                                                              ~ ),
+
+then the equilibrium level of discrimination is strictly positive with (m ) > 0.
+
+Since the social planner can still only observe the decision rule selected by the human
+decision-maker, she is still unsure of why this decision rule was selected. Non-discriminatory
+human decision-makers may be using a characteristic in their decision rule because it is
+predictive of the outcome of interest at their ground-truth model. In contrast, discrimina-
+tory human decision-makers may be using a characteristic in their decision rule because
+it helps screen out members of the disadvantaged group. In this disclosure regime, this
+asymmetric information problem is still present. Moreover, as before, the equilibrium
+level of discrimination is positive if the discriminatory preferences are binding at each
+ground truth model.
+
+6    Conclusion
+We developed an economic model of screening decisions that embeds concerns about
+algorithmic bias within a social welfare function. The social welfare function depends di-
+rectly on the outcomes of the screening decision, in which individuals from a population
+are screened into a program based on predictions of an unknown outcome of interest.
+     We first considered the social planner's first-best problem, in which the social plan-
+ner constructed a prediction function and selected the decision rule. The social planner's
+first-best decision rule ranks the population using all available information and then ad-
+mits individuals according to that ranking with group-specific admissions thresholds.
+The social planner's posterior beliefs are asymptotically equivalent to her beliefs if she
+constructed a consistent predictor of the measured outcome in the training dataset and
+ex-post mapped these into predictions of the outcome of interest. These results highlight
+
+
+                                                   31
+a strong form of equity irrelevance ­ equity preferences only modify the decision rule, not
+the prediction function, in the first-best problem.
+     Next, we considered the social planner's second-best problem, in which the social
+planner regulates the screening decisions of human decision-makers with possibly differ-
+ent preferences. The social planner faces a flexibility tradeoff ­ allowing human decision-
+makers to use more characteristics leads to more accurate predictions but it also enables
+discriminatory human decision-makers to screen out the disadvantaged group. Discrim-
+ination goes undetected, as the equilibrium level of discrimination is strictly positive.
+With algorithmic decision-making, the social planner may learn the true prediction func-
+tion used by human decision-makers through algorithmic audits. In this case, the social
+planner lets the human decision-makers use any characteristic that contains signal in pre-
+dicting the outcome of interest. Moreover, with algorithmic audits in place, the equilib-
+rium level of discrimination declines, highlighting that algorithmic decision-making not
+only improves prediction but may also make it easier to detect discrimination.
+     Our results analyzed the optimal use and regulation of algorithmic decision rules un-
+der a specific set of assumptions about the social planner, private actors and the nature of
+their interaction. It would be useful to enrich our analysis by allowing for more forms of
+discriminatory behavior and richer forms of information asymmetries between the social
+planner and the firms. For example, our analysis considered the case in which some hu-
+man decision-makers were tasted-based discriminators, ruling out other possible forms
+of discriminatory behavior (Fang and Moro, 2011; Bordalo et al., 2016). We also assumed
+that the social planner and firms agreed on the outcome of interest and shared a com-
+mon prior. Finally, we abstracted away from finite-sample issues in algorithmic audits,
+assuming that the human decision-makers and social planner learned ground truth once
+they accessed an algorithm. Analyzing the second-best problem in full generality is an
+important task moving forward, requiring insights from both economics and computer
+science.
+
+
+
+
+                                            32
+References
+Arnold, D., W. Dobbie, and P. Hull (2020a). Measuring racial discrimination in algorithms.
+  Technical report, NBER Working Paper No. 28222.
+
+Arnold, D., W. Dobbie, and P. Hull (2020b). Measuring racial discrimination in bail deci-
+  sions. Technical report, NBER Working Paper No. 26999.
+
+Arnold, D., W. Dobbie, and C. Yang (2018). Racial bias in bail decisions. The Quarterly
+  Journal of Economics 133(4), 1885---1932.
+
+Athey, S. C., K. A. Bryan, and J. S. Gans (2020). The allocation of decision authority to
+  human and artificial intelligence. Technical report, NBER Working Paper No. 26673.
+
+Babii, A., X. Chen, E. Ghysels, and R. Kumar (2020). Binary choice with asymmetric loss in
+  a data-rich environment: Theory and an application to racial justice. Technical report,
+  arXiv preprint, arXiv:2010.08463.
+
+Balashankar, A., A. Lees, C. Welty, and L. Subramanian (2019). What is fair? exploring
+  pareto-efficiency for fairness constrained classifiers. Technical report, arXiv preprint
+  arXiv:1910.14120.
+
+Barocas, S., M. Hardt, and A. Narayanan (2019). Fairness and Machine Learning. fairml-
+  book.org. http://www.fairmlbook.org.
+
+Becker, G. (1957). The Economics of Discrimination. University of Chicago Press.
+
+Blum, A. and K. Stangl (2019). Recovering from biased data: Can fairness constraints
+  improve accuracy? CoRR abs/1912.01094.
+
+Bordalo, P., K. Coffman, N. Gennaioli, and A. Shleifer (2016). Stereotypes. The Quarterly
+  Journal of Economics 131(4), 1753­1794.
+
+Chouldechova, A. (2017). Fair prediction with disparate impact: A study of bias in recidi-
+ vism prediction instruments. Big Data 5(2).
+
+Chouldechova, A. and A. Roth (2020). A snapshot of the frontiers of fairness in machine
+ learning. Communications of the ACM 63(5), 82­89.
+
+Corbett-Davies, S., E. Pierson, A. Feller, S. Goel, and A. Huq (2017). Algorithmic decision
+ making and the cost of fairness. Proceedings of the 23rd Conference on Knowledge Discovery
+ and Data Mining.
+
+Cowgill, B. and M. Stevenson (2020). Algorithmic social engineering. Technical report.
+
+Cowgill, B. and C. Tucker (2019). Economics and algorithmic fairness. Technical report.
+
+Crocker, K. J. and A. Snow (1986). The efficiency effects of categorical discrimination in
+  the insurance industry. The Journal of Political Economy 94(2), 321­344.
+
+
+                                            33
+Doleac, J. and M. Stevenson (2019). Algorithmic risk assessment in the hands of humans.
+ Technical report, IZA Discussion Paper Series No. 12853.
+
+Dwork, C., T. P. Moritz Hardt, O. Reingold, and R. Zemel (2012). Fairness through aware-
+ ness. ITCS 2012 Proceedings of the 3rd Innovations in Theoretical Computer Science Confer-
+ ence, 214­226.
+
+Fang, H. and A. Moro (2011). Theories of statistical discrimination and affirmative action:
+  A survey. In J. Benhabib, M. O. Jackson, and A. Bisin (Eds.), Handbook of Social Economics,
+  Volume 1A, pp. 133­200. North-Holland.
+
+Feldman, M., S. A. Friedler, J. Moeller, C. Scheidegger, and S. Venkatasubramanian (2015).
+  Certifying and removing disparate impact. Proceedings of the 21th ACM SIGKDD Inter-
+  national Conference on Knowledge Discovery and Data Mining, 259­268.
+
+Fryer Jr, R. (2009). Implicit quotas. The Journal of Legal Studies 38(1), 1­20.
+
+Fryer Jr, R. and G. Loury (2013). Valuing diversity. Journal of Political Economy 121(4),
+  747­774.
+
+Fryer Jr, R., G. Loury, and T. Yuret (2008). An economic analysis of color-blind affirmative
+  action. Journal of Law, Economics, and Organization 24(2), 319­355.
+
+Hardt, M., E. Price, and N. Srebro (2016). Equality of opportunity in supervised learning.
+ NIPS'16 Proceedings of the 30th International Conference on Neural Information Processing
+ Systems, 3323­3331.
+
+Heidari, H., C. Ferrari, K. P. Gummadi, and A. Krause (2018). Fairness behind a veil of
+ ignorance: A welfare analysis for automated decision making. NIPS'18: Proceedings of
+ the 32nd International Conference on Neural Information Processing Systems, 1273­1283.
+
+Hoy, M. (1982). Categorizing risks in the insurance industry. The Quarterly Journal of
+ Economics 97, 321­336.
+
+Hu, L. and Y. Chen (2018). Welfare and distributional impacts of fair classification.
+ FAT/ML workshop at the 35th International Conference on Machine Learning.
+
+Hu, L. and Y. Chen (2020). Fair classification and social welfare. FAT* '20: Proceedings of
+ the 2020 Conference on Fairness, Accountability, and Transparency, 535­545.
+
+Kallus, N. and A. Zhou (2018). Residual unfairness in fair machine learning from preju-
+  diced data. In Proceedings of the 35th International Conference on Machine Learning.
+
+Kamishima, T., S. Akaho, H. Asoh, and J. Sakuma (2012). Fairness-aware classifier with
+  prejudice remover regularizer. Proceedings of the European Conference on Machine Learning
+  and Principles and Practice of Knowledge Discovery in Databases Part II, 35­50.
+
+Kamishima, T., S. Akaho, and J. Sakuma (2011). Fairness-aware learning through regular-
+  ization approach. 2011 IEEE 11th International Conference on Data Mining Workshops.
+
+                                              34
+Kleinberg, J., J. Ludwig, S. Mullainathan, and Z. Obermeyer (2015). Prediction policy
+  problems. American Economic Review: Papers and Proceedings 105(5), 491­495.
+
+Kleinberg, J., J. Ludwig, S. Mullainathan, and A. Rambachan (2018). Algorithmic fairness.
+  AEA Papers and Proceedings 108, 22­27.
+
+Kleinberg, J., J. Ludwig, S. Mullainathan, and C. Sunstein (2018). Discrimination in the
+  age of algorithms. Journal of Legal Analysis 80, 1­62.
+
+Kleinberg, J., J. Ludwig, S. Mullainathan, and C. R. Sunstein (2020). Algorithms as dis-
+  crimination detectors. Proceedings of the National Academy of Sciences.
+
+Lipton, Z., J. McAuley, and A. Chouldechova (2018). Does mitigating ml's impact dispar-
+  ity require treatment disparity? 32nd Conference on Neural Information Processing Systems
+  (NeurIPS 2018).
+
+Liu, L. T., S. Dean, E. Rolf, M. Simchowitz, and M. Hardt (2018). Delayed impact of fair
+  machine learning. Proceedings of the 35 th International Conference on Machine Learning.
+
+Menon, A. K. and R. C. Williamson (2018). The cost of fairness in binary classification. In
+ Conference on Fairness, Accountability and Transparency, pp. 107­118.
+
+Mitchell, S., E. Potash, S. Barocas, A. D'Amour, and K. Lum (2019). Prediction-based
+ decisions and fairness: A catalogue of choices, assumptions, and definitions. Technical
+ report, arXiv Working Paper, arXiv:1811.07867.
+
+Moon, H. R. and F. Schorfheide (2012). Bayesian and frequentist inference in partially
+ identified models. Econometrica 80(2), 755­782.
+
+Mullainathan, S. and Z. Obermeyer (2017). Does machine learning automate moral haz-
+ ard and error? American Economic Review: Papers & Proceedings 107(5), 476---480.
+
+Obermeyer, Z., B. Powers, C. Vogeli, and S. Mullainathan (2019). Dissecting racial bias in
+ an algorithm used to manage the health of populations. Science 366(6464), 447­453.
+
+Passi, S. and S. Barocas (2019). Problem formulation and fairness. FAT* '19: Proceedings of
+  the Conference on Fairness, Accountability, and Transparency, 39­48.
+
+Pleiss, G., M. Raghavan, F. Wu, J. Kleinberg, and K. Q. Weinberger (2017). On fairness
+  and calibration. 31st Conference on Neural Information Processing Systems (NIPS 2017).
+
+Poirier, D. J. (1998). Revising beliefs in nonidentified models. Econometric Theory 14(4),
+  483­509.
+
+Raghavan, M., J. Kleinberg, and S. Mullainathan (2017). Inherent trade-offs in the fair de-
+  termination of risk scores. The 8th Innovations in Theoretical Computer Science Conference.
+
+Rambachan, A., J. Kleinberg, J. Ludwig, and S. Mullainathan (2020). An economic per-
+  spective on algorithmic fairness. AEA Papers and Proceedings 110, 91­95.
+
+
+                                             35
+Rambachan, A. and J. Roth (2020). Bias In, Bias Out? Evaluating the Folk Wisdom. In
+  1st Symposium on Foundations of Responsible Computing (FORC 2020), Volume 156, pp.
+  6:1­6:15.
+
+Rothschild, C. (2011). The efficiency of categorical discrimination in insurance markets.
+  The Journal of Risk and Insurance 78(2), 267­285.
+
+Viviano, D. and J. Bradic (2020). Fair policy targeting. Technical report, arXiv preprint,
+  arXiv:2005.12395.
+
+Wang, H., H. Hsu, M. Diaz, and F. P. Calmon (2020). To split or not to split: The impact of
+ disparate treatment in classification. Technical report, arXiv preprint, arXiv:2002.04788.
+
+Zemel, R., Y. Wu, K. Swersky, T. Pitassi, and C. Dwork (2013). Learning fair representa-
+  tions. Proceedings of the 30th International Conference on Machine Learning 28(3), 325­333.
+
+
+
+
+                                             36
+           An Economic Approach to Regulating
+                      Algorithms
+                                Online Appendix
+    Ashesh Rambachan            Jon Kleinberg Sendhil Mullainathan                 Jens
+                                       Ludwig
+
+    In the online appendix, we collect together some additional results and assumptions
+that are discussed in the main text. We also provide the proofs of the main results.
+
+A     Common sources of bias
+In this section, we discuss how the first-best algorithm design problem in Sections 2-3 and
+the second-best regulation problem in Section 4 relate to commonly discussed sources of
+algorithm bias. We summarize the discussion in Table 1 below, which highlights the key
+assumptions we make about the underlying data generating process in our analysis of the
+first-best algorithm design problem and the regulation problem. We also discuss several
+points directly.
+
+The outcome of interest is mis-measured: An increasingly important concern in the lit-
+erature on algorithmic decision-making and fairness centers on possible mis-measurement
+in the outcome of interest. For example, Obermeyer et al. (2019) analyze an algorithmic
+decision tool that generated large racial disparities across patients, which arose because
+the underlying prediction function predicted historical cost of care as opposed to a mea-
+sure of the patient's health. See Mullainathan and Obermeyer (2017); Passi and Baro-
+cas (2019); Kleinberg et al. (2020); Rambachan et al. (2020) for further discussion of mis-
+measured outcomes. Both our analysis of the first-best algorithm design problem and the
+second-best regulation problem allows for a difference between the measured outcome Y        ~
+                                  
+and the outcome of interest Y . In the first-best problem, the social planner specifies her
+prior beliefs over the relationship between (Y    ~ , Y  ) and uses those beliefs when making
+her screening decisions. In the regulation problem, both the social planner and firms now
+specify prior beliefs over (Y~ , Y  ), and we further require that both the social planner and
+the firms share common beliefs about the joint distribution of (Y     ~ , Y  ).
+
+Characteristics W are correlated with group membership: A key concern in existing
+research on algorithmic fairness focuses on whether the characteristics W are differently
+distributed across groups. This could arise because the observable characteristics are mea-
+sured differently across groups or are themselves the result of prior discrimination. For
+example, in credit scoring, prior credit history and past income may be correlated with
+group membership due to discrimination in the credit and labor market. An extreme
+version occurs when group membership may be perfectly reconstructed using the char-
+acteristics W , which is termed the "reconstruction problem" in Kleinberg et al. (2018) or
+algorithmic "redlining" in Dwork et al. (2012).
+
+                                             37
+    Our analyses of the first-best algorithm design problem and the regulation problem
+allows for the characteristics W to be distributed differently across groups. This allows
+for the characteristics W that are associated with higher values of the outcome of interest
+Y  to be more common among the group G = 1 than the group G = 0 (for example, the
+disadvantaged condition in Assumption 3). However, we rule out that the characteristics
+W may perfectly reconstruct group memberships G. This is implied by our assumption
+that P( g, w) > 0 for all g  {0, 1} and w  {0, 1} J , which means 0 < P( g|w) < 1
+for all g  {0, 1} and w  {0, 1} J . This restriction is important in our analysis of the
+regulation problem. If group membership can be perfectly reconstructed from observable
+characteristics, then discriminatory firms can implement their preferred discriminatory
+decision-rule through a decision-rule that is superficially group-blind. This would imply
+that the social planner would wish to regulate the use of characteristics W , in addition
+to merely regulating group membership, thereby breaking our stepping stone result in
+Proposition 5.
+
+The protected group is "under-represented" in the training data: A common concern
+is that the protected group may be "under-represented" in the training data, meaning that
+there may be substantially fewer observations associated with the protected group than
+the rest of the population. This could arise for several reasons.
+     First, if the protected group is a minority group in the population of interest, then
+training data that is generated by taking a random sample from the population of interest
+would mechanically "under-represent" the protected group with high probability. This
+may be important since it means that predictions for the protected group may be noisier
+than the rest of the population (e.g., see Wang et al. (2020) and Blum and Stangl (2019)).
+Our analysis of the first-best algorithm design problem allows for this form of under-
+representation in the training data, and illustrates that this does not pose a challenge for
+the social planner. Social welfare is maximized on average provided the social planner
+makes admissions decisions according to her best estimate of the rank-ordering of the
+population in terms of E[Y | W , G ]. In finite sample, the social planner takes the training
+data as given, updates to her posterior beliefs and admits individuals according to her
+posterior beliefs according to E[Y | W , G ] (Proposition 1). As the size of the training data
+grows large, the social planner can do no better than constructing a consistent estimator
+of E[Y | W , G ] (Proposition 3).
+     Second, the protected group may be under-represented in the training data because
+the training data may have been generated through a discriminatory selection process.
+For example, in pre-trial release decisions, bail judges may discriminate by releasing more
+white defendants than minority defendants (Arnold et al., 2018, 2020b). Since we may
+only observe whether a defendant commits pre-trial misconduct if they were released, the
+judge's discrimination means that we observe fewer minority defendants in the training
+data. Analogous discriminatory selection arises in hiring decisions and lending decisions
+as well. Since we assume throughout the paper that the observable training data is a
+random sample from the population of interest, we are ruling out this form of under-
+representation. Exploring how possibly discriminatory selection affects the evaluation
+and design of algorithmic decision rules is an active area of research ­ see, for example,
+
+
+                                             38
+Kallus and Zhou (2018), Rambachan and Roth (2020) and Arnold et al. (2020a).
+
+                Source of Bias                                    First-Best Algorithm Design              Regulation Problem
+ Outcomes
+          ~ differs from outcome of interest Y 
+ Measured Y
+                                       ~ , Y
+ Group G has direct effect on outcomes Y                                                                               ×
+
+ Characteristics
+ Characteristics W correlated with group G
+ Characteristics W perfectly "reconstruct" group                                    ×                                  ×
+
+Table 1: This table summarizes how several commonly discussed sources
+of algorithmic bias are related to the analysis of the first-best algorithm
+design problem in Sections 2-3 and the regulation problem in Section 4.
+
+
+B     Motivating the social welfare function
+In this section, we sketch a brief motivation for the social welfare function given in Equa-
+tion 2.
+                             ~  {y
+    As in the main text, let Y                                                                 ~ ; T)
+                                                ~ K } denote the measured outcome and let u g (Y
+                                   ~1 , . . . , y
+denote the utility of an individual in group g with measured outcome Y          ~ that is assigned
+to the program T  {0, 1}. Write this as
+                                     ~ ; T ) = T · u g (Y
+                                u g (Y                  ~ ; 1 ) + ( 1 - T ) · u g (Y
+                                                                                   ~ ; 0).
+
+Therefore, at decision rule t( g, w)  [0, 1], an individual's expected utility at a fixed mea-
+sured outcome Y ~ is
+
+                                                   ~ ; 1) + (1 - t( g, w)) · u g (Y
+                                t ( g , w ) · u g (Y                              ~ ; 0),
+
+where t( g, w) is the probability that an individual with characteristics ( g, w) is assigned
+to the program.
+    The social welfare function is a weighted average of individual expected utilities un-
+der the decision rule
+                          K
+                     g          t ( g, w ) · u g ( y
+                                                   ~ k ; 1) + (1 - t( g, w)) · u g (y            ~ k | g, w )
+                                                                                    ~ k ; 0) P ( y              P ( g, w ),
+  ( g,w){0,1} J +1       k =1
+
+
+where P(y~ k | g, w ) = P Y
+                          ~ =y
+                             ~ k | G = g, W = w and (0 , 1 ) are generalized social wel-
+                                                   ~ ) : = u g (Y
+fare weights that vary across groups. Defining  g (Y            ~ ; 1 ) - u g (Y
+                                                                               ~ ; 0), it is imme-
+
+
+
+
+                                                            39
+diate that maximizing social welfare is equivalent to maximizing
+
+                                            K
+                                      g      g (y      ~ k | g, w )
+                                                ~k ) P(y                 t ( g, w ) P ( g, w ) =
+                   ( g,w){0,1} J +1        k =1
+
+                                       g E  g (Y
+                                               ~ ) | G = g, W = w t ( g, w ) P ( g, w )
+                   ( g,w){0,1} J +1
+
+Therefore, without loss of generality, we may redefine the social welfare function as this
+                                                       ~ ) delivers the social welfare func-
+object. Setting the outcome of interest to be Y  =  g (Y
+                                                       
+tion given in Equation 2. The outcome of interest Y is also discrete and takes values
+{ g (y
+     ~ k ) : k  {1, . . . K } and g  {0, 1}}.
+
+C      Regularity conditions for Proposition 3
+In this section, we state the regularity conditions that are assumed in Proposition 3. These
+are Assumptions 1-2 in Moon and Schorfheide (2012) and we restate them here for com-
+pleteness.
+    Recall Equation (6) in Section 3.1, which defined the likelihood function of the ob-
+served training dataset D N
+
+                    N      K
+                                                  ~
+    L( D N ;  ) :=        ~ k ( Gi , Wi )1{Yi =y
+                                               ~k }
+                                                         P( Gi , Wi ),       l ( D N ;  ) := log(L( D N ;  )).
+                   i =1   k =1
+
+Define
+                             2
+                ^N := K -1 -  l ( D N ;  )            K- 1         ^-1/2 K N (~-^
+                                                                                ~NMLE
+                J       N         ~  ~                 N and s : = J N                ),
+
+where   ^
+        ~NMLE is the maximum likelihood estimator of     ~ , and K N is a deterministic matrix
+with elements that diverge as N   and is chosen such that J             ^N is convergent. Let
+ (s| D N ) denote the posterior distribution of the transformed parameter s. Let     ~0 denote
+the true value of  ~ in the population.
+Assumption 4 (Assumption 1 of Moon and Schorfheide (2012)). Assume that
+  1. The sequence of maximum likelihood estimators      ^ MLE are consistent. The matrix D N 
+                                                        ~ N
+     . The likelihood function cL( D N ;  ) is twice continuously differentiable with probability
+     approaching one such that J   ^N is well-defined. The Hessian of the log-likelihood function l
+                                        d              ^-1 -d
+                                    ^N -
+     has a positive definite limit: J   J0 > 0 and J         J -1 .
+                                                              N          0
+                                                                                                                 p
+    2. The posterior distribution of ~ is asymptotically normal, meaning  (s| D N ) - N (0, I ) -
+                                                                                                
+       0.
+In our application, the assumptions here are simple to check as the model is fully paramet-
+ric and fits directly into the set-up in Moon and Schorfheide (2012). Let  (  |   ~ ) denote
+                                   
+the conditional distribution of  given    ~ under the prior distribution  . We additionally
+make the following assumption.
+
+                                                        40
+Assumption 5 (Assumption 2 of Moon and Schorfheide (2012)). Let N (  ~ ) = {~ :  ~-
+~0 < }. Assume that there exists a  > 0 and constant M (
+                                                        ~0 , ) such that  ( |   ~) -
+   
+ ( |~ ) TV  M (  ~0 , ) ~-~ for  ~, ~ in N (~ 0 ).
+
+D      Proofs of Main Results
+Proof of Proposition 1
+The objective function in the first-best problem is simply an integrated risk function that
+assigns prior weights  ( ) to the parameter. Standard arguments in statistical decision
+theory immediately implies that the first-best admissions rule can be obtained by con-
+structing the admissions rule that minimizes posterior expected social welfare at any re-
+alization of the training dataset that occurs with positive prior probability. That is, the
+first-best admissions rule t ( g, w; D N ) at any training dataset D N that occurs with posi-
+tive probability may be obtained by solving
+
+                           max       
+                           t ( g,w ) ( g,w )
+                                               g E | DN [  ( g, w)] t( g, w) P( g, w)
+
+                           s.t.             t ( g, w ) P ( g, w )  C .
+                                  ( g,w )
+
+The social planner's posterior beliefs are constructed as described in Section 3.1.
+   Without loss of generality, order groups defined by the characteristics ( g, w) using
+g · E | DN [  ( g, w)]. Let ( g1 , w1 ), . . . , ( g N , w M ) denote such an ordering with M = 2 J +1 ,
+where j E | DN  j
+                 = E         
+                  g j  | D N  ( g j , w j ) is the j-the element of the ordering and
+
+
+                     1 E | DN [1
+                               
+                                 ]  2 E | DN [2
+                                              
+                                                ]  . . .   M E | D N [  M] .
+
+Let j(C ) be the largest index of this list such that  j j(C) Pj  C, where Pj = P( g j , w j ).
+    If  j j(C) Pj = C, then the social planner's optimal admissions rule takes the form:
+
+                                                          1 if j  j(C ),
+                                      t( g j , w j ) =
+                                                          0 otherwise.
+
+Otherwise, the social planner could reallocate admissions probabilities t( g, w) in a man-
+ner that strictly raised expected social welfare under her posterior  | D N . So, define
+ ( C ) =  j ( C ) E | D N  j
+                           
+                             (C ) and the social planner's optimal admissions rule can be writ-
+ten as
+                                                                               (C )
+                            t( g, w) = 1 E | DN [  ( g, w)] >                         ,
+                                                                              g
+
+where the case of ties with E | DN [  ( g, w)] >
+                                                                    (C )
+                                                                   g       is handled by setting t( g, w) = 1.
+                         (C )
+Defining   ( g; C ) =   g       delivers the result for this case.
+
+
+                                                           41
+   Next, if  j j(C) Pj < C, then the social planner's optimal admissions rule takes the
+form
+                                     
+                                     1 if j  j(C ),
+                                     
+                     t( g j , w j ) = C -  j j(K ) Pj if j = j(C ) + 1,
+                                     
+                                      0 otherwise.
+                                     
+
+Again, otherwise, the social planner could reallocate admissions probabilities t( g, w) in
+a manner that strictly raised expected social welfare under her posterior  | D N . Now,
+define   (C ) = j(C)+1 E | DN  j
+                               
+                                 (C )+1 . The social planner's optimal admissions rule can
+again be rewritten as
+
+                                                                     (C )
+                         t( g, w) = 1 E | DN [  ( g, w)] >                  ,
+                                                                    g
+
+where the case of ties with E | DN [  ( g, w)] =
+                                                       (C )
+                                                      g       is by setting t( g, w) = C -  j j(K ) Pj .
+The result then follows for this case as well.
+
+Proof of Proposition 2
+We provide one direction of the result and refer the reader to Proposition 1 of Poirier
+(1998) for the other direction. By Bayes Rule, the marginal posterior for   is given by
+
+                                                 (  )L( D N |  )
+                               (  | D N ) =                      ,
+                                                   L( D N )
+
+where  (  ) is the marginal prior for   and L( D N ;   ) is the likelihood conditional on
+  , which is obtained noting that by
+
+                                 L( D N ; ~ ,   ) = L( D N ; ~)
+
+and computing
+
+                           L( D N ;   ) =        (~ |  )L( D N ; ~ )d~.
+                                            ~
+                                            
+
+Finally, L( Dn ) is the marginal distribution over the training dataset and it is obtained by
+
+                           L( D N ) =            (~ |  )L( D N ; ~ )d~.
+                                            ~
+                                            
+
+If ~   under  , then L( D N ;   ) = L( D N ). The result follows immediately as this
+implies that  (  | D N ) =  (  ).
+
+
+
+
+                                                 42
+Proof of Proposition 3
+For simplicity, we additionally denote the total variation distance between two proba-
+bility measures as d TV ( F, G ) = F - G TV . Let     ~ MLE denote the maximum likelihood
+estimate of  ~ ( g, w) and let ~0 denote the true value of ~ in the population. Applying the
+triangle inequality, we have that
+
+   (  |D N ) -  (  | f^N )       TV   =  (   |D N ) -  (   |  MLE
+                                                             ~N   ) +  (  | MLE
+                                                                           ~N   ) -  (  | f^N )               TV
+
+             (   |D N ) -  (   |  MLE
+                                 ~N   (w, g))             TV   +  (  | MLE
+                                                                      ~N   ) -  (  | f^N )         TV ,
+
+Under the stated regularity conditions in Appendix C, Theorem 1 in Moon and Schorfheide
+(2012) applies and the first term converges in probability to zero. Therefore, it is sufficient
+to show that
+                                                            p
+                                (  | MLE
+                                    ~N   ) -  (  | f^N ) TV -
+                                                             0.
+To do so, define the sequence of events An = {      MLE - 
+                                                   ~N       ~0 < , f^N -    ~0 < }. The
+probability of these events goes to one as N   as both the MLE estimator and the al-
+gorithm's prediction function are consistent. We place ourselves on these events without
+loss of generality. On these events, we apply the Lipschitz condition to show that
+
+                        (  | MLE
+                            ~N   ) -  (  | f^N )        TV    M(~0 , )  MLE
+                                                                       ~N   - f^N ,
+                p
+where        ^N -
+       MLE - f
+      ~N         0 because both are consistent. Therefore, we conclude
+                                                                          p
+                                       (  | MLE
+                                           ~N   ) -  (  | f^N )      TV   -
+                                                                           0,
+
+establishing the result.
+
+Proof of Proposition 4
+Let M = {m : m
+             ~  m}. We prove this result in steps:
+
+Step 1: We show that for any model m  M, the non-discriminatory decision-maker
+constructs the same rank-ordering over the population and therefore, for fixed capacity
+constraint C, she selects the same admissions rule across these models.
+   To see this, consider any such m. If the human decision-maker is allowed to select
+decision rules that use group membership G, then she chooses her admissions rule to
+maximize
+                                                                                          
+                                                                                          
+                                               m
+                                                   ~
+                                                     ( w m , w - m ) P ( g, w m , w - m ) t ( g, w m )
+     g{0,1} wm {0,1}|m|     w-m {0,1} J -|m|
+                                                                                          
+                                                                                                                 
+                                                                                                                 
+      =                                                   
+                                                          m~
+                                                             ( w ~
+                                                                 m ) t ( g , w ~
+                                                                               m , w m-m
+                                                                                       ~ ) P ( g , w ~
+                                                                                                     m , w m-m
+                                                                                                             ~ )  ,
+        g{0,1}          | ~
+                          m |                | m |-| ~
+                                                     m |
+                                                                                                                 
+                   ~ {0,1}
+                  wm                 ~ {0,1}
+                                  wm-m
+
+
+
+                                                        43
+where P( g, wm~ , wm-m~ ) =  w-m~ {0,1}
+                                         J -|m| P ( g, wm ~ , wm-m    ~ , w-m  ~ ). Therefore, the human decision-
+maker divides the population into groups divided by the characteristics Wm , G and rank
+orders the groups using      ( w ). Any groups with the same value of w are given the
+                             ~
+                             m    m~                                                                m~
+same ranking, which is the same ranking as if the social planner only allowed the human
+decision-maker to use model m    ~ . Because the rankings are the same, for fixed capacity C,
+the admissions rules are equivalent between model m                 ~ and model m based upon Proposi-
+tion 1.
+    Similarly, if the social planner bans the human decision-maker from using group
+membership G, then the human decision-maker chooses her admissions rule to maximize
+                                                                                                     
+                                                                                                     
+                                                
+                                                m ~
+                                                    ( w ~
+                                                        m ) t ( w ~
+                                                                  m , w  m - ~
+                                                                             m ) P ( w ~
+                                                                                       m , w m - ~
+                                                                                                 m )   ,
+                     |m
+                      ~|              |m|-|m~|
+                                                                                                     
+               ~ {0,1}
+              wm                ~ {0,1}
+                             wm-m
+
+where P(wm         ~ ) = P (0, wm
+            ~ , wm-m                   ~ ) + P (1, wm
+                                ~ , wm-m                   ~ ). Again, the human decision-
+                                                    ~ , wm-m
+maker divides the population into groups based upon the characteristics Wm and rank
+orders the groups using     ( w ). Because   ( w ) does not vary across group member-
+                            m~  ~
+                                m             m ~   ~
+                                                    m
+ship G and neither does the non-discriminators preferences, this is the same ranking as
+if the human decision-maker could use G in her admissions rule. Once again, it implies
+that the admissions rules are equivalent.
+     Therefore, we conclude that for fixed capacity constraint C, the admissions rules for
+all models m satisfying m  ~  m are equivalent. This implies that the social planner is
+indifferent between these models. For the remainder of the proof, we therefore focus
+attention on the model m ~ without loss of generality.
+
+Step 2: Consider a model m  m     ~ . If the social planner strictly prefers model m to model
+m~ , then there exists some pairs ( g, wm ~ ), ( g , w m
+                                                       ~ ) such that the non-discriminator ranks
+these pairs differently than the social planner at model m       ~ but ranks them in accordance
+with the social planner's ranking at model m. This cannot occur because the social plan-
+ner's preferences are aligned with the non-discriminator's preferences, and so they select
+the same rank-ordering at all models. By a similar argument, we can show that the same
+is true of any model m  m  ~ with m  m    ~ m     ~ as well.
+
+Proof of Proposition 5
+                                                        ~ . If she cannot use group
+Consider a discriminatory human decision-maker at model m
+membership, she selects an admissions rule to maximize
+
+                        
+                         ~
+                         m    ~)
+                           ( wm                      ¯
+                                               ~ ) + 1 P (1| w m
+                                       P (0| w m               ~ ) t ( wm        ~ ).
+                                                                        ~ ) P ( wm
+                       wm
+                        ~
+
+
+Defining ¯ ( wm
+              ~ ) = P (0| w m
+                                   ¯
+                            ~ ) + 1 P (1| w m~ ), the discriminatory human decision-maker ranks
+the population according to (wm  ¯        
+                                     ~ )  m  ( wm ~ ).
+                                           ~
+    We show that at model controls m         ~ with group membership banned, the discrimi-
+natory human decision-maker ranks the population in the same manner as the non-
+
+
+                                                    44
+discriminatory human decision-maker. That is,
+                                             ¯ ( wm                   ¯        
+                   ~
+                   m
+                     ( wm~ ) =  m~
+                                   ( wm~) =        ~ )  m~
+                                                           ( wm~ ) =  ( wm~ )  m~
+                                                                                  ( wm~)
+                                            ¯ ( wm                   ¯        
+                    ( wm~ ) >  ( wm
+                        ~
+                        m             ~) =
+                                       ~
+                                       m
+                                                  ~ )   ( wm  ~ ) >  ( wm
+                                                                     ~
+                                                                     m   ~ )   ( wm  ~ ).     ~
+                                                                                              m
+
+
+   First, consider the case with       ( w ) =   ( w ). By the relevance assumption, w =
+                                        m~   ~
+                                             m       m~   m~                          ~
+                                                                                      m
+wm and  therefore, ¯ ( wm
+                        ~ ) = ¯
+                                ( w    ) . The result follows.
+ ~                                  m~
+   Second, consider the case       ( w ) >   ( w ). The disadvantage condition gives that
+                                   ~
+                                   m       ~
+                                           m     m ~    ~
+                                                        m
+P(0,wm
+     ~)       P(0,w )                               P (0| w m
+                                                            ~)       P (0| w m
+                                                                             ~)
+P(1,wm
+        > P(1,wm~
+                   , and so by Bayes' rule          P (1| w m
+                                                                 >   P (1| w m
+                                                                                .   Since P(0|wm
+                                                                                               ~ ) = 1 - P (1| w m
+                                                                                                                 ~ ),
+     ~)        m~)                                          ~)               ~)
+this inequality implies that
+
+                               P (1| w m
+                                       ~ ) < P (1| w m
+                                                             ¯
+                                                     ~ ) and  ( wm
+                                                                       ¯
+                                                                 ~ ) >  ( wm
+                                                                           ~ ).
+
+                             ~ with group membership banned, the social planner im-
+Therefore, at model controls m
+plements her preferred rank ordering and achieves the first-best outcome.
+
+Proof of Proposition 6
+At any cutoff C with group membership banned, the discriminatory human decision-
+maker wishes to select an admissions rule to maximize
+
+          U ( t; ¯) =               P (0| w ) + ¯ 1 P (1| w ) ~ (w)t(w) P(w)
+                                                               ~
+                                                               m
+                        w{0,1} J
+
+                  =                ¯ (w)~ (w)t(w) P(w), where 
+                                         ~
+                                         m
+                                                              ¯ ( w ) = P (0| w ) + ¯ 1 P (1| w ).
+                        w{0,1} J
+
+
+Therefore, if P( G = 1|W = w) = P( G = 1|W = w ) for all w, w  {0, 1} J with w = w ,
+     ¯ (w) varies across the population. That is, for w = (wm     ~ ), w = ( w m
+then                                                        ~ , w-m                  ~ ), it
+                                                                               ~ , w-m
+may be the case that
+                                           ¯ (w)
+                                                ~ (w) = ¯ (w )~ (w ),
+                                                 ~
+                                                 m             ~
+                                                               m
+
+
+even though    ~ (w) =  ~ (w ). It is immediate that the discriminatory firm wishes to
+                 ~
+                 m        m~
+rank order the population using ¯ g (w)~ (w), even though her model for the outcome of
+                                        ~
+                                        m
+                   ~.
+interest is simply m
+
+
+
+
+                                                        45
+Proof of Proposition 7
+Consider the social planner's objective function evaluated at model regulations m and
+re-write it as
+                                        
+
+ C
+                E                  ~
+                             ~ (w)tm
+                              ~
+                              m    ,C ( w; m ) P ( w ) h (C ) dC
+                                                      
+          w{0,1} J
+                                                                                                          
+
+=
+      C
+                               ~
+                               m
+                                    ~
+                              ~ (w)tm                ~ , ND ) +  
+                                    ND,C ( w; m )  ( m            ~
+                                                                  m
+                                                                       ~
+                                                                 ~ (w)tm                 ~ , D)
+                                                                       D ,C ( w ; m )  ( m            P(w) h(C )dC,
+               w{0,1} J       ~
+                              m                                     ~
+                                                                    m
+
+
+where tm ~
+         ND,C ( g, w; m ) is the admissions rule selected by a non-discriminatory human decision-
+                           ~ and cutoff C and tm~
+maker at true model m                           D,C ( g, w; m ) is defined analogously for the dis-
+criminatory human decision-maker. We next add and subtract the social planner's payoff
+at her first-best admissions rule
+                                                                                      
+
+  C
+                           ~
+                           m
+                                ~
+                          ~ (w)tm            ~ , ND ) +  
+                                 ,C ( w )  ( m
+                                                               ~
+                                                         ~ (w)tm
+                                                          ~
+                                                          m                 ~ , D)
+                                                                ,C ( w )  ( m               P(w) h(C )dC,
+          w{0,1} J        ~
+                          m                                   ~
+                                                              m
+
+
+where tm~                                                                         ~ and cutoff
+        ,C ( g, w ) is the social planner's optimal admissions rule at true model m
+C. This is a constant, and so it does not affect the optimizer. Maximizing the original
+objective is equivalent to maximizing
+                                                                          
+
+      C
+                             ~ (w)
+                              ~
+                              m
+                                          ~
+                                         tm                ~
+                                                           m
+                                          ND,C ( w; m ) - t,C ( w )  ( m
+                                                                       ~ , ND ) P(w)  h(C )dC )
+               w{0,1} J       ~
+                              m
+                                                                                      
+
+    +
+           C
+                                  ~ (w)
+                                   ~
+                                   m
+                                            ~
+                                           tm                  ~
+                                                               m
+                                            D ,C ( w ; m ) - t  ,C ( w )  ( m
+                                                                            ~ , D ) P(w)  h(C )dC )
+                  w{0,1} J        ~
+                                  m
+                                                                                                 
+                                                                             
+     =                ~ (w) tm
+                       m~
+                              ~                   m~
+                             ND,C ( w; m ) - t,C ( w ) P ( w )   ( ND | m     ~ ) (m
+                                                                                   ~ ) h(C )dC
+      C m~         J
+            w{0,1}
+           
+                                                                                   
+                                                                  
+    +                ~ (w) tm
+                       ~
+                       m
+                             ~                  ~
+                                                m
+                             D ,C ( w ; m ) - t  ,C ( w ) P ( w )   ( D | m
+                                                                          ~ ) (m~ ) h(C )dC.
+     C  ~
+        m         J       w{0,1}
+           
+
+
+
+
+                                                         46
+Using the fact that  ( ND |m ~ ) = 1 -  ( D |m    ~ ), this becomes
+                                                                             
+                                                                      
+                    ~ (w) tm
+                     m~
+                                ~
+                                ND , C
+                                                    ~
+                                       ( w; m ) - t m
+                                                                          ~ ) h(C )dC
+                                                     ,C ( w ) P ( w )   ( m
+  C   m~   w{0,1} J
+         
+                                                                                               
+                                                                                    
+ +  ( D )                       ~ (w) tm
+                                  m~
+                                              ~               m~
+                                             D,C ( w; m ) - t ND,C ( w; m ) P ( w )   ( m
+                                                                                        ~ | D ) h(C )dC
+          C    m~         J + 1
+                        w{0,1}
+                  
+
+Flipping the sign, maximizing the social welfare function is equivalent to minimizing
+                                                                             
+                                                                     
+                     ~ (w) tm
+                        m~     
+                                ~
+                                 , C (w) - tm~
+                                             ND                          ~ ) h(C )dC
+                                                ,C ( w ; m ) P ( w )   ( m
+   C   ~
+       m    w{0,1} J
+         
+                                                                                        
+                                                                             
+ +                          ~ (w) tm
+                             ~
+                             m
+                                       ~                 m~
+                                      ND,C ( w; m ) - t D,C ( w; m ) P ( w )   ( m
+                                                                                 ~ | D ) h(C )dC  ( D )
+     C   m~           J + 1
+                 w{0,1}
+            
+
+ =             E ~ (w) tm
+                  ~
+                  m
+                        ~           m~
+                        ,C ( w ) - t ND,C ( w; m ) h (C ) dC  ( m
+                                                                ~)
+     ~
+     m     C
+
+ +  (D)               E ~ (w) tm
+                         ~
+                         m
+                               ~                 ~
+                                                 m
+                               ND,C ( w; m ) - t D,C ( w; m ) h (C ) dC  ( m
+                                                                           ~ | D ).
+           ~
+           m      C
+
+
+
+
+Proof of Proposition 8
+Suppose, for sake of contradiction, that the equilibrium level of discrimination was zero.
+                                ~ and capacity constraints C
+This means that for all beliefs m
+                                        ~              ~         
+                                       tm             m
+                                        ¯ ,C ( m ) = t(1,1),C ( m ).
+                                        
+
+    First, suppose that group membership is not banned at m . By the stated assumption,
+there exists a pair of characteristics wm , wm such that
+                                                   
+                                       m
+                                         ( wm ) >    m
+                                                       ( wm )
+                                                       
+                                                  ¯ 1   ( w m  ).
+                                       ( wm ) > 
+                                       m                   m
+
+
+Since the distribution over capacity constraints has full support, this implies that there
+                                                                                   m          
+exists values of C that occur with positive probability such that tm
+                                                                   ¯ ,C ( m ) = t(1,1),C ( m ) as
+                                                                   
+wm is admitted before wm by the discriminators but not by the non-discriminators.
+    Next, suppose that group membership is banned at m . Then, the non-discriminatory
+human decision-makers with beliefs m rank-order according to             ( w  ) and discrimi-
+                                                                         ~  m
+natory human decision-makers with beliefs m rank-order according to           ¯ ( w m  )   ( w m  ).
+                                                                                          ~
+
+
+
+
+                                                    47
+Again, the stated assumption, there exists a pair of characteristics wm , wm such that
+                                          
+                             m
+                               ( wm ) >    m
+                                             ( wm )
+                          ¯ ( wm )              ¯ ( wm )  
+                                     m
+                                       ( wm ) >            m
+                                                             ( w m  ).
+
+The contradiction proceeds as before.
+
+Proof of Proposition 10
+Recall in Step 1 in the proof of Proposition 5, we show that the rank-ordering used by
+the discriminatory human decision-maker is the same as a non-discriminatory human
+decision-maker with ground truth model m        ~ if the social planner implements model con-
+trols m = m   ~ and bans group membership.
+    Therefore, at the model regulations m (m      ~) = m ~ with group membership banned, all
+discriminatory human decision-makers and non-discriminatory human decision-makers
+with the same ground-truth model select the same rank ordering. This immediately im-
+       ~
+plies tm             m~         
+       ¯ ,C ( m ) = t(1,1),C ( m ) as all human decision-makers simply admit individuals ac-
+       
+cording to their chosen rank-ordering until the capacity constraint is satisfied.
+
+
+
+
+                                              48
+

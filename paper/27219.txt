@@ -1,0 +1,779 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+           GLOBAL COMPARATIVES STATICS IN GENERAL EQUILIBRIUM:
+              MODEL BUILDING FROM THEORETICAL FOUNDATIONS
+
+                                      James R. Markusen
+
+                                      Working Paper 27219
+                              http://www.nber.org/papers/w27219
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                     May 2020
+
+
+
+
+This paper is a re-focused and re-oriented version of a paper prepared for a special issue of the
+International Journal of Economic Theory in honor of Ronald W. Jones, entitled "Ronald Jones
+duality analysis as a foundation for applied general-equilibrium modeling" The author thanks
+Alan Woodland and Thomas Rutherford for suggestions and perspectives. Not only for helpful
+comments and suggestions on this paper, but for making essential contributions to the theory
+underlying the paper. Alan Woodland for major contributions to the development of duality
+theory and Thomas Rutherford for developing and implementing the complementarity
+formulation of general equilibrium models. In doing so, Rutherford simplified and standardized
+applied general-equilibrium analysis, allowing economists to concentrate on economics and
+policy analysis rather than on coding. The views expressed herein are those of the author and do
+not necessarily reflect the views of the National Bureau of Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by James R. Markusen. All rights reserved. Short sections of text, not to exceed two
+paragraphs, may be quoted without explicit permission provided that full credit, including ©
+notice, is given to the source.
+Global Comparatives Statics in General Equilibrium: Model Building from Theoretical Foundations
+James R. Markusen
+NBER Working Paper No. 27219
+May 2020
+JEL No. D50,D58,F10
+
+                                           ABSTRACT
+
+International trade economists made seminal contributions to general equilibrium theory, moving
+away from an emphasis on existence of equilibrium to algebraic formulations which enabled us to
+characterize key relationships between parameters and variables, such as that between tariffs and
+domestic factor prices and welfare. But the analysis remained limited in value for policy
+evaluation: the analysis was local, it provided only qualitative results, it was limited to very small
+models, and strictly interior solutions had to be assumed. The contribution of this paper is
+pedagogic and methodological, providing a primer for those wishing to do or teach general-
+equilibrium counterfactuals on (for example) structural models. I show how the tools from early
+local comparative statics analyses can be generalized via the use of Shepard's lemma, duality,
+complementarity and the Karush-Kuhn-Tucker theorem into a global, quantitative analysis of
+large changes in high-dimension models which also allows for regime changes and corner
+solutions. I then show how the resulting non-linear complementarity problem directly translates
+into a numerical model using GAMS (general algebraic modeling system).
+
+
+James R. Markusen
+Department of Economics
+University of Colorado
+Boulder, CO 80309-0256
+and NBER
+james.markusen@colorado.edu
+                                                 2
+
+1.     Introduction
+
+         Simulation analysis of general equilibrium models used to be the territory of applied
+general-equilibrium modelers (also called computable general equilibrium) and members of this
+group were largely disjoint from international trade theorists and indeed empiricists using the
+tool kit of econometrics. I think it is fair to say that there was even some hostility among these
+groups. I regret not keeping some of the referees' reports on my early papers using numerical
+simulation as a theory tool in models far too complex for traditional paper-and-pencil analytical
+methods. But reading journals and attending conferences today makes it clear that, slowly but
+surely, simulation analysis has moved into the mainstream of international economics and other
+fields. Yet we lack a standard approach or template for formulating general-equilibrium models
+and, in my view, this has led some researchers to proceed on an ad hoc basis that does not allow
+transparency and verifiability (e.g., is the model correctly computing general-equilibrium
+comparative statics).
+
+        The purpose of this paper is to provide such a template, and to show how it easily
+translates into a computable numerical simulation model. As such, the paper is pedagogic and
+methodological. It makes no claim to offer original theoretical insights or results, but rather
+shows how familiar existing tools and well-known mathematical results combine to produce a
+simple, clear and consistent modeling framework. But first, a little history of thought about how
+we got here.
+
+        International trade economists' early contributions in formalizing our basic general-
+equilibrium model were a seminal contribution that reworked how we think about general
+equilibrium (GE). Early articles such as Jones (1956, 1965, 1967) remained standard readings for
+graduate students for decades. Jones moved us away from focusing on issues of existence,
+uniqueness and stability of equilibrium to a more useful concentration on the actual properties of
+GE that we might be interested in as applied microeconomists in fields like international trade
+and public economics. How does, for example, a trade tariff affect the internal distribution of
+income in an economy? GE analysis focusing on existence of equilibrium and fixed-point
+algorithms is of little practical value for applied questions.
+
+        That having been said, the theoretical analysis of GE was paralleled by the development
+of applied general equilibrium analysis (AGE; also called computable general equilibrium).
+This was initiated by the algorithm of Scarf (1967) with the first large-scale implementations by
+Shoven and Whalley (1973, 1974). This algorithm and its refinements did use an iterative fixed-
+point procedure to solve complex high-dimension models. But there were a number of inherent
+limitations in this approach and eventually AGE analysis went in another direction that was
+closer to the intellectual foundations of analytical trade theory.
+
+        One particularly important development by Jones was to provide early versions of what
+we would now call duality analysis. I will have more to say on this below, but basically it moved
+us from looking at production and utility functions to using cost functions which embody
+optimizing behavior at the level of firms and households. Then a general-equilibrium model can
+be built up, embodying the optimal choices for individual agents in the equations and inequalities
+of the model. This methodology for modeling GE is essentially what Jones was doing with his
+                                                 3
+
+local comparative statics' analysis in his seminal 1965 JPE paper.
+
+         These contributions to general equilibrium modeling were pathbreaking and remain
+important today. But there are of course limitations to the usefulness of the approach. Without in
+any way disparaging the importance of analytical contributions, some of these are as follows.
+First, the analysis is local and cannot easily be extended to large changes. Second, the results are
+qualitative, giving signs buy not magnitudes of effects in comparative-statics experiments.
+Third, the techniques cannot give even sign predictions past very simple cases such as a two-
+good, two-factor economy. Fourth, the comparative-statics methods cannot easily handle corner
+solutions in which parameter changes lead countries to change the set of goods they actual
+produce, switch technologies used to produce some goods, or cause changes in which trade links
+are active and inactive.
+
+        The purpose of my paper is to indicate how local analysis can be extended to a global
+analysis, which allows for the quantitative evaluation of large parameter changes and permits
+changes in trade and production specialization patterns (e.g., which production sectors and which
+trade links are active or inactive). I will show how this global analysis is rigorously built up from
+several key results from mathematics and economic theory. These generalizations are hugely
+important in the evaluation of large policy changes such as BREXIT, or economic shocks such as
+covid-19 where qualitative local analyses of small-dimension models are of no practical value.
+
+         In Jones' seminal 1965 paper, he considers a two-good, two-factor economy facing
+(initially) fixed commodity prices. Let us focus on this simple case so that we have a smooth
+continuity between his analysis and that in the present paper.
+
+
+2.     From local to global analysis
+
+       Let X and Y be two goods with fixed world prices px and py. There are two factors of
+production in fixed supply, denoted L and K with prices w and r respectively. Let  denote the
+optimal, or cost minimizing, amount of factor i needed to produce one unit of good j. Cost
+minimization implies that the  are themselves functions of w and r.
+
+        In a simple case with fixed world prices and fixed factor endowments, production is
+determined independently of demand. General equilibrium can be described by just four
+equations in four unknowns assuming that there is an interior solution in which both goods are
+produced (non-specialization). The four unknowns are X, Y, w, and r. Two equations are the
+competitive zero-profit conditions for X and Y: unit cost equals price. Henceforth, we will just
+refer to these equations (later weak inequalities) as pricing equations. The second two equations
+require that the demands for capital and labor from the X and Y sectors sum up to total factor
+endowments, henceforth called market-clearing equations. These four are given by
+
+         +   =                                                                                    (1)
+                                      pricing equations
+         +   =                                                                                    (2)
+                                                4
+
+        =   +                                                                                      (3)
+                                      market-clearing equations
+        =   +                                                                                      (4)
+
+These four equations illustrate nicely the duality between prices and quantities, and become the
+basic starting point for Jones' analysis in the 1965 paper and others to follow. This duality
+structure also illustrates why it is that if the Stolper-Samuelson theorem is valid then the
+Rybczynski theorem must be as well. The former is the effect of exogenous commodity price
+changes on the endogenous factor prices, and the latter is the effect of changes in the exogenous
+endowments on the endogenous commodity outputs, holding commodity prices constant.
+
+        I noted above the limitations of this approach for tasks such as the economy-wide
+evaluation of large policy changes or shocks. The analysis is local, qualitative (signs of
+derivatives, not magnitudes), limited to small-dimension models, and generally limited to interior
+solutions.
+
+         These limitations of the traditional comparative-statics approach thus calls for a broader
+and more comprehensive method for formulating and solving general-equilibrium models. This
+is the task to which we now turn. But it will be clear that the Jones approach is nevertheless the
+foundation of new techniques and that the latter are not a radical departure from the older
+tradition.
+
+        We begin by drawing on traditions that were partly implicit in Jones' work, and
+developed further later on in books explicitly focusing on duality such as Takayama and
+Woodland (1980), Woodland (1980, 1982) and Dixit and Norman (1980). The trick is to first
+move from production and utility functions to cost functions, with those cost functions
+embodying not just technologies but also the optimizing behavior of individual firms and
+households. These can be termed `value functions': the endogenous choices of inputs and
+outputs by firms and households are solved for by standard optimization methods and then
+inserted back into cost equations to get the minimum cost of producing goods or utility as a
+function of exogenous prices only.
+
+       In our 2x2 case outlined above, we can derive four value functions by standard
+optimization methods which use the Karush-Kuhn-Tucker theorem as the underlying
+methodology (Karush, 1939; Kuhn and Tucker, 1951).. Making the usual assumption that
+production and utility exhibit constant returns to scale, unit cost and expenditure functions
+depend only on prices and not on output levels. These four are given as follows.
+
+        =  ( , ),              =  (, )               unit cost functions for X and Y               (5)
+
+        =  ,                                         unit cost (expenditure) function              (6)
+
+        =  ,  ,                                      indirect utility function                     (7)
+
+       The next crucial step is also provided by theory. Shephard's lemma, which follows
+from the envelope theorem, implies that the partial derivatives of these value functions give us
+                                                  5
+
+the optimal choices of inputs and outputs given prices for goods and factors.
+
+       
+           =                 optimal amount of labor per unit of X output                         (8)
+       
+
+       
+           =                 optimal amount of capital per unit of X output                       (9)
+        
+
+        
+           =                 consumer's demand for X per unit of utility (Hicksian)              (10)
+       
+
+                  
+       -      /      =       consumer demand for X per unit of income (Marshallian)              (11)
+                  
+
+
+with corresponding equations for the sector Y cost function and Y demand. The last of the
+results shown is generally referred to as Roy's identity. Though it is obvious and well-known
+to most readers, note that the expenditure function is just a cost function under a different name:
+it gives the minimum cost at existing commodity prices needed to purchase one unit of utility.
+
+         There is one final property that we don't really need, but it will show how the more
+modern approach matches with Jones' contributions in a natural way. If the production and
+utility functions are characterized by constant returns to scale, then these value functions are also
+homogeneous of degree one, and they can be written as the sum of their partial derivatives each
+times the value of the input variable. For example, the cost function for X can be written as:
+
+                                     
+                   ( , ) =       +       =   +                                                   (12)
+                                     
+
+
+
+This is, of course, Jones' equation for the unit cost of producing good X.
+
+        The more modern approach to AGE modeling uses these tools as the building blocks for
+a global analysis. In addition to having the ability to evaluate large changes such as large-scale
+trade liberalization or tax reform, the newer approach permits corner solutions in which some
+production activities or trade links can switch from inactive to active and vice versa as a
+consequence of parameter changes. This requires us to detour into complementarity, a concept
+that follows directly from the Karush-Kuhn-Tucker (KKT) theorem.
+
+
+3.     General equilibrium and complementarity
+
+        Equilibrium is modeled as a set of weak inequalities, each with a complementary non-
+negative (lower bounded) variable. Pricing inequalities such as those above are written as unit
+cost greater than or equal to price, with output of that activity (industry, trade flow, etc.) being
+the complementary variable. If the activity is unprofitable in equilibrium (strict inequality), it is
+not used and the complementary output variable is zero. If supply exceeds demand in
+equilibrium, the price is zero (it is a free good). Note that pricing inequalities have quantities as
+complementary variables, quantity (market clearing) inequalities have prices as complementary
+                                                 6
+
+variables. The KKT theorem introduces added Aslack@ or complementary variables so that the
+weak inequalities become equations, which then allows solver algorithms to use iterative
+methods to solve the system of equations.
+
+         Market clearing inequalities such as (3) and (4) above (strict equalities in Jones' model)
+are strictly speaking not KKT optimization conditions, but rather equilibrium conditions. Yet
+they can be handled in a way closely equivalent to KKT conditions. A market clearing
+inequality is written as supply greater than or equal to demand, with price being the
+complementary variable. For example, if the supply of pollution permits exceeds demand in
+equilibrium, the market price of a permit is zero.
+
+       The strong microeconomic foundations of duality and complementarity via the KKT
+theorem eventually led modelers to move away from fixed point methods for constructing and
+solving GE models to instead treating general equilibrium as a sequence of complementarity
+problems at the level of industries and households. Notable in this development were
+contributions by Mathiesen (1985) and Rutherford (1995). Rutherford's MPS/GE (mathematical
+programming for general equilibrium) allowed for the easy calibration and implementation of the
+complementarity approach. An early example of this is Harrison, Wooton, Rutherford (1989).
+
+       Now let us look at an actual implementation using the Jones' model. We stick with our
+two-good, two-factor model from above, but introduce a representative consumer to make it a
+closed economy model. First, we use the Marshallian demand formulation for the consumer.
+A seven inequality, seven variable model is as follows. There are two pricing inequalities, four
+market-clearing inequalities, and one income-balance equation.
+       _____________________________________________________________
+         +                                                                                   (13)
+                                                     pricing (zero-profit) inequalities
+         +                                                                                   (14)
+       ______________________________________________________________
+
+           +                                                                                    (15)
+
+           +                                                                                    (16)
+                                                      market-clearing inequalities
+                                                                                                (17)
+
+                                                                                                (18)
+       _____________________________________________________________
+
+        =  +                              income balance                                        (19)
+       ____________________________________________________________
+
+Note that the first four weak inequalities are the Jones' equations from above: if the prices of X
+and Y are fixed by world markets (small open economy assumption), then these four can be
+solved on their own for the four complementary variables.
+                                                   7
+
+        After solving this model, the utility and price index for the representative consumer can
+be calculated. All alternative procedure, especially useful when there are multiple household
+types or countries is to use a Hicksian formulation. This treats utility as if it were a produced
+good: commodities are inputs into the production of a utility good, and the expenditure function
+is the minimum cost of producing one unit. There is also a (virtual) market for the utility good,
+with a market clearing equation and complementary variable: the price of a unit of utility. This
+is what we generally label as the consumer price index. This model is a little more
+complicated, but it computes utility and the price index for each household type or country as
+part of the solution. Denote U as utility and pu as the price index. Our extended Hicksian
+model is given by nine weak inequalities in nine unknowns.
+        ________________________________________________________
+
+         +                                                                                        (20)
+
+         +                                              pricing (zero profit) inequalities        (21)
+
+         +                                                                                        (22)
+       ________________________________________________________
+
+           +                                                                                      (23)
+
+           +                                                                                      (24)
+
+                                                       market-clearing inequalities               (25)
+
+                                                                                                  (26)
+
+          /                                                                                       (27)
+       ________________________________________________________
+
+        =  +                               income balance                                         (28)
+       ________________________________________________________
+
+        Following earlier comments, the strength of this approach is that it computes equilibria
+for large changes in parameters and high-dimension models, it will give quantitative results, and
+it allows for corner solutions in which some variables switch from slack (equal to zero) to
+positive or vice versa. However, there are also some limitations. First, an implementation
+requires explicit functional forms for production and utility. Furthermore, quantitative analysis
+requires that numerical parameter values must be chosen for those functional forms. I and
+others using numerical models as a theory tool acknowledge this tradeoff, but note that insisting
+on analytical models only often requires the modeler to simplify the model so much that the
+interesting parts of the problem are discarded. 1
+
+       1
+         The complementarity approach is adaptable to very complex economies. For models with
+increasing returns to scale, imperfect competition, endogenous markups, and endogenous firm location
+decisions, see Markusen (2002, paperback 2004). Examples of these techniques used in very large
+                                                   8
+
+
+
+4.      A numerical implementation
+
+        We can now look at an actual implementation of our model, and stick with the
+Marshallian formulation since it is a bit simpler. We use Cobb-Douglas functions for the three
+activities so that it is simple and straightforward for readers to see exactly where the equations
+and inequalities are coming from. There is no attempt to base parameter values on any real-
+world equivalents, they are chosen to provide maximum transparency. Goods in the utility
+function get equal shares of 0.5. The representative consumer's utility function and the implied
+expenditure function are given as follows.
+
+        (, ) = 2   0.5  0.5             =>       ,   =  0.5  0.5                                (29)
+
+Using a textbook Lagrangean optimization formulation of KKT, Marshallian and Hicksian unit
+demand functions are as follows.
+
+         = 0.5/           = 0.5/             = 0.5   -0.5  0.5           = 0.5   0.5  -0.5      (30)
+
+X is (arbitrarily) capital intensive: a capital share of 0.75, a labor share of 0.25.
+
+         ( , ) =  0.25  0.75                                                                    (31)
+
+         = 0.25   -0.75  0.75 = 0.25  (/ )0.75                                                  (32)
+
+         = 0.75   0.25  -0.25 = 0.75  ( /)0.25                                                  (33)
+
+Y is labor intensive with the opposite ordering of shares.
+
+         (, ) =  0.75  0.25                                                                     (34)
+
+         = 0.75   -0.25  0.25 = 0.75  (/ )0.25                                                  (35)
+
+         = 0.25   0.75  -0.75 = 0.25  ( /)0.75                                                  (36)
+
+      Let  (LBAR) and      (KBAR) denote economy's fixed endowments of labor and capital.
+We now have a complete numerical model with only two parameters to be chosen which are the
+endowment quantities. We do not need to expand the X and Y cost functions using the
+homogeneity property discussed above, we can just use the unit cost functions. Here then is the
+implemented model.
+
+         0.25  0.75                                                                             (37)
+
+
+
+theory models, see Markusen and Venables (2007) (29,000 non-linear inequalities and unknowns) and
+Markusen (2013) (36,000 non-linear inequalities and unknowns).
+                                                      9
+
+         0.75  0.25                                                                                      (38)
+
+          0.25  (/)0.75  + 0.75  (/ )0.25                                                                (39)
+
+          0.75  ( /)0.25  + 0.25  (/)0.75                                                                (40)
+
+          0.5/                                                                                           (41)
+
+          0.5 /                                                                                          (42)
+
+         =    +                                                                                          (43)
+
+
+        While any values of LBAR and KBAR will produce a solution, it is a good practice to start
+with a calibrated solution as a check on the modeler's consistency. This is generally referred to
+as the Areplication check@: running the model should yield the initial calibrated values as a
+solution, otherwise something is wrong. If we choose LBAR = 100 and KBAR = 100, then due
+to the symmetry in production and consumption shares, we should get a solution in which X = Y
+= 100, I = 200, and all prices equal one.
+
+         One of the principal objectives of this paper is pedagogic: demonstrate how to move from
+a traditional algebraic model used for local comparative-statics experiments to more robust and
+useful global comparative statics. According, I will show an actual numerical model. The
+code is available from me on request. I hope that by showing the code, I can help aspiring
+modelers to get a big head start in seeing that global general-equilibrium analysis is relatively
+easy to do.
+
+        By far the preferred software for implementing and solving this model is GAMS (general
+algebraic modeling system). GAMS is an algebraic language and thus it is intuitive and
+relatively easy to master. Equations are written exactly as they are done here in the text, and
+there are no weird symbols or characters that need to be memorized in order to do
+straightforward things. In addition, the solvers in GAMS are constructed on the basis of theory
+(KKT), particularly the MCP (mixed complementary problem) solver called PATH which uses a
+generalization of Newton's method.
+
+        A quick note: as a consequence of Walras Law, there is an indeterminacy of the price
+level in the model, so one price is chosen as numeraire and fixed at one. The complementary
+equation is then automatically dropped by GAMS from the model. The price of good Y (py) is
+chosen as numeraire and its price fixed at one. 2
+
+
+
+        2
+          In GAMS, PY.FX denotes fixing the variable PY; then the equation complementary to that
+variable is automatically dropped from the model. PY.L is the notation for setting the initial value or
+level of variable PY, but that variable is not held fixed. Setting initial values of variables is important
+for the solver to solve the model and solve efficiently in all non-linear problems.
+                                                   10
+$TITLE: IJET model, James Markusen, University of Colorado, Boulder
+* two goods, two factors, one consumer, closed economy
+* Marshallian approach
+
+PARAMETERS
+ LBAR    labor endowment
+ KBAR    capital endowment;
+
+LBAR = 100;
+KBAR = 100;
+
+NONNEGATIVE VARIABLES
+
+X         activity level for X production
+Y         activity level for Y production
+
+PX        price   of   good X
+PY        price   of   good Y
+W         price   of   labor
+R         price   of   capital
+
+I         income of the representative consumer;
+
+EQUATIONS
+
+PRF_X     zero profit for sector X
+PRF_Y     zero profit for sector Y
+
+MKT_X     supply-demand     balance   for   commodity X
+MKT_Y     supply-demand     balance   for   commodity Y
+MKT_L     supply-demand     balance   for   primary factor L
+MKT_K     supply-demand     balance   for   primary factor K
+
+INC_I     income balance;
+
+
+*       Zero profit inequalities
+
+PRF_X..       W**0.25 * R**0.75 =G= PX;
+
+PRF_Y..       W**0.75 * R**0.25 =G= PY;
+
+*       Market clearance inequalities
+
+MKT_X..       X =G= 0.5*I/PX;
+
+MKT_Y..       Y =G= 0.5*I/PY;
+
+MKT_L..       LBAR =G= 0.25*(R/W)**0.75*X + 0.75*(R/W)**0.25*Y;
+
+MKT_K..       KBAR =G= 0.75*(W/R)**0.25*X + 0.25*(W/R)**0.75*Y;
+
+*       Income balance equation
+
+INC_I..       I =E= LBAR*W + KBAR*R;
+
+*       declare a model - list of equation names, dot, then the
+*       associated complementary variable
+                                          11
+MODEL TWOxTWO /PRF_X.X, PRF_Y.Y,
+            MKT_X.PX, MKT_Y.PY, MKT_L.W, MKT_K.R, INC_I.I /;
+
+*     Chose a numeraire: price of labor
+
+PY.FX = 1;
+
+*     Set initial values of variables:
+
+X.L=100; Y.L=100; I.L=200;
+PX.L=1; PY.L=1; R.L=1; W.L=1;
+
+SOLVE TWOxTWO USING MCP;
+
+*     Counterfactual: double the endowment of labor
+
+LBAR = 200;
+SOLVE TWOxTWO USING MCP;
+
+*     Counterfactual: double the endowment of capital
+
+LBAR = 100;
+KBAR = 200;
+SOLVE TWOxTWO USING MCP;
+
+*     Counterfactual: double the endowment of labor and capital
+
+LBAR = 200;
+KBAR = 200;
+SOLVE TWOxTWO USING MCP;
+
+
+*     Convert the model to a small open economy
+*     Fixing commodity prices will automatically drop market clearing equations
+*     for X and Y.
+
+MODEL SOE /PRF_X.X, PRF_Y.Y, MKT_L.W, MKT_K.R, INC_I.I/;
+
+PX.FX = 1; PY.FX = 1;
+LBAR =100;
+KBAR = 100;
+
+SOLVE SOE USING MCP;
+
+
+*      demonstrate the Rybsczynski theorem
+
+LBAR = 200;
+SOLVE SOE USING MCP;
+
+*      demonstrate the Stolper-Samuelson theorem
+
+LBAR = 100;
+PX.FX = 1.5;
+SOLVE SOE USING MCP;
+
+*      show a corner solution - economy specializes in X
+
+LBAR = 100;
+PX.FX = 2.0;
+SOLVE SOE USING MCP;
+                                                 12
+
+        Tables 1 and 2 show results for eight runs of the model. Table 1 gives results for the
+closed economy, Table 2 for a small open economy. The first column in each Table is the
+calibrated benchmark replication. In Table 1, the second column gives results for doubling the
+labor endowment to LBAR = 200. Production shifts toward the labor-intensive good Y, the
+relative price of Y falls, labor's wage falls relative to both commodity prices and the return to
+capital rises. This second column of Table 1 also illustrates what we could call aggregate
+diminishing returns. Doubling the endowment of one factor, which is fifty percent of income in
+the benchmark, increases total production of X and Y by less than fifty percent evaluated at initial
+prices. Welfare (not shown) increases from 200 in the benchmark to 283.
+
+        Column three of Table 1 gives a cautionary note about interpreting price changes,
+because I have seen authors make some misleading or simply wrong statements about this.
+Column three reverses the experiment of column 2, doubling the endowment of capital instead of
+labor. Because of the symmetry of X and Y in demand and because factor intensities are mirror
+imagines of each other in X and Y, the changes in the outputs of the two goods are the mirror
+imagines of those in column 2. But the price changes and income look quite different. This is
+entirely due to the choice of numeraire: the relative prices of X and Y and L and K are inverses of
+column 2. Welfare is the same in both columns (equal to indirect utility: px-0.5py-0.5 I = 283).
+General equilibrium modelers need to take care to note how measures of income change are
+sensitive to the choice of numeraire, though welfare is not. Column 4 of Table 1 is a simple
+demonstration of the consequences of homogeneity of degree one in production and homothetic
+preferences. Doubling both factors of production just doubles both outputs and leaves all prices
+unchanged.
+
+        Table 2 is intended to be close to Jones' (1965) analysis and that of the standard
+Heckscher-Ohlin model. Commodity prices are fixed at one to represent a small open economy
+(endowments are returned to their original level). The first column is the benchmark
+replication. The second column doubles the endowment of labor, results contrasting to Table 1
+where prices change. Holding commodity prices constant, column 2 of Table 2 illustrated the
+Rybczynski theory and Jones' magnification effect. Production of the labor intensive good
+more than doubles and the production of the capital intensive good shrinks. Unlike doubling
+labor in the closed economy, there are no aggregate diminishing returns: the added labor is
+absorbed without a fall in w by changing the composition of production.
+
+        Column 3 of Table 2 returns labor endowment to its original value and raises the relative
+(world) price of px to 1.5, a terms-of-trade improvement. X is capital intensive, and so the price
+increase results in the price of capital increasing by more than both commodity prices and the
+price of labor falls in terms of both commodity price. Regardless of consumption preferences,
+capital is better off and labor is worse off. This is the Stolper-Samuelson theorem.
+
+        I have included the last column of Table 2 to make another point about the limitations of
+local comparative statics that assumes an interior solution before and after a parameter change
+versus global analysis in a complementarity framework. If px is increased from its benchmark
+value of 1 to px = 2, the economy becomes specialized in X. Any further increase in px will
+continue to increase welfare, but it will have no effect on relative factor prices since all factors
+are employ in X. Stolper-Samuelson only works under the assumption of non-specialization.
+                                               13
+
+
+5.     Summary
+
+        Trade economists made fundamental contributions to general equilibrium analysis by
+formulating models using the building blocks of what we now call duality techniques. These
+produced models which were far more useful for the analysis of practical questions of the type
+asked by trade and public-economics economists than earlier analyses focusing on existence,
+uniqueness, and stability of equilibria. Local comparative statics analysis is used to ask
+questions about changing factor endowments, changing technologies, changing world prices and
+changing trade and domestic taxes. This immensely improved our ability to understand such
+things as the relationship between world commodity prices and domestic income distribution.
+
+         Limitations remained of course. The analysis was for small changes only, results were
+qualitative (signs and some relative magnitudes) and the method was generally restricted to
+interior solutions only in which initially positive variables could not go to zero or vice versa.
+What this paper shows however, is that the use of duality tools such as converting production
+functions and utility functions to cost and expenditure functions paved the way for a more
+complete global analysis using complementarity built on the foundations of the Karush-Kuhn-
+Tucker theorem. I show how key tools and theorems lead naturally to a formulation that allows
+large changes, yields quantitative results needed by policy makers, and allows corner solutions to
+emerge or disappear in response to changing parameters such as technologies, trade costs or
+tariffs.
+
+        The newer global analysis comes at some costs. Specific functional forms are needed
+and indeed specific parameter values for those functions. But specific functional forms are
+always needed if one wants quantitative results. In models with scale economies and imperfect
+competition, even qualitative results cannot be obtained without specific functional forms.
+Often parameters can be drawn from literature estimates or estimated econometrically as part of
+the analysis at hand. Sensitivity analysis can indicate which parameters have major or minor
+effects on the results. But global simulation analysis has indeed improved our ability to provide
+some answers to important public policy questions.
+                                              14
+
+                                       REFERENCES
+
+Dixit, Avinash and Victor Norman (1980), Theory of International Trade, Cambridge University
+        Press.
+
+Harrison, Glen W., Thomas F. Rutherford, and Ian Wooton (1989), "The Economic Impact of
+       the European Community", American Economic Review 79(2), 288-294.
+
+Jones, Ronald W. (1956), "Factor Proportions and the Heckscher-Ohlin Theorem", Review of
+       Economic Studies 24, 1-10.
+
+Jones, Ronald W. (1965), "The Structure of Simple General Equilibrium Models," Journal of
+       Political Economy 73, 557-572.
+
+Jones, Ronald W. (1967), "International Capital Movements and the Theory of Tariffs and
+       Trade," Quarterly Journal of Economics 81, 1-38.
+
+Karush, William (1939), Minima of Functions of Several Variables with Inequalities as Side
+      Constraints, M.Sc. thesis, Department of Mathematics, University of Chicago.
+
+Kuhn, Harold W. and Albert W. Tucker (1951), "Nonlinear Programming", Proceedings of 2nd
+      Berkeley Symposium. Berkeley: University of California Press, 481-492.
+
+Mathiesen, Lars (1985), "Computation of Economic Equilibria by a Sequence of Linear
+      Complementarity Problems", Mathematical Programming 23, 144-162.
+
+Markusen, James R. (2002), Multinational Firms and the Theory of International Trade,
+      Cambridge: MIT Press.
+
+Markusen, James R. and Anthony J. Venables (2007), "Interacting Factor Endowments and
+      Trade Costs: A Multi-Country, Multi-Good Approach to Trade Theory", Journal of
+      International Economics 73, 333-354.
+
+Markusen, James R. (2013), "Expansion of Trade at the Extensive Margin: A General Gains-
+      from-Trade Result and Illustrative Examples", Journal of International Economics 88,
+      262-270.
+
+Roy, René (1947), "La Distribution du Revenu Entre Les Divers Biens", Econometrica 15(3):
+      205-225.
+
+Rutherford, Thomas F. (1995), "Extensions of GAMS for complementarity problems arising in
+       applied economic analysis", Journal of Economic Dynamics and Control 19(8), 1299-
+       1324.
+
+Scarf, Herbert (1967), "Approximation of Fixed Points of a Continuous Mapping", SIAM
+        Journal of Applied Mathematics 15(5), 1328-1343.
+                                              15
+
+
+Shepard, Ronald (1953), The Theory of Cost and Production Functions, Princeton: Princeton
+      University Press.
+
+Shoven, John B. and John Whalley (1973), "General Equilibrium with Taxes: Computational
+      Procedure and an Existence Proof", Review of Economic Studies 40(4), 475-489.
+
+Shoven, John B. and John Whalley (1974), "Computation of Competitive Equilibrium on
+      International Markets with Tariffs", Journal of International Economics 4(4), 341-354.
+
+Takayama, T. and Alan D. Woodland (1970), "Equivalence of Price and Quantity Formulations
+      of Spatial Equilibrium: Purified Duality in Quadratic and Concave Programming",
+      Econometrica 38(6), 889-906.
+
+Woodland, Alan D. (1980), "Direct and Indirect Trade Utility Functions", Review of Economic
+      Studies 47(5), 907-926,
+
+Woodland Alan D. (1982), International Trade and Resource Allocation, Amsterdam: North
+      Holland.
+Table 1:   Closed economy results
+
+
+           Benchmark        Double labor          Double capital         Double both labor
+                            endowment             endowment              and capital
+Variable
+
+X              100.00               118.92                168.18               200.00
+Y              100.00               168.18                118.92               200.00
+PX               1.00                 1.41                  0.71                 1.00
+PY               1.00                 1.00                  1.00                 1.00
+W                1.00                 0.84                  1.19                 1.00
+R                1.00                 1.68                  0.59                 1.00
+I              200.00               336.36                237.84               400.00
+
+Notes to Table 1:           Column 2 illustrates aggregate diminishing returns
+                            Column 3 illustrates need for care interpreting results dependent on
+                                      numeraire
+                            Column 4 illustrates homogeneity of the economy under constant
+                                      returns in production and homothetic preferences
+
+
+Table 2:   Small open economy results
+
+
+
+       Benchmark           Double labor         Increase price of            Increase price of
+                           endowment            good X by 50%                good X by 100%
+
+Variable
+
+X           100.00               50.00                   156.50                     175.48
+Y           100.00              250.00                    30.62
+PX            1.00                1.00                     1.50                       2.00
+PY            1.00                1.00                     1.00                       1.00
+W             1.00                1.00                     0.82                       0.88
+R             1.00                1.00                     1.84                       2.63
+I           200.00              300.00                   265.36                     350.95
+
+Notes to table 2:           Column 2 illustrates the Rybczynski Theorem
+                            Column 3 illustrates the Stolper-Samuelson Theorem
+                            Column 4 illustrates the importance of not ruling out corner
+                                    solutions (specialization)
+

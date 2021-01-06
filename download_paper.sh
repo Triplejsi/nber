@@ -2,7 +2,7 @@
 
 export START=$1
 export END=$2
-export SLEEP=30
+export SLEEP=0
 export DIRECTORY="paper"
 
 # create directory if does not exist
