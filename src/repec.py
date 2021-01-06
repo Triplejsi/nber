@@ -69,7 +69,7 @@ class RePEc:
         status_code = None
         while status_code != 200:
             url = f'{self.url}{self.string_id()}'
-            response = requests.get(url, proxies={'http': self.proxy}, timeout=10)
+            response = requests.get(url, proxies={'http': self.proxy})
             status_code = response.status_code
             if status_code == 200:
                 try:
@@ -85,7 +85,7 @@ class RePEc:
         status_code = None
         while status_code != 200:
             url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
-            response = requests.get(url, proxies={'http': self.proxy}, timeout=10)
+            response = requests.get(url, proxies={'http': self.proxy})
             status_code = response.status_code
             if status_code == 200:
                 try:
@@ -157,14 +157,14 @@ def main(start, end, interval):
                 end_timestamp = avg.current_timestamp()
                 timestamp.append(avg.subtract(start_timestamp, end_timestamp))
                 sleep(_interval)
-                if sum(timestamp) >= 10800:
-                    break
             else:
                 print(f'[IGNORE \U0001F4C1]: {repec.url}{repec.string_id()}')
         except Exception as err:
             print(traceback.print_exc())
             print(f'{err}: {start}')
             pass
+        if sum(timestamp) >= 10800:
+            break
         start += 1
 
     return avg.result(timestamp)
