@@ -6,41 +6,12 @@ import requests
 import sys
 import traceback
 import xml.etree.ElementTree as et
+from average_time import AverageTime
 from bs4 import BeautifulSoup
 from datetime import datetime
+from proxy import Proxy
 from random import uniform, randint
 from time import sleep
-
-class Proxy:
-    '''
-    This class returns a string of proxy when making a request.
-    '''
-
-    def __init__(self):
-        self.proxy_user = os.environ['PROXY_USER']
-        self.proxy_password = os.environ['PROXY_PASSWORD']
-        self.proxy_host = os.environ['PROXY_HOST']
-        self.proxy_port = os.environ['PROXY_PORT']
-
-    def get_server(self):
-        '''
-        Returns a  server
-        '''
-        server = os.environ['SERVER']
-        server = server.split('\n')
-        server = [x for x in server if x != '']
-
-        return server
-
-    def get_proxy(self):
-        '''
-        Returns a proxy
-        '''
-        server = self.get_server()
-        index = randint(0, len(server) - 1)
-        proxy = f'socks5h://{self.proxy_user}:{self.proxy_password}@{server[index]}.{self.proxy_host}:{self.proxy_port}'
-
-        return proxy
 
 class RePEc:
     '''
@@ -114,32 +85,6 @@ class RePEc:
         with open(f'data/repec/{self.nber_id}.json', 'w') as file:
             json.dump(data, file, indent=4)
 
-class AverageTime:
-    '''
-    This class calculates the average scraping time per paper.
-    '''
-
-    def current_timestamp(self):
-        '''
-        Returns a timestamp in UTC.
-        '''
-
-        return datetime.utcnow()
-
-    def subtract(self, start, end):
-        '''
-        Subtract the end timestamp with the start timestamp.
-        '''
-
-        return (end - start).total_seconds()
-    
-    def result(self, timestamp):
-        '''
-        Prints the average scraping time for each paper in second.
-        '''
-        timestamp = round((sum(timestamp) / len(timestamp)), 3) if timestamp != [] else 0
-        print(f'On average, the operation takes {timestamp} second(s).')
-
 def main(start, end, interval):
     avg = AverageTime()
     timestamp = []
@@ -163,9 +108,11 @@ def main(start, end, interval):
             print(traceback.print_exc())
             print(f'{err}: {start}')
             pass
-        if sum(timestamp) >= 10800:
+
+        # break iteration if it reaches +5 hours
+        # because max GitHub Actions for public is 6 hours
+        if sum(timestamp) >= 18000:
             break
-        start += 1
 
     return avg.result(timestamp)
 

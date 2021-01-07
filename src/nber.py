@@ -3,8 +3,11 @@ import json
 import os
 import pandas as pd
 import requests
+import traceback
+from average_time import AverageTime
 from bs4 import BeautifulSoup
 from datetime import datetime, date, timedelta
+from proxy import Proxy
 from random import uniform
 from time import sleep
 
@@ -13,8 +16,9 @@ class HTML:
     This class returns the HTML page for the corresponding NBER paper.
     '''
 
-    def __init__(self, nber_id):
+    def __init__(self, nber_id, proxy):
         self.nber_id = nber_id
+        self.proxy = proxy
     
     def string_id(self):
         '''
@@ -39,7 +43,7 @@ class HTML:
         '''
         Make a web request for the corresponding NBER paper.
         '''
-        return requests.get(self.url())
+        return requests.get(self.url(), proxies={'https': self.proxy})
     
     def content(self):
         '''
@@ -190,49 +194,36 @@ class Paper:
         with open(f'data/nber/{self.nber_id}.json', 'w') as file:
             json.dump(data, file, indent=4)
 
-class AverageTime:
-    '''
-    This class calculates the average scraping time per paper.
-    '''
-
-    def current_timestamp(self):
-        '''
-        Returns a timestamp in UTC.
-        '''
-        return datetime.utcnow()
-
-    def subtract(self, start, end):
-        '''
-        Subtract the end timestamp with the start timestamp.
-        '''
-        return (end - start).total_seconds()
-    
-    def result(self, timestamp):
-        '''
-        Prints the average scraping time for each paper in second.
-        '''
-        timestamp = round((sum(timestamp) / len(timestamp)), 3) if timestamp != [] else 0
-        print(f'On average, the operation takes {timestamp} second(s).')
-
 def main(start, end, interval):
     avg = AverageTime()
     timestamp = []
     while start < end:
-        raw = HTML(start)
+        proxy = Proxy().get_proxy()
+        raw = HTML(start, proxy)
         _interval = round(uniform(interval, interval+1), 3)
         file_check = os.path.exists(f'data/nber/{start}.json')
         if not file_check:
-            print(f'[DOWNLOAD \U0001F4BE]: {raw.url()}')
-            start_timestamp = avg.current_timestamp()
-            content = raw.content()
-            paper = Paper(content, raw.nber_id)
-            paper.save()
-            print(f'[SUCCEED \U00002705]: {raw.url()}\n[SLEEP \U0001F634]: {_interval} seconds')
-            end_timestamp = avg.current_timestamp()
-            timestamp.append(avg.subtract(start_timestamp, end_timestamp))
-            sleep(_interval)
+            try:
+                print(f'[DOWNLOAD \U0001F4BE]: {raw.url()}')
+                start_timestamp = avg.current_timestamp()
+                content = raw.content()
+                paper = Paper(content, raw.nber_id)
+                paper.save()
+                print(f'[SUCCEED \U00002705]: {raw.url()}\n[SLEEP \U0001F634]: {_interval} seconds')
+                end_timestamp = avg.current_timestamp()
+                timestamp.append(avg.subtract(start_timestamp, end_timestamp))
+                sleep(_interval)
+            except Exception as err:
+                print(traceback.print_exc())
+                print(f'{err}: {start}')
+                pass
         else:
             print(f'[IGNORE \U0001F4C1]: {raw.url()}')
+        
+        # break iteration if it reaches +5 hours
+        # because max GitHub Actions for public is 6 hours
+        if sum(timestamp) >= 18000:
+            break
         start += 1
     
     return avg.result(timestamp)
