@@ -1,0 +1,2408 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+                             ANSWERING THE QUEEN:
+                     MACHINE LEARNING AND FINANCIAL CRISES
+
+                                        Jeremy Fouliard
+                                        Michael Howell
+                                          Hélène Rey
+
+                                      Working Paper 28302
+                              http://www.nber.org/papers/w28302
+
+
+                     NATIONAL BUREAU OF ECONOMIC RESEARCH
+                              1050 Massachusetts Avenue
+                                Cambridge, MA 02138
+                                   December 2020
+
+
+
+
+We are highly indebted to Pierre Alquier for his generous help. We thank Gilles Stoltz for
+extremely useful comments and multiple discussions. We also thank Nicolas Vayatis for his help.
+We are also very grateful to our discussants Fabrice Collard, Franck Diebold, Christian Julliard,
+Sebnem Kalemli Ozcan and Luc Laeven and to seminar participants at the NBER IFM meeting,
+UC Berkeley, Bocconi, ENSAE, KTO-GREDEQ-OFCE, Nowcasting, the LBS AQR academic
+symposium, the Annual BIS Conference, the Bank of Spain Macroprudential Conference and the
+Women in Economics Chicago Conference for comments. Our thanks also go to Virginie
+Coudert, Julien Idier, Mikael Juselius, Anna Kovner, Marco Lo Duca, to Benoit Mojon and to
+Katja Taipalus for help with the database. Rey thanks the ERC (Advanced Grant 695722). We
+thank Francesco Amodeo for outstanding research assistance. Fouliard benefited greatly from the
+hospitality of the BIS where part of this paper was written. This work does not represent in any
+way the views of the French Macroprudential Authority or the National Bureau of Economic
+Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Jeremy Fouliard, Michael Howell, and Hélène Rey. All rights reserved. Short sections
+of text, not to exceed two paragraphs, may be quoted without explicit permission provided that
+full credit, including © notice, is given to the source.
+Answering the Queen: Machine Learning and Financial Crises
+Jeremy Fouliard, Michael Howell, and Hélène Rey
+NBER Working Paper No. 28302
+December 2020
+JEL No. G01,G15
+
+                                           ABSTRACT
+
+Financial crises cause economic, social and political havoc. Macroprudential policies are gaining
+traction but are still severely under-researched compared to monetary policy and fiscal policy.
+We use the general framework of sequential predictions also called online machine learning to
+forecast crises out-of-sample. Our methodology is based on model averaging and is meta-statistic
+since we can incorporate any predictive model of crises in our set of experts and test its ability to
+add information. We are able to predict systemic financial crises twelve quarters ahead out-of-
+sample with high signal-to-noise ratio in most cases. We analyse which experts provide the most
+information for our predictions at each point in time and for each country, allowing us to gain
+some insights into economic mechanisms underlying the building of risk in economies.
+
+
+Jeremy Fouliard                                   Hélène Rey
+Paris School of Economics                         London Business School
+Paris                                             Regents Park
+France                                            London NW1 4SA
+jfouliard@london.edu                              United Kingdom
+                                                  and CEPR
+Michael Howell                                    and also NBER
+Audley House                                      hrey@london.edu
+CrossBorder Capital
+SW1E SHX, London
+United Kingdom
+mjh@liquidity.com
+1    Introduction
+
+In November 2008, the       een of England visited the London School of Economics. A er the
+failure of Lehman Brothers in September, the nancial crisis was on everyone's mind. As she
+was shown graphs emphasising the scale of imbalances in the nancial system, she asked a sim-
+ple question: "Why didn't anybody notice?"A er a rather terse reply on the spot, it took several
+months before the British Academy wrote a three-page missive to Her Majesty blaming the lack of
+foresight of the crisis on the "psychology of denial" that was widespread in nancial and political
+circles who tended to believe that " nancial wizards had found new and clever ways of manag-
+ing risks". "So in summary, Your Majesty, the failure to foresee the timing, extent and severity of
+the crisis and to head it o , while it had many causes, was principally a failure of the collective
+imagination of many bright people, both in this country and internationally, to understand the
+risks to the system as a whole."    is paper is an a empt to bring back some imagination in the
+economics of crises.
+Financial crises cause economic, social and political havoc.     e average cumulative output loss
+in a banking crisis (in deviation from its trend) is around 20% over the length of the crisis, which
+is on average two years, according to the database of Laeven and Valencia (2020). Systemic -
+nancial crises lead to large scal costs, with major increases in public debt and they disrupt the
+fabric of our societies. In order to decrease their frequency and their severity a new set of tools
+has been introduced in many countries. Macroprudential policies aim at increasing the resiliency
+of the nancial system as a whole by, for example, introducing countercyclical capital bu ers for
+banks, liquidity coverage ratio requirements and allowing for tightening of lending standards at
+discretionary times chosen by the macroprudential authorities. While there is an extensive body
+of academic research on monetary and scal policies, there is still relatively li le work which
+can guide macroprudential policies. In particular, implementing those policies requires a timely
+understanding of the build up of risk in the economy. As shown in the classic Reinhart and Rogo
+(2009) book "   is Time is Di erent, Eight hundred years of Financial Follies", nancial crises have
+occurred repeatedly in emerging markets and advanced economies alike, and they exhibit some
+
+
+
+                                                 1
+remarkable similarities. Crises are o en, but not always, "credit booms gone bust" as described
+by Fisher (1933), Minsky (1986) and Kindleberger (1978), but they also display some di erences
+in their mechanics. From a theoretical point of view, there are many di erent models in macroe-
+conomics and in nance which have been developed to understand them. Some emphasise runs
+as in Diamond and Dybvig (1983). Many models in macro nance focus on the bust phase of the
+crisis and on ampli cation mechanisms. A few analyze the boom phase of the nancial cycle and
+emphasise limited liability and asset overvaluations due to risk-shi ing (Coimbra and Rey (2017)),
+search-for-yield in low interest rates environments (Martinez-Miera and Repullo (2017)), or de-
+viations from rational expectations and nancial constraints (Gennaioli et al. (2012)). From an
+empirical point of view, a number of variables have been used to predict nancial crises (mostly
+in sample). Following the classic work of Kaminski and Reinhart (1999), the literature has very
+usefully described the behaviour of a number of key variables around crisis episodes (see e.g.
+Gourinchas and Obstfeld (2012)). Lowe and Borio (2002) and Schularick and Taylor (2012) em-
+phasising further the role of credit growth and Mian and Su (2009) underlining the importance
+of household debt have been very in uential in shaping our understanding of nancial crises.
+Most of the literature uses standard econometric methods such as panel data econometrics or
+event studies in order to identify early warning indicators of nancial crises. Some recent at-
+tempts to introduce new forecasting methods imported from the machine learning literature can
+be found in Ward (2017) who uses classi cation trees and Bluwstein et al. (2020) who compare the
+forecasting performance of decision trees, random forests, extremely randomised trees, support
+vector machines (SVM), and arti cial neural networks. Bluwstein et al. (2020) also provide some
+economic interpretation of their ndings using an interesting methodology based on Shapley val-
+ues. From a general econometric point of view Barbara Rossi discusses in detail in her Handbook
+Chapter the importance of accounting for instabilities in time series data when performing out-
+of-sample forecasting exercises (Rossi (2011)). Indeed, the performance of the various forecasting
+models is o en constrained by the problem of over        ing.
+Our starting point is that the ability of existing models to predict systemic crises out-of-sample
+early and accurately (with small type I and type II errors i.e. the ability to predict all crises which
+
+
+                                                  2
+actually happened without crying wolf too o en) is still very limited. Turning points and non
+linear phenomena such as crises have been notoriously di cult to predict out-of-sample. Price-
+based early warning indicators tend to be more coincident indicators than good predictors. When
+they give a signal, it is too late to implement policies. Predicting pre-crisis periods (twelve quar-
+ters before the crisis) in order to give macroprudential and other authorities the time to act proves
+to be extremely di cult. Yet nancial stability policies need this type of input.       e complexity
+and the interaction of many variables, some of them -like asset prices- very fast moving, may also
+render the understanding of nancial crises exceptionally di cult. In such a context, the "failure
+of the collective imagination of many bright people" is likely to be a permanent feature of the
+world.
+We would like to forecast systemic nancial crises without knowing the "true" model of the
+economy, using as much information as possible (in our case that means many possible models
+of the economy or "experts") in a way which is exible enough to do dynamic evolving forecast-
+ing (weights put on di erent "experts" should vary over time). Our contribution is to adapt the
+framework of sequential prediction or online machine learning (see Cesa-Bianchi and Lugosi (2006))
+to overcome these di culties.     is framework is well-suited for our problem. Unlike in the clas-
+sical statistical theory of sequential predictions, where the sequence of outcomes is assumed to
+be a realization of a stationary stochastic process, in our framework, pre-crises are the product
+of some unknown and unspeci ed mechanism, which could be deterministic, stochastic, or even
+adversarially adaptative to our own behavior.        is allows us to make no assumptions on how
+the data are generated, which is a big advantage as there is no consensus on a theory of nancial
+crisis. Indeed online machine learning is speci cally geared at real-time prediction in situations
+where the true models driving outcomes are not known and can be di erent over time. Since
+we do not make any assumption on the way the sequence to be predicted is generated, there is
+no baseline to assess the forecaster's performance. Instead, it is measured by how well the fore-
+caster uses the available information to make his own prediction.        is available information is
+composed of reference forecasters, also called experts. We estimate these experts using standard
+macroeconomic variables (debt, GDP, unemployment, investment, credit, interest rates, mone-
+
+
+                                                 3
+tary aggregates, asset prices, proxy for sentiment, commodity prices, housing prices, external
+imbalances).     ese variables are the ones which would have come naturally to the mind of any
+macroeconomist familiar for example with the important work of Kindelberger on Manias, Panics
+and Crashes (Kindleberger (1978)) or the work of Minsky (1986) and Diaz-Alejandro (1985). But
+really, most of these same variables would be considered by anyone reading in 1933 in Economet-
+rica the debt-de ation theory of great depressions of Irving Fisher (Fisher (1933)). Our approach
+can be described as "meta-statistic" since the aim is to make the best prediction by aggregating
+experts' predictions.      e forecaster's error is then the sum of two errors : an estimation error
+measured by the error of the best combination of experts, known ex post, representing the best
+prediction the forecaster can make using the available information and an approximation error
+measuring the di culty to approach ex ante the best combination of experts.                ough based on
+model averaging with time varying weights, on-line learning is more general than Bayesian Model
+Averaging1 ; importantly and as already mentioned, it does not make any assumption on the data
+generating processes; furthermore it allows for time-varying learning rates. To our knowledge
+online machine learning has never been applied to economics (one exception is Amat et al. (2018)
+for exchange rates) though it has been used in a number of applications outside economics, for
+example to forecast electricity consumption (Devaine et al. (2013)), to track the performance of
+climate models (Monteleoni et al. (2011)), to model the network tra c demand (Dashevskiy and
+Luo (2011)), to forecast air quality (Mallet et al. (2009)) and to predict of outcomes of sports games
+Dani et al. (2012). An advantage of the methodology is that it also allows us to track which models
+perform well over time in a given country.         is is an important characteristic which sets it apart
+from "data mining" or black box approaches.          is is o en enlightening to understand sources of
+instability -though of course we cannot formally identify any causal relationship between vari-
+ables having good forecasting power and the origins of the crisis. Most of the predictions we
+make in the paper are quasi real time predictions in the sense that we do out-of-sample forecasts
+using historical data which may have been revised by statistical agencies2 . Usually price data are
+   1
+     In some cases, even very simple ones (see Grunwald and van Ommen (2014)), Bayesian Model averaging does
+not converge due to heteroskedasticity.
+   2
+     Vintage time series are not available for a broad set of variables.
+
+
+
+                                                     4
+not revised but quantity data may be. But, importantly we also present a set of real time predic-
+tions on French and UK data using exclusively vintage time-series, which reduces considerably
+the set of variables we can incorporate in our models. Despite its generality and its exibility,
+online-learning has of course some limitations. It will be unable to predict any crisis of a type that
+has never happened in history. For example, it will not be able to predict a hypothetical nancial
+crisis caused by a cyber-a ack as we never observed one so far, or a nancial crisis caused by a
+pandemic shock unless its correlates with characteristics of past crises.
+        e structure of the paper is as follows. We present our database on systemic nancial crisis
+dates as well as the di erent variables which we use to build our "experts" (predictive models)
+in section 2. In section 3, we describe the general methodology of sequential predictions and
+show how we can adapt it to our speci c problem. An important issue in our case is the delayed
+revelation of information since we are seeking to predict pre-crisis periods, an information that
+is revealed only when a systemic crisis happens twelve quarters a er the beginning of the pre-
+crisis period. In section 4 we present a horse race between a number of "o -the-shelf" experts
+(predictive models) present in the literature to which we add a few more experts (elastic-net logits)
+as well as bayesian averaging models and machine learning models (random forests, support
+vector machines, general additive models) to illustrate the power of our methodology. We assess
+predictive ability using di erent model aggregation rules and we present a number of diagnostics.
+In all cases we uncover a time-varying subset of models) which carry most of the information to
+predict nancial crises. Among those models we also discuss which ones " ash red" at the right
+time.     e quasi real-time forecast of our online aggregators is usually high and provides very
+informative signals for policy makers. We also present real-time forecasts using vintage data for
+France and the UK. Section 5 concludes.
+
+
+
+2       Data on systemic crises and macroeconomic variables
+
+We need two datasets: the dating of systemic crisis episodes and a dataset of economic indicators
+for a panel of countries in order to construct forecasting models ("experts"). Experts will be
+
+
+                                                  5
+estimated either on country speci c data or on the entire panel. Due to data availability, the period
+under consideration is 1985q1 to 2019q3. We consider seven countries : France, Germany, Italy,
+Spain, Sweden, the United Kingdom and the United States.                     ey include the largest eurozone
+economies, a small open economy and the two largest nancial centres (US and UK). 3
+
+
+2.1       De nition and Data on Systemic Crisis Episodes
+
+  We borrow the de nition and the dates of systemic crises from the O cial European database
+constructed by the European Central Bank and the European Systemic Risk Board (Duca et al.
+(2017)). We also rely on their narratives of the crises.            is database has been put together to estab-
+lish a common ground for macroprudential oversight and policymaking in the European Union.
+  e dating of systemic crises is in part based on quantitative indicators but it is ultimately based
+on the expert judgement of the relevant national authorities.               e methodology used is a two-step
+approach. Following Duprey et al. (2017), it aims at rst identifying historical episodes of elevated
+ nancial stress which were also associated with real economic slowdowns using a quantitative
+analysis.        e nancial stress is measured by a nancial stress indicator which captures three
+ nancial market segments : i) equity market : stock price index, ii) bond market : 10-year gov-
+ernment yields and iii) foreign exchange market : real e ective exchange rate (see more details
+in Appendix A). Industrial production growth is used as measure of real economic activity. At
+the end of this rst step, a list of potential systemic crisis events, characterised by six consecutive
+months of real economic slowdown occurring within one year of nancial stress period is drawn.
+  e second step uses a qualitative approach. Each national authority distinguishes between sys-
+temic crisis and residual episodes of nancial stress following common criteria. An event is
+classi ed as a systemic crisis event if it ful ls one or more of the following three criteria : i) A
+contraction in the supply of nancial intermediation or funding to the economy took place dur-
+ing the nancial stress event, ii)         e nancial system was distressed (market infrastructures were
+dysfunctional and/or there were bankruptcies among large nancial institutions) and iii) Policies
+were adopted to preserve nancial stability (external support, extraordinary provision of central
+   3
+       Nothing in the methodology limits the number of countries.
+
+
+                                                         6
+bank liquidity, direct interventions of the state). National authorities are also asked whether they
+want to complement the list of events or disagree with the timing of events already agged.                         e
+database of crisis episodes is already available for European countries. We replicated the exact
+same methodology for the United States4 .
+We focus on predicting systemic crises twelve quarters ahead, that is we predict pre-crises peri-
+ods which are the twelve quarters preceding a systemic crisis.                  is time interval of three years
+allows macroprudential policies to be put in place. For example, there is typically a four quarter
+delay once the decision of an increase in the countercyclical capital ratio is taken and the imple-
+mentation of the decision by the banking sector; the diagnostic of the decision and the decision
+process itself take several more quarters. We also provide some robustness analysis for eight
+quarter ahead predictions5 . Formally, we denote the systemic crisis characteristic function Cn,t :
+
+                             
+                                     If there is a systemic crisis in country n at time t
+                             
+                             1
+                             
+                    Cn,t =
+                                    Otherwise
+                             
+                             0
+                             
+
+       We de ne the pre-crisis indicator In,t :
+
+                                  
+                                         if h  H = [0, 12] such that Cn,t+h = 1
+                                  
+                                  1
+                                  
+                         In,t =
+                                  0 otherwise
+                                  
+
+   e variable that we will seek to predict out-of-sample is therefore In,t .
+
+
+2.2       Macroeconomic and nancial variables
+
+We consider a large set of standard macroeconomic and nancial variables Xk . We take into
+account the main risks on nancial markets, real estate markets, credit markets and macroeco-
+nomic conditions. Given the literature on nancial crises, the variables we consider (debt, GDP,
+unemployment, investment, credit, interest rates, monetary aggregates, asset prices, proxy for
+   4
+     We are very grateful to the New York Fed and to Anna Kovner in particular for the US data.
+   5
+     Shortening the forecast horizon to four quarter ahead does not give enough lead time to macroprudential author-
+ities to implement their policies. From the point of view of the algorithm it has also the disadvantage of decreasing
+considerably the number of pre-crisis periods.
+
+
+                                                         7
+sentiment, commodity prices, housing prices, external imbalances) are the ones which would
+have come naturally to the mind of any macroeconomist familiar for example with the important
+work of Charles Kindleberger on Manias, Panics and Crashes published in 19786 ; or the work of
+Hyman Minsky in 19867 ; or of Carlos Diaz-Alejandro in 19858 . But really, most of these same
+variables would be considered by anyone reading in 1933 in Econometrica the debt-de ation the-
+ory of great depressions by Irving Fisher9 . We do not deny that in the set of the exact measures
+we use some of them would not have been available historically (such as the VIX) but most of
+them (and actually the ones that tend to ma er) would have been and the economic concepts that
+all these variables measure were the ones described by this classic literature. Our database con-
+tains commonly used Early Warning Indicators with transformations (1-y, 2-y, 3-y change and
+gap-to-trend) for a panel of countries. We have a total of 244 quarterly variables, including the
+   6
+       "By no means does every upswing in business excess lead inevitably to mania and panic. But the pa ern occurs
+su ciently frequently and with su cient uniformity to merit renewed study. What happens, basically, is that some
+event changes the economic outlook. New opportunities for pro ts are seized, and overdone, in ways so closely
+resembling irrationality as to constitute a mania. Once the excessive character of the upswing is realized, the nancial
+system experiences a sort of "distress," in the course of which the rush to reverse the expansion process may become
+so precipitous as to resemble panic. In the manic phase, people of wealth or credit switch out of money or borrow
+to buy real or illiquid nancial assets. In panic, the reverse movement takes place, from real or nancial assets to
+money, or repayment of debt, with a crash in the prices of commodities, houses, buildings, land, stocks, bonds -in
+short, in whatever has been the subject of the mania" Kindleberger (1978).
+     7
+       " e economy consists of a mixture of hedge, speculative and Ponzi nancing units. A hedge nancing unit can
+fail to meet its obligations only if itsgross pro ts a er taxes fall below expectations. In the aggregate this can happen
+only if there is a sharp fall in aggregate demand. A speculative nancing unit can fail to meet its obligations if its
+income is below expectations, if interest rates rise too much or if there is a breakdown in the normal functioning of
+some set of nancial markets. A Ponzi nancing unit can run into troubles for all of the reasons that a speculative unit
+can plus the capitalizing of interest can erode the margin of safety in equity so that lenders are unwilling to continue
+capitalizing interest. An economy in which the dominant nancing form is hedge nancing will be nancially robust.
+    e greater the proportion of rms that are speculative or Ponzi nancing the more fragile the nancial structure.
+    e basic theorem of the nancial instability hypothesis is that over an extended period of prosperous times the
+weight of speculative and Ponzi nance in the total nancial picture increases, so that the economy migrates from
+being nancially robust to being nancially fragile" Minsky (1986).
+     8
+       " e Central Banks, either because of a misguided belief that banks are like butcher shops, or because of lack of
+trained personnel, neglected prudential regulations over nancial intermediaries" Diaz-Alejandro (1985).
+     9
+       "While quite ready to change my opinion, I have, at present, a strong conviction that these two economic mal-
+adies, the debt disease and the price-level disease (or dollar disease), are, in the great booms and depressions, more
+important causes than all others put together. Some of the other and usually minor factors o en derive some impor-
+tance when combined with one or both of the two dominant factors. us over-investment and over-speculation are
+o en important; but they would have far less serious results were they not conducted with borrowed money. at
+is, over-indebtedness may lend importance to over-investment or to over-speculation. e same is true as to over-
+con dence. I fancy that over-con dence seldom does any great harm except when, as, and if, it beguiles its victims
+into debt. Another example is the mal-adjustment between agricultural and industrial prices, which can be shown to
+be a result of a change in the general price level. Disturbances in these two factors debt and the purchasing power
+of the monetary unit will set up serious disturbances in all, or nearly all, other economic variables. On the other
+hand, if debt and de ation are absent, other disturbances are powerless to bring on crises comparable in severity to
+those of 1837,1873, or 1929-33" Fisher (1933).
+
+                                                           8
+transformations, for our forecasts in quasi real time. Whenever we de-trend a variable we make
+sure we use only data of the estimation sample (and no future data to avoid look-ahead bias).
+We make use of OECD's Main Economic indicators and National Accounts databases, the Bank
+for International Se lements data and of the database of Cross Border Capital data (CBC) which
+contains monthly data series on liquidity aggregates (public and private), capital ows and risk
+indices. Importantly the CBC variables are available in revised format as well as in real-time (see
+more details and an exhaustive list of the variables in Appendix A). We have a smaller total of
+122 variables, including transformations, for our real time analyses.10
+
+
+2.2.1        asi-real time data
+
+       · Macroeconomic indicators : GDP, GDP per person employed, GDP per capita, GDP
+         per hour worked, Unemployment rate, Consumer Price Index, General Government Debt,
+         Golden rule (gap of real long term interest rate to real GDP), Political Uncertainty Index,
+         Oil price index, Consumption, Investment, Multifactor Productivity.
+
+       · Credit and Debt indicators : Total credit (to households, to private non- nancial sector,
+         to non- nancial rms), Debt Service Ratios (household, non- nancial corporations, private
+         non- nancial sector), Household Debt, General Government Debt.
+
+       · Banking sector indicators: Banking credit to private sector, Bank assets, Bank equity.
+
+       · Interest rates and monetary indicators : 3-month rate, 10-year rate, slope of the yield
+         curve (10y-3m), monetary aggregate M3.
+
+       · Real estate indicators : Loans for House purchase, Residential real estate prices, Price-
+         to-income ratio, Price-to-rent ratio, rent price index, house price forecasts.
+
+       · Market indicators: Share prices, Financial Conditions Index, Risk Appetite Index, oil
+         price, Equity holdings, Financial assets, VXO, Global Factor in Asset Prices.
+  10
+     We also use a few variables from diverse sources: house price forecasts from the Survey of Professional Forecast-
+ers; Global Factor in Asset prices from Miranda-Agrippino and Rey (2020). Experimenting with many more variables
+could be interesting and our methodology is well-suited for this. We leave that for future research.
+
+
+                                                          9
+      · External condition indicators: Cross-border ows, Real e ective exchange rate, Dol-
+        lar e ective exchange rate, Current account, Shipping indicator; export growth, import
+        growth, terms of trade, growth of Foreign Exchange Reserves, External Debt.
+
+      · Liquidity Indicators: Total Liquidity, Domestic Liquidity, Policy Liquidity.
+
+
+2.3     Real time data
+
+    Because of the lack of vintage data, we only use market indicators, external condition indicators
+(except current account), liquidity indicators and some monetary indicators (3-month rate, 10-
+year rate, slope of the yield curve (10y-3m), monetary aggregate M3) for real-time forecasts. Due
+to the importance of real estate, credit and debt variables to predict systemic crises, this lack of
+vintage data is problematic. As a consequence, we add several market, liquidity, monetary and
+external condition real-time indicators from the CBC vintage database (see Appendix A):
+
+
+      · Market indicators: Equity Exposure Index, Bond Exposure Index, Financing Risk Index,
+        Forex Risk Index, Composite Risk Index.
+
+      · External condition indicators: Foreign Exchange Reserves, Gross Capital Flows, Cur-
+        rency Exposure Index, Exposure Risk Index.
+
+      · Interest rates and monetary indicators : Central Bank Intervention.
+
+      · Liquidity Indicators:       antity Liquidity Index, Momentum index.
+
+
+
+3           e Framework of Sequential Predictions
+
+To predict the pre-crisis periods out-of-sample, we use the general framework of sequential pre-
+dictions, also called online machine learning or on-line protocol. Consider a bounded sequence of
+observations (the occurence or non-occurrence of pre-crisis periods) y1 , y2 , ..., yT in an outcome
+space Y .    e goal of the forecaster is to make the predictions y
+                                                                 ^ 1, y
+                                                                      ^ 2 , ..., yT in a decision space D .
+                                                                                  ^
+
+
+
+                                                    10
+     is framework has two main speci cities. First, the observations y1 , y2 , ..., are revealed in a
+sequential order. At each step t = 1, 2, .., the forecaster makes a prediction y
+                                                                               ^t on the basis of the
+previous t - 1 observations before the t th observation is revealed.          is is why this approach is
+said to be "online" since the forecaster sequentially receives information.        e optimal forecasting
+model is adaptable over time which is very convenient when the predictive content is unstable
+over time.     is lack of stability is indeed a stylized fact in the forecasting literature (Stock and
+Watson (2012) and Rossi (2011)). Second, in contrast to the stochastic modelling approach, we
+do not assume that y1 , y2 , ... are the product of a stationary stochastic process.         e sequence
+y1 , y2 , ... could be the result of any unknown mechanism which is in line with the fact that there
+is no consensus on a precise model of nancial crises and that they may result of very complex
+non linear processes.
+
+
+     e forecaster predicts the sequence y1 , y2 , ... using a set of "experts". Experts are predictive
+models.      ey can be statistical models, an opinion on yt using private sources of information
+or a black box of unknown computational power (neural network prediction for example). We
+consider here a set of experts where each expert j = 1, ..., N  E makes the prediction fj,t based
+only on information available until date t-1. Of course the quality of our optimal forecast will be
+dependant on the quality of our set of experts.            e methodology of online learning is therefore
+extremely exible and general as any forecasting model can be used to contribute to the optimal
+forecast. But of course there is no magic, if all forecasting models are bad, the optimal forecast
+will also be bad. If we put "garbage in", we will get "garbage out".
+
+
+  To combine experts' advice, the forecaster chooses a sequential aggregation rule S which con-
+sists in picking a time-varying weight vector (p1,t , ..., pN,t )  P .     e forecaster's outcome is the
+linear combination of experts' advice :
+
+                                                   N
+                                            y
+                                            ^t =          pj,t fj,t
+                                                   j =0
+
+
+
+
+                                                    11
+A er having computed y
+                     ^t (based on information available until t-1), the forecaster and each ex-
+pert incur a loss de ned by a non-negative loss function : : D×Y . We summarize the framework
+in Algorithm 1.
+
+
+
+Algorithm 1 Prediction with expert advice
+        1.     e expert advice {fj,t  D : j  E} based on information until date t-1 is revealed to
+             the forecaster.
+
+        2.     e forecaster makes the prediction y ^t  D, based on information available at date t-1
+             and a sequential aggregation rule S .
+
+        3.     e tth observation yt is revealed.
+
+        4.     e forecaster and each expert respectively incur loss (y
+                                                                     ^t , yt ) and (fj,t , yt ).
+
+
+
+   How do we measure the sequential aggregation rule's performance ? If the sequence y1 , y2 , ...
+were the realisation of a stationary stochastic process, it would be possible to estimate the per-
+formance of a prediction strategy by measuring the di erence between predicted value and true
+outcome. But we do not have any idea about the generating process of the observations. How-
+ever, one possibility is to compare the forecaster's strategy with the best expert advice. Let's
+de ne the di erence between the forecaster's loss and the loss of a given expert, cumulated over
+time:
+
+                                        T
+                              Rj,T =            ^t , yt ) - (fj,t , yt )) = L
+                                             ( (y                            ^T - Lj,T
+                                       t=1
+
+
+   where L^T =         T
+                       t=1    ^t , yt ) denotes the forecaster's cumulative loss and Lj,T =
+                             (y                                                                          T
+                                                                                                         t=1   (fj,t , yt )
+is the cumulative loss of the expert j .
+        e regret of a sequential aggregation rule S is given by :
+
+
+                                                ^ T (S ) - inf LT (q )
+                                        R(S ) = L
+                                                                   q P
+
+
+   where inf qP LT (q ) = inf qP             T
+                                             t=1   (   N
+                                                       j =0 qj,t fj,t , yt )   is the cumulative loss of the best con-
+vex combination of experts (known ex post ).
+
+                                                           12
+        is di erence is called "regret" since it measures how much the forecaster regrets not having
+followed the advice of this particular combination of experts.                                  e regret is a way of measuring
+the performance of a forecaster's strategy by comparing the forecaster's predictions (based on
+information at date t-1) with the best prediction which could have been done had she followed a
+certain combination of experts based on realised value at date t.
+       Knowing that y
+                    ^t =      N
+                              j =0   pj,t fj,t , the regret can be wri en as :
+
+                                      T        N                               T         N
+                        R(S ) =            (          pj,t fj,t , yt ) - inf         (          qj,t fj,t , yt )
+                                                                       q P
+                                     t=1       j =1                            t=1       j =1
+
+
+  Minimizing the regret is for the forecaster a robustness requirement. When the regret is close
+to 0, it ensures that forecaster's strategy (determined at date t-1) is close to the best combination
+of experts, which is known at the end of the round (at date t). To get a robust aggregation rule,
+the forecaster wants, in addition of having the smallest bound possible for the regret, to obtain a
+"vanishing per-round regret" so that when T goes to in nity the superior limit of the regret taken
+over all possible observation and prediction sequences goes to zero:
+
+
+                                                                  R(S )
+                                                   lim sup                     0
+                                                T                  T
+
+  In this case, the forecaster's cumulative loss will converge to the loss of the best linear combi-
+nation of experts known ex-post.               is approach can be described as "meta-statistic" since the aim
+is to nd the best sequential linear combination of experts. Indeed, the following decomposition:
+
+
+                                           ^ T (S ) = inf LT (q ) + R(S )
+                                           L
+                                                            q P
+
+
+indicates that the forecaster's cumulative loss is the sum of an estimation error, given by the
+cumulative loss of the best linear combination of experts (known ex post ), and by the regret
+which measures the di culty to approach ex ante the best combination of experts11 .
+  11
+       e bound of the regret guarantees that forecasters performance will compete with the performance of the best
+convex combination of experts when T goes to . Note that this combination of experts is xed over time whereas
+forecasters strategy includes time-varying weights. Forecasters strategy is o en worse than the performance of the
+best convex combination of experts since the best convex combination is known ex post, but it is not a theoretical
+
+
+                                                                13
+    Whereas this approach is very popular in machine learning, most statistical and economet-
+ric research uses a "batch" framework, where one starts from estimating a model on a complete
+sample. For model averaging problems, one of the most popular "batch" methodology in econo-
+metrics is the Bayesian Model Averaging (BMA) framework which uses Bayesian decision theory.
+It would be wrong to say that there is no link between Bayesian decision theory and the theory
+of sequential predictions 12 . For a speci c loss function based on a speci c aggregation strategy,
+Cesa-Bianchi and Lugosi (2006) show that the on-line learning weights approximate the posterior
+distribution of a simple stochastic generative model. In this situation, the online approach is a
+speci c case where the Bayes decisions are robust in a strong sense because their performance
+can be bounded not only in expectation with respect to the random draw of the sequence but
+also for each individual sequence. However, the online learning approach di ers from the BMA
+approach in a fundamental way. In the BMA framework, the learning rate is always equal to 1,
+which makes this framework non-robust to some misspeci cation issues. For instance, Grunwald
+and van Ommen (2014) show that Bayesian inference can be inconsistent in simple linear regres-
+sion problems when the data are heteroskedastic. In this set-up, regularity conditions for BMA
+consistency established by De Blasi and Walker (2013) are violated. As a consequence, as sample
+size increases, the posterior puts its mass on worse and worse models of ever higher dimensions.
+A natural solution is to add a learning rate in a sequential se ing (Vovk (1990); McCallester
+(2001); Barron and Cover (1991); Walker and Hjort (2001); Zhang (2006)). We note that since
+online learning can be seen as a "meta-statistic approach" (or a "meta-algorithmic approach"), it
+can incorporate Bayes analysis and make it compete with the best combination of models.
+
+
+3.1    Online learning with delayed feedback
+
+  Our exercise does not fully correspond to the classic framework of sequential predictions. In
+the classic framework previously described, the forecaster knows the true observation yt at the
+end of the period t. A er that, he incurs a loss and can update his weights. In our case, this
+necessity. With time-varying weights, an excellent online strategy could be able to beat the best ( xed) convex
+combination of experts.
+  12
+     We are grateful to Christian Julliard for his insights on this topic.
+
+
+                                                      14
+assumption is not valid anymore. Indeed, the pre-crisis period is an ex-post de nition. A er a
+crisis occurs, the 12 quarters before the beginning of the crisis is de ned as a pre-crisis period. As
+a consequence, at the end of period t, the forecaster still does not know whether t, t - 1,..., t - 12
+were a pre-crisis or not : the feedback of the forecaster is delayed. We therefore develop the online
+learning with delayed feedback framework, where the feedback that concerns the decision at time
+t is received at the end of the period t + t . We build on the work of Weinberger and Ordentlich
+(2002) and of Joulani et al. (2013). In this framework, t may have di erent forms. It could vary
+over time, be an i.i.d. sequence independent of the past predictions of the forecaster or depend on
+^t . In our case,  is a constant which is equal to 12. We de ne R (S ) as the regret of the strategy
+y
+S in a delayed se ing. Following Weinberger and Ordentlich (2002) it is straightforward that:
+
+
+                                     RT, (S )  RT (S ) × O( )
+
+   Introducing a delayed feedback increases the bound of the regret - the approximation error -
+but does not violate our robustness requirement.
+
+
+Algorithm 2 Prediction with expert advice with delayed feedback
+      1.    e expert advice {fj,t  D : j  E} is revealed to the forecaster.
+
+      2.    e forecaster makes the prediction y
+                                              ^t  D.
+
+      3.    e t-12 th observation yt is revealed.
+
+      4.     e forecaster and each expert respectively incurs loss                   ^12 , yt-12 ) and
+                                                                                  (yt-
+           (fj,t-12 , yt-12 ).
+
+
+
+
+3.2    Choosing a loss function
+
+  e loss function can take di erent forms.          e only constraint is that it should be convex and
+bounded for minimizing the regret. In our case, we are seeking to predict a binary outcome so
+there is no issue. We use a squared loss function (y            ^t - yt )2 (but could also use an
+                                                   ^t , yt ) = (y
+absolute loss function (y            ^t - yt )|). Which of them is more appropriate for a given
+                        ^t , yt ) = |y
+
+                                                    15
+problem is an empirical question though the squared loss function tends to have be er out-of-
+sample performance.
+
+
+3.3     Selecting aggregation rules
+
+We only select robust aggregation rules, which compete with the best combination of experts ex
+post. We consider four aggregation rules with di erent properties to investigate the robustness
+of our results: the Exponentially Weighted Average aggregation rule (EWA), the Online-Gradient
+Descent aggregation rule (OGD), the Ridge aggregation rule (R) and the Fixed Share aggregation
+rule (FS). We discuss in the main text the characteristics of the EWA in order to provide some
+intuition but relegate the detailed discussion of the other rules to the Appendix.
+
+
+3.3.1   Exponentially weighted average aggregation rule
+
+At rst, we consider convex aggregation rules. Convex aggregation rules combine experts' pre-
+dictions with a time-varying vector pt = (p1,t , ..., pN,t ) in a simplex P of RN :
+
+                                                                  N
+                             j  {1, ..., N } , pj,t  0 et               pk,t = 1
+                                                                 k=1
+
+We use the exponentially weighted average (EWA) aggregation rule as it presents key advantages.
+First, the weights are computable in a simple incremental way. Second, the forecaster's predicted
+probability only depends on the past performance of the experts and not on his past prediction.
+  e forecaster predicts at each time t :
+
+                                                N     -t Lj,t-1
+                                                j =1 e           fj,t
+                                      y
+                                      ^t =         N     -t Li,t-1
+                                                   i=1 e
+
+where t is the learning rate, the speed at which weights are updated.
+   We use the gradient-based version of the EWA aggregation rule Egrad
+                                                                       where weights are
+de ned by :
+
+                                                        t-1 ~
+                                             exp(-t     s=1 Lj,s )
+                                  pj,t =     N             t-1 ~
+                                             k=1 exp(-t    s=1 Lk,s )
+
+
+                                                   16
+   where L~
+          j,s =  (
+                         N
+                         k=1   pk,s fk,s , ys ) · fj,s and  is the gradient operator.
+   An important advantage of the gradient-based version of the EWA aggregation rule is that
+weights are easy to interpret. If expert j's advice fj,s points in the direction of the largest increase
+of the loss function, i.e. if the inner products  (             N
+                                                                k=1   pk,s fk,s , ys ) · fj,s has been large in the past,
+the weight assigned to expert j will be small. We implement the following algorithm:
+
+
+Algorithm 3 Gradient-based EWA
+      1. Parameter : Choose the learning rate t > 0.
+
+      2. Initialization : p1 is the rst uniform weight, pj,1 =               1
+                                                                             N
+                                                                               j    {1, ..N }.
+
+      3. For time instances t = 2, 3, ..., T the weights vector pt is de ned by :
+                                                                  t-1 ~
+                                                        exp(-t    s=1 Lj,s )
+                                          pj,t =       N             t-1 ~
+                                                       k=1 exp(-t    s=1 Lk,s )
+
+
+          where L~
+                 j,s =  (
+                                N
+                                k=1   pk,s fk,s , ys ) · fj,s
+
+
+
+      e strategy Egrad
+                       competes with the best convex combination of experts.                              e following
+theorem is stated in Stoltz (2010):
+      eorem 1. If D = [0, 1] is convex, L(·, y ) are di erentiable on D and L~
+                                                                             j,t are in [0, 1], for all
+
+t > 0 :
+                                                                ln(N )     T
+                                   sup{RT (Egrad
+                                                 )}                    + t                                           (1)
+                                                                  t        2
+
+      e strategy Egrad
+                       satis es our robustness requirement:
+
+
+                                                    grad
+                                           sup{RT (E     ) = o(T )
+
+
+      e bound of the regret depends on three parameters, two exogeneous (N and T ) and one
+endogenous (t ). An interesting property of the theorem is that the bound does not depend
+linearly on the number of experts, but on ln(N ). A large number of experts will not drastically
+increase the di erence between the forecaster's cumulative loss and the cumulative loss of the
+best combination of experts.          e last parameter of the bound t is the learning rate. For the
+
+                                                          17
+gradient-based EWA aggregation rule, the forecaster chooses the parameter t with the best past
+performance :
+                                                 ^ t-1 (E )
+                                      t  arg min L
+                                                >0
+
+
+
+3.3.2   Other aggregation rules
+
+We present in Appendix D three other aggregation rules: the Fixed Share aggregation rule (FS),
+which builds directly on the EWA; the Online-Gradient Descent aggregation rule (OGD) and the
+Ridge aggregation rule (R) and explain how to implement these aggregation rules in an envi-
+ronment with delayed feedback.       ese rules o er some diversity in the way the aggregation is
+performed and the speed at which the learning parameter is evolving. For the Ridge, the aggre-
+gation weights are not bounded between zero and one. For the EWA, the FS and the Ridge, the
+learning parameter is optimised upon empirically. For the OGD, the learning rate is theoretically
+calibrated. Due to the delayed feedback and the relatively small size of the sample, the relative
+performance of the di erent rules is an empirical question.
+
+
+3.4     Designing experts
+
+To design the experts, the forecaster faces the following arbitrage. On the one hand, it is critical
+to include a su cient number of experts to get the maximum amount of information, in order
+to reduce the approximation error. On the other hand, the regret increases with the log of the
+number of experts. We decided to pick di erent sets of experts in Section 4: we pick both"o -
+the shelf" experts used in the literature and in central banks to predict nancial crises as well
+as bayesian averaging models and machine learning models such as random forests.           e beauty
+of our approach is that we can include any type of experts and therefore be very oecumenical in
+terms of methodology.
+
+
+
+
+                                                18
+4        An oecumenical approach to crisis prediction
+
+We include in our set of experts several models used by academics and by central banks in their
+e ort to construct a set of early warning indicators for macro prudential policies: Dynamic Probit
+Models, Panel logit models, bayesian model averaging. Some of these models were summarised by
+the Macroprudential Research Network of the ECB. To those, we add models from the machine
+learning literature: General Additive Model (GAM), random forests, Support Vector Machine
+(SVM). We then add several Logits with elastic net penalties13 as these models have been found
+to be particularly well suited for out-of-sample forecasts. We design those by grouping variables
+by themes: a subset of the logits describe the real economy, another subset the housing market,
+another the credit market etc...       is is in order to ease the economic interpretation of our results.
+Note that our models incorporate various horizons of changes for the variables so that in exion
+points can be captured. All the models have been re-estimated with our variables on our sample.
+In a small number of cases, when we use models of the literature we could not include one variable
+of the model as it was not publicly available. Some models are estimated on a panel, others are
+estimated country by country.         erefore our experts incorporate information from the entire set of
+countries and account for potential interactions and global e ects. We note that we could consider
+many more variables and models. We could also extend the country sample.                       e methodology
+is exible enough to incorporate all these improvements. We end up with 26 experts that we
+brie y describe below. Some of these models are generic in the sense that the speci cation is
+exactly the same for all countries. Others use country speci c variables, which we select using
+AUROC criteria. Our eclectic choice of models will allow us to see whether totally a-theoretical
+models such as random forests dominate or not models based on economic mechanisms (such as
+credit growth) to produce out-of-sample forecasts. We refer the reader to Appendix B and C for
+a detailed description of these models and for all the precise speci cations.
+Our rst set of experts are taken from the economic literature on macroprudential policies on
+panel data:
+    13
+       is is a regularized regression method that combines linearly the penalties of the LASSO and the Ridge with
+certain weights.
+
+
+
+                                                       19
+   1. Expert P1. Dynamic Probit Model: variables selected with a country-speci c AUROC on
+       the batch sample panel.
+
+   2. Expert P2. Panel logit xed e ect: variables selected with a country-speci c PCA Analysis
+       on the batch sample panel.
+
+   3. Expert P3: Panel logit xed e ect. We follow the literature for the exact speci cation (see
+       Appendix B and C).
+
+   4. Expert BMA: Bayesian Model Averaging. Variables selected with a country-speci c AU-
+       ROC on the batch sample panel.
+
+Our second set of experts come from the Machine Learning literature (see Appendix B and C):
+
+   1. Expert GAM: General Additive Model
+
+   2. Expert RF: Random Forest
+
+   3. Expert SVM: Support Vector Machine
+
+Our third set of experts are constructed using Logits with elastic-net penalty (see Appendix B
+and C)14 . All the Logits include each variable in level as well as the 1-year change and the 2-year
+change.       antities are expressed as a fraction of GDP.            ese Logits are organised around sets
+of variables belonging to a speci c sector of the economy. For example we construct a Logit
+credit (Expert Lcr) using Total credit to non- nancial sector; Banking Credit to non- nancial
+sector; Total Credit to Households; Total Credit to non- nancial corporations. Another Logit,
+the Logit Foreign (Expert Lfor) will have Cross Border Flows; Real E ective Exchange Rate;
+Dollar E ective Exchange Rate; Current Account; Terms of Trade. We have a valuation Logit, two
+real economy Logits, a housing Logit, a monetary Logit, etc... We also allow for combinations.
+For a detailed description of these 19 additional models please see Appendix B and C. We now
+have experts of all stripes and shapes including some models with common components, Baysian
+  14
+     First introduced by Zou and Hastie (2005), the good performance of elastic-net penalty compared to other reg-
+ularization methods has been con rmed in various applications Mol et al. (2009); Mol et al. (2009); Destrero et al.
+(2009).
+
+
+                                                        20
+averaging and random forests. Our models contain most of the variables that have been shown to
+be important in the literature and that a well-read international economist would consider now
+or would have considered in the 1980s: asset valuations, credit; household debt; house prices,
+ nancial condition indices, current accounts, real exchange rates, etc... Our oecumenical approach
+can accommodate many more. Our only restriction is data availability. For example it would be
+desirable to test the information content of variables based on individual banks balance sheets
+but the timing of the rst crisis and the twelve quarter lags means that in practice those variables
+cannot be incorporated in the analysis.
+
+
+
+5    Results
+
+We focus on countries such as France, the United Kingdom, Germany and Italy which experienced
+a systemic crisis at the beginning of our sample in the 1980s or 1990s.    is allows our algorithm
+to learn about systemic crises and enables it to predict out-of-sample therea er. Spain and the US
+do not experience any systemic crisis at the beginning of the sample. We will present a series of
+results focusing on France, UK, Germany and Italy using quasi-real time data (i.e. historical data
+which may have been revised). For France and the UK we are also able to present results using
+real time data. We note that the timing of the systemic crises in all those countries are di erent
+not only in the 1980s or 1990s but also around 2008.     ey have commonalities but also country
+speci c characteristics (this is why we symbolically wrote the section headings below in the
+national languages). Most of the literature focuses on in-sample results and a empts to predict
+crises (not pre-crises). We present results for out-of-sample pre-crisis prediction. We show a time
+series of our predicted probability of crisis as this has the advantage of being very transparent
+and of allowing us to assess straight away the usefulness of our predictive model as an early
+warning indicator. If the signal tends to be monotonously increasing before a crisis it is likely
+to be a useful early warning indicator, provided it does not have too many false positive. For
+each country we present in the main text our estimated probability of pre-crisis using the EWA
+aggregating rule. We show some additional results in Appendix. We also present results on the
+
+
+                                                21
+time-varying weights assigned by our aggregation rule on each model and the contribution of
+each expert to the prediction in order to gain some insights in the transmission mechanisms.
+Finally we report diagnostics regarding the t of our model (mean squared errors and AUROCs)
+for the di erent aggregation rules.
+
+
+
+6     Les crises syst´
+                     emiques en France
+
+    ere are two systemic crises in France during our sample period from1985Q1 to 2019Q3.      e rst
+one is from 1991 Q2 till 1995 Q1 and the second one from 2008 Q1 to 2009 Q4.       ere are also two
+residual events which correspond to the burst of the IT bubble in 2002 Q3 till 2003 Q2 and the
+euro area sovereign debt crisis from 2011 Q1 till 2013 Q4.     e 1991Q2-1995 Q1 French systemic
+crisis, on which our algorithm learns, was linked to real estate. As described in Duca et al. (2017)
+on which we draw, France experienced a period of high GDP growth and deregulation a er 1987,
+which led to a sizeable increase in residential and commercial real estate prices. Increasing oil
+prices and a deteriorating international economy ushered a severe slowdown a er 1990 Q2 and a
+plunge in real estate prices.   e French banks saw an increase in non-performing loans, a fall in
+value of real estate property assets in portfolios.   ey reduced their supply of loans to property
+developers and sellers.    e large decline in commercial real estate prices, used as collateral had
+a negative impact on the nancial position of borrowers and led to some defaults.        e economy
+was then damaged by the European Exchange Rate Mechanism crisis of 1992 and the fragility of
+the banking sector with the near bankruptcy of the Cr´
+                                                     edit Lyonnais (due to the real estate market
+downturn and excessive risk taking).      e trough of the recession was reached in 1993 Q1.
+
+
+6.1     Out-of-sample prediction of crises: France.                    asi real time data.
+
+Figure1 illustrates the timing of pre-crises and crises in France on the period during which we
+forecast out-of-sample which starts in 2001Q3. We aim at forecasting the systemic pre-crisis pe-
+riod (2005Q1 to 2008Q1). We estimate the expert models on the batch sample 1987Q3-2001Q4
+(1987Q3 is the earliest possible date we can start because of data availability). We present results
+
+
+                                                 22
+for out-of-sample pre-crisis prediction for 2002Q1 to 2019Q3.              is includes the period of the sec-
+ond systemic crisis (2008 Q1 to 2009 Q4)15 .             at systemic crisis followed the collapse of Lehman
+Brothers a er an era of growing GDP, falling unemployment, excessive credit growth and boom-
+ing real estate prices. As described in Duca et al. (2017), the spillovers form the US nancial
+crisis triggered a recession with a fall in investment and consumption, as private agents tried to
+deleverage in front of a deteriorating and highly uncertain economic environment together with
+a collapse of international trade. France entered a recession in Q3 2008, for four quarters. Unem-
+ployment rate rose from 7.5% to 9.5%.            ere was a 10% decline in residential real estate prices a er
+a boom in the 1995-2007 period. Policy interventions included a restructuring and capital injec-
+tion into Dexia, a Franco Belgium bank, a French bank guarantee scheme (November 2008-2009),
+a recapitalisation scheme (December 2008 and March 2009) and a merger and capital injection
+into Banque Populaire-Caisse d'Epargne (May 2009). In Q3 2009, GDP growth turned positive
+again and unemployment started to fall.               is out-of-sample forecasting period also includes the
+euro area sovereign debt crisis (2011 Q1 till 2013 Q4), which is not classi ed as a systemic crisis
+in France.        at period however saw spillovers from the crises in some euro area countries both
+in terms of real activity and via exposure of French banks to the periphery.
+       Pre-crisis probability.
+       Figure 1 presents the results for the EWA aggregation rule.          e entire period is out-of-sample
+and we aim at forecasting the systemic pre-crisis period (2005Q1 to 2008Q1). It shows that the
+probability of being in a systemic pre- crisis in 2002 Q2-2004 Q4 was low with a sharp increase
+starting in 2005 Q1. Since the probability increases over time and increases steeply, the model
+provides a very good early warning system.                  e 12 quarter ahead crisis probability reaches 1
+and remains there till 2008 Q1.            e model performs very well as the crisis starts in 2008 Q1 and
+accordingly the probability starts dropping -we are predicting the pre-crisis not the crisis. A er
+2008 Q4, the probability of a systemic pre- crisis remains very close to zero until 2010 Q1where
+the probability of crisis goes back up again.              is corresponds more or less to the timing of the
+precrisis for the euro area crisis, which is classi ed as a "residual event" in our data base (from
+  15
+       For the US the systemic crisis is dated 2007Q3-2009Q4.
+
+
+
+                                                          23
+            Figure 1: France: Predicted probability of a crisis - EWA aggregation rule
+
+the point of view of the algorithm this is therefore a mistake).       e probability goes back down
+to low levels at the end of the pre euro crisis period and remains close to zero till the end of the
+sample. It seems therefore that the algorithm learns on the 1991 Q2 -1995 Q1 systemic crisis all
+that is necessary to be able to predict the 2008 crisis as early as 2005 Q1 (and it gives a smaller
+warning before the residual event of the euro area crisis). We show in Appendix D the results
+for the FS, OGD and Ridge aggregation rules.          e FS rule also manages to give a clear and ris-
+ing signal in 2005 Q1 well before the 2008 systemic crisis. For the OGD aggregation the results
+are somewhat similar to the FS aggregation rule.         e Ridge does not perform very well.     is is
+possibly a consequence of our small sample: EWA type rules are more robust in that case.          ree
+aggregation rules manage to predict the pre-crisis period for the 2008 systemic crisis (the Ridge
+predicts mostly the euro area crisis, which is not systemic). For all the aggregation rules there is a
+second probability spike, usually smaller, linked to the pre-euro area crisis period (residual event).
+
+
+   One of the main di erence across the di erent aggregation rules in terms of methodology
+is the way the learning rate is picked. For the EWA, the FS and the Ridge it is optimised upon
+empirically whereas for the OGD the theoretically calibrated value of the learning rate is used.
+
+
+
+                                                 24
+                      Online Aggregation Rule           RMSE     AUROC
+
+                      EWA                               0.26     0.98
+                      FS                                0.31     0.92
+                      OGD                               0.33     0.85
+                      Ridge                             0.52     0.70
+                      Best xed convex combination       0.28     0.97
+                      Uniform                           0.36     0.79
+
+               Table 1: RMSE and AUROC of di erent aggregation rules. France
+
+  is said, the results across the four aggregation rules are o en consistent, though not always.
+  e EWA is the simplest rule and it o en appears to be the most robust when samples are small.
+Table 1 presents the Root Mean Squared Errors (RMSE) and Area under the Receiving Operator
+Curve (AUROC) of our di erent aggregation rules and compares them to the best xed convex
+combination of experts known ex post and to the uniform aggregation rule (equal weights on all
+experts).   e ROC curve represents the ability of a binary classi er by plo ing the true positive
+rate against the false positive rate for all thresholds. If the model made a perfect prediction the
+area under the curve (AUROC) would be equal to 1; if it were as bad as a coin ip, the AUROC
+would be 0.5. We note that the EWA, the FS and to a lesser extent the OGD RMSE are close to
+their theoretical asymptotic value of the best convex combination of experts (0.26, 0.31 and 0.33
+respectively versus 0.28 for the best convex combination known ex post ).       e EWA does even
+be er as its weights are time varying wheres the best convex combination has xed weights.        e
+EWA and FS aggregation rules have an AUROC remarkably close to 1. All aggregation rules do
+be er than uniform weights except the Ridge which performs badly. Note that the prediction of
+the euro area crisis is counted as an error by the algorithm as this episode is not classi ed as a
+systemic crisis but as a residual event. We do not want to emphasize particular diagnostics but
+do report them to allow comparisons with the literature. What we do want to emphasize is that
+our out-of-sample graphs of the time-varying probability of systemic crises provide a transparent
+way of assessing the performance of our methodology.
+
+
+   Dominant experts and their roles.
+
+
+
+                                                25
+          Figure 2: France: Weights.   asi-real time. EWA aggregation rule.
+
+
+
+
+Figure 3: France: Experts.   asi-real time. Contribution to forecast. EWA aggregation.
+
+
+
+
+                                         26
+       Our online learning methodology is not a black box. It allows us to track which models get
+an endogenously higher weight in the forecast at a given point in time and which ones give the
+crisis signal. Interestingly some models dominate the forecast. Figure 2 shows the time varying
+weights associated to each of our experts for the EWA aggregation rule and Figure 3 presents the
+contribution of the experts to the forecast (the dashed line is the pre-crisis period we are seeking
+to predict).      e optimal forecast for the EWA rule puts some positive weights on several models.
+Among those, in Figure 3, we see that the ones giving the crisis signal are Lho16 and Lc4 which is
+the one really spiking; Lc4 is a logit elastic net mainly on housing, credit and investment17 . Lc518
+and Lhc19 are also informative.            is suggests that uctuations in quantities of credit (changes in
+total credit to household (1y and 2y) and bank credit to non- nancial sector (2y)) are particularly
+informative along with the housing market variables particularly real estate price (2y) rent price
+index (2y) and price-to-rent.          ese variables picked ex ante out-of-sample by the algorithm make
+perfect economic sense given the ex post narrative on the French crisis.
+       Figure 9 in the Appendix shows the time varying weights associated to each of our experts
+for the FS aggregation rule and Figure 10 presents the contribution of each expert to the forecast.
+   e dashed line is the pre-crisis period we are seeking to predict. Interestingly Lc4 also plays the
+central role and gives the pre-crisis signal. According to the OGD aggregation rule, it is also Lc4
+and Lc5 which give the strongest signal for the systemic crisis. So the results are very consistent
+across three aggregation rules (EWA, FS and OGD) for the prediction of the pre-systemic crisis
+period (the Ridge is the outlier in terms of performance). For the FS rule, the euro area pre-crisis
+peak in crisis probability is due to Lhc. Similar experts are picked by the OGD and the Ridge
+aggregation rules for the pre-euro area peak (see Appendix D). Finally as a robustness check we
+also re-estimated our EWA aggregation using an 8 quarter pre-crisis period as opposed to a 12
+-quarter period.         e two models picked are Lc4 and Lbfo and the model giving the signal is
+  16
+      Lho's variables are: Price-to-rent, price-to-income, real estate price, rent price index.
+  17
+      Lc4's variables are: Real estate price, GDP, Total Credit to Households, Rent Price Index, Loans, Banking Credit
+to private non- nancial sector, Price-to-income, Investment, Share price index, Equity Holdings.
+   18
+      Lc5's variables are Price-to-rent, Short-term interest rate, Terms of Trade, Housing 2, Total Credit to Households,
+Banking Credit to private non- nancial sector, Total Credit to private non- nancial corporations, Rent Price index,
+Investment, Share Price index, equity Holdings.
+   19
+      Lhc's variables are Price-to-rent, price-to-income, real estate price, rent price index, Total credit to non- nancial
+sector, Banking credit to non nancial sector, total credit to households, total credit to non- nancial corporation.
+
+
+                                                            27
+Lbfo20 (see Appendix D). So our aggregation method is able to give a very clear signal of the
+systemic crisis in 2008 both 3 year (mostly with credit volumes and housing variables) and 2 year
+ahead (mostly with international variables and risk taking variables).
+       ese results are robust to all the variations we tried.          ey are not totally surprising. Housing
+risk and credit to households are seen as having played an important role in the Great Financial
+Crisis in the US.       ey seem to have done so as well in France and this is consistent with the
+historical narrative of the French crisis.21 In the case of France, we see however that banking credit
+to non- nancial corporations and total credit to household are also very informative as does price-
+to-rent, the terms of trade and the short term rate. For the euro area pre-crisis (residual event),
+ nancial market stress indicators, global factor in asset prices, interest rates and international
+ ows and exchange rate variables seem to play a bigger role.               is is true across all the aggregation
+rules we considered.          ese variables were picked in both cases ex ante out-of-sample by the
+algorithm and they make economic sense given the ex post known narrative on the French crisis.
+Of course, no causality can be established.
+
+
+6.2     Out-of-sample prediction of crises: France. Real time data.
+
+We test our methodology for real time out-of-sample prediction using vintage data for France
+and the EWA aggregation rule. Unfortunately, we have been able to obtain vintage data only for
+a subset of our variables. In particular we are missing long enough series for GDP data, credit
+data and housing market related variables. Fortunately however we can rely on Cross Border
+Capital vintage data series for the whole panel of countries (liquidity indices built on real time
+ ow data as well as risk taking indices built on asset price data)22 . We also use exchange rates and
+asset price data which are not revised, and speci cally for France M3 and in ation data which
+are not revised. We go from 244 variables down to 122 variables. We reestimate all our experts
+on the 1987Q3-2001Q3 sample using only vintage data and we use also only vintage data for the
+  20
+      Share price index, Equity Holdings, Risk Appetite, Total Liquidity Index, Crossborder ows, Real e ective ex-
+change rate, dollar e ective exchange rate, current account, Terms of Trade.
+   21
+      We note that the timing of the systemic crisis is not exactly the same in France (2008Q1-2009Q4) and in the US
+(2007Q3-2009Q4); we also note that the euro area crisis a ected France subsequently.
+   22
+      For a description of the Cross Border Capital Data set see Howell et al. (2020).
+
+
+                                                        28
+out-of-sample exercise23 . Despite the strong data limitations, we still get good results for the
+predictability of the systemic crisis as shown in Figure 4.              e probability of pre-crisis goes up in
+2005 Q2 (1 quarter later than in quasi real time) and remains high until the systemic crisis unfolds.
+It remains elevated a bit longer than in quasi-real time a er the beginning of the crisis.                    ere is
+a spike as before for the euro area crisis but it occurs a bit later.              e main di erence has to do
+with the existence of two new spikes in 2014 and 2018 which were not there when we used the
+quasi-real time data. So the real-time estimates, which are based on fewer series seem noisier and
+more prone to false positive. It is hard to make a meaningful comparison of the weights of the
+models with the quasi real time results as the variables used in the models are now very di erent
+due to data restrictions.       ere are two models which are picked by the EWA aggregation rule: the
+machine learning expert GAM24 and a new Lc5 expert25 . It is the GAM expert which gives the
+signal of a pre- systemic crisis before 2008. In the absence of any credit data and housing data and
+terms of trade data which were very important in our quasi-real time exercise, it is the interest
+rate (and just as before it is the 2y change), exchange rate and capital ow data which trigger
+the alarm. Lc5, which measures mostly nancial stress and asset price variables is responsible
+for the subsequent spikes.           ose are false positive. More than the real time versus quasi-real
+time dimension it seems to us plausible that it is the lack of data availability in terms of credit,
+real variables, terms of trade and housing market vintage variables which are responsible for
+the deterioration in forecasting ability. We note that the RMSE and the AUROC are still very
+good (see Table 2) when compared to the Best convex combination of experts (based on ex post
+information) or on a uniform aggregation. We note that the RMSE of the EWA aggregation rule
+is even be er than the best convex combination.               is is possible since the EWA are time varying
+while the best convex combination has xed weights. On-line learning methodologies have been
+developed precisely to do real time forecasts.
+  23
+      Our real time out-of-sample exercise is very strict. Indeed, we even estimate our experts on the batch sample
+using vintage time series.
+   24
+      GAM's variables are Short-term interest rate 2y, Cross Border Flows 1y, Dollar e ective exchange rate 2y.
+   25
+      Lc5's variables are Financial Condition Index, Domestic Sector Liquidity Stock, Private Sector Liquidity Stock,
+Equity Exposure Index, Total Liquidity Stock.
+
+
+
+
+                                                         29
+                         Online Aggregation Rule       RMSE       AUROC
+
+                         EWA                           0.36       0.84
+                         Best convex combination       0.32       0.84
+                         Uniform                       0.40       0.54
+
+    Table 2: RMSE of di erent aggregation rules. France: real time from 2002Q1 to 2019Q3
+
+
+
+
+                           Figure 4: France: Experts. Real time - EWA
+
+7    Systemic crises in the United Kingdom
+
+We now turn to the UK. For the UK, the crisis started in 2007 Q2 and ended in 2010 Q1, which
+is a slightly di erent timing from France.      e previous systemic crisis was from 1991 Q2 till
+1994 Q2. As described in Duca et al. (2017), that crisis was linked to excessive credit growth,
+high real estate prices and leverage. Rapid credit expansion took place in the 1980s (including in
+property-related assets). Even though some small institutions failed from June 1990 there was no
+reaction or concern from authorities until counterparties were unable to access their funds at the
+BCCI (Bank of Credit and Commerce International).             e event generated panic and the people
+moved their money to larger institutions.     e European Rate Mechanism (ERM) forced the Bank
+of England to keep a high interest rate.     is exacerbated the economic slowdown, accelerating
+the fall of property prices.   e second systemic crisis 2007 Q2 till 2010 Q1 is predicted out-of-
+sample.    e episode relates to the subprime crisis.    e instability came from weaknesses within
+the nancial system that developed during the global credit boom characterised by rapid balance
+sheet expansion. Too many assets whose liquidity and credit quality were uncertain were created
+
+                                                30
+              Figure 5: UK: Contribution of experts to forecasts.                 asi-real time - EWA
+
+and funding structures were risky and fragile. We present results for out-of-sample prediction
+for 2002Q3 to 2017Q4. Unlike France, there are no residual events in the data a er the systemic
+crisis.
+
+
+7.1       Out-of-sample prediction of crises: UK.                               asi real time data
+
+Figure 5 presents the predicted probability of a pre-crisis in the UK for the EWA aggregation
+rule with the contribution of the experts to the forecast.                 e dashed line is the pre-crisis period
+we are seeking to predict.          e probability of being in a pre-crisis in 2004 rises very quickly.                 e
+probability of a subsequent crisis is very low a er the Great Financial crisis except for a peak
+in 2011. Table 3 shows that the EWA rule performs well and just like in the case of France, it
+performs be er than the other rules (unreported). Two experts are doing most of the work: the
+GAM26 and the Logit risk Lrisk27 . It is the GAM expert that gives the signal before the 2008
+crisis.    at experts combines information on the housing market and on long term interest rate.
+   e second expert Lrisk re ects risk taking.                e algorithm can also predict well the crisis two
+year ahead as shown in Figure 14 in the Appendix.                     e model giving the signal in that case is
+Lval28 , which re ects valuations in di erent asset markets and risk taking.
+  26
+      GAM's variables are long-term interest rate and Price-to-rent.
+  27
+      Lrisk's variables are VXO, Risk Appetite, Equity Holding.
+   28
+      Lval's variables are Share price index, Real Estate price, Global Factor in Asset Prices, Short-term interest rate,
+long-term interest rate, dollar e ective exchange rate.
+
+
+
+                                                           31
+                            Online Aggregation Rule          RMSE      AUROC
+
+                            EWA                              0.29      0.92
+                            Best convex combination          0.29      0.94
+                            Uniform                          0.43      0.66
+
+    Table 3: RMSE of di erent aggregation rules. UK: quasi-real time from 2001Q1 to 2019Q4
+
+
+
+
+                                Figure 6: UK: Experts. Real time - EWA
+
+7.2     Out-of-sample prediction of crises: UK. Real time data.
+
+We reestimate all our experts using only vintage data for the out-of-sample exercise. Despite
+the strong data limitations, we get still good results for the predictability of the systemic crisis
+as shown in Figure 6.          e probability of pre-crisis goes up as before and remains high longer
+than in quasi-real time a er the beginning of the crisis.            ere only very small spikes during the
+euro area crisis and a small spike in 2018 so the results are consistent with the quasi-real time
+ones.    ere are two models which are picked by our the EWA aggregation rule and these are two
+machine learning models: the GAM29 and the SVM expert. It is the GAM expert which give the
+signal of a pre-crisis before 2008. For the UK, it is therefore clearly the behaviour of the real time
+liquidity variables and the exchange rate which trigger the alarm.
+  29
+       e GAM's variables are the Dollar e ective exchange rate, Private Sector Liquidity Stock (2y), Domestic Liq-
+uidity Stock local (2Y).
+
+
+
+
+                                                       32
+8       Systemische Krisen in Deutschland
+
+We now turn to Germany. Both the timing of the rst and the second systemic crises (2001 Q1 till
+2003 Q4 and 2007 Q2 till 2013 Q2 respectively) are di erent from the ones in France and in the UK.
+    e algorithm learns on the systemic crisis 2001Q1- 2003 Q4. As described in Duca et al. (2017),
+that crisis was due to exposure concentration, excessive credit growth and leverage ( nancial
+and non nancial) and excessive risk taking.         e cyclical downturn, following a domestic credit
+boom and the implosion of the new economy" stock market bubble, put signi cant stress on
+the German nancial sector which had low pro tability. Some of the largest institutions, had
+to adjust their balance sheets and to tighten their lending standards with negative feedbacks
+e ects.      e second systemic crisis 2007 Q2 till 2013 Q2 is predicted out-of-sample. During the
+years preceding the Lehman Brothers bankruptcy, some German nancial institutions became
+strongly interconnected in international markets and involved in the build-up of systemic risks.
+    e drying up of market and funding liquidity was a key destabilising factor in the crisis. In
+addition to securitizations, some banks in Germany had important exposures to commercial real
+estate and the shipping industry. High leverage increased the risk of pro-cyclical re sales and
+of a credit crunch. In the later stage of the crisis exposures to stressed euro area sovereigns and
+banking systems a ected the nancial sector in Germany. We present results for out-of-sample
+prediction for 2000Q3 to 2017Q4. Unlike France, there are no residual events during that out-
+of-sample forecast period but a longer systemic crisis and fewer periods in between the batch
+sample and the out-of-sample systemic crises.
+
+
+8.1     Out-of-sample prediction of crises: Germany.                          asi-real time data.
+
+Figure 7 presents the predicted probability of a pre-crisis in Germany for the EWA aggregation
+rule.     e probability of being in a pre-crisis reaches a very high level in 2004.   e model also per-
+forms well as the crisis starts: the probability drops quickly.     ere are however some subsequent
+smaller peaks during the 2011-2018 period.
+     We see that when the pre-crisis probability peaks, it is the P1 expert which is carrying all the
+
+
+                                                   33
+             Figure 7: Germany: Contribution of experts to forecasts.           asi-real time - EWA
+
+                             Online Aggregation Rule         RMSE      AUROC
+
+                             EWA                             0.21      0.84
+                             Best convex combination         0.19      0.84
+                             Uniform                         0.41      0.78
+
+                 Table 4: RMSE of di erent aggregation rules. Germany: quasi-real time
+
+weight and giving the signal30 .
+         Table 4 presents the RMSE and the AUROCs. We note that the EWA performs best once
+more in all our aggregation rules (unreported) but it does not do as well as the best linear convex
+combination.         is suggests that like for France (and unlike the for the UK) we have a good pool
+of experts but that the learning could be improved further.               is may be linked to the fact that,
+for Germany, the two systemic crises are not far apart in time.
+
+
+
+9         Le crisi sistemiche in Italia
+
+Italy experienced a systemic crisis at the beginning of our sample from 1991Q3 to 1997Q4. Ac-
+cording to Duca et al. (2017) "this crisis can be related to currency markets turmoils in connection
+to the ERM crisis and subsequent distress in the economy and in the banking sector. Several banks
+from southern Italy, generally publicly-owned and a ected by allocative and cost ine ciencies,
+    30
+     P1's variables are Price-to-rent, Real estate price, Banking credit to private non- nancial sector, Long term
+interest rate.
+
+
+                                                       34
+           Figure 8: Italy: Contribution of experts to forecasts.       asi-real time - EWA
+
+                          Online Aggregation Rule       RMSE     AUROC
+
+                          EWA                           0.34     0.77
+                          Best convex combination       0.28     0.94
+                          Uniform                       0.42     0.70
+
+                Table 5: RMSE of di erent aggregation rules. Italy: quasi-real time
+
+were severely hit by the strong recession. Moreover, those banks increased their exposures -
+which became quite concentrated - toward riskier borrowers. In the context of the crisis a ect-
+ing the Italian economy, especially in the southern regions, a large number of small banks went
+under distress in the 90s."    e systemic crisis we are trying to predict out-of-sample starts later
+than in the previous economies: it runs form 2011Q2 to 2013Q4. Italy also experienced a "resid-
+ual event" just before the systemic crisis from 2008Q1 to 2011Q3 due to nancial market stress
+though there was li le exposure of Italian banks to US mortgage markets.
+
+
+9.1    Out-of-sample prediction of crises: Italy.                       asi-real time data
+
+In the case of Italy, the EWA aggregation rule puts almost all its weight on one expert Lc2 which
+is a Logit combination of Consumption, Investment, Housing 1,Housing 2, Total Credit to House-
+holds and the Global Factor in asset prices.     at expert is able to give an accurate forecast of the
+pre-crisis period in Italy. It also has smaller spikes later in the sample in 2016 and 2018.   e RMSE
+and AUROCs are reported in Table 5.
+
+
+                                                  35
+10     Conclusions
+
+Our online-learning methodology has the unique ability to run a horse race between very eclectic
+experts and aggregate them in order to produce an optimal forecast, irrespective of the nature
+of the data generating process. We rely on very standard macroeconomic variables, suggested
+by the literature on nancial crises as far back as the 1930s (Fisher (1933)) and the studies of
+Kindleberger (1978), Minsky (1986). Diaz-Alejandro (1985). Using a mix of 26 experts, some of
+them being central bank nancial crises models, some of them being machine learning models,
+we nd that for France, UK, Germany, Italy we are able to predict a systemic nancial crisis
+3 year ahead out-of-sample with relatively low signal-to-noise ratios compared to the existing
+literature. We perform a variety of robustness analyses: we predict the crisis two year ahead
+instead of three; we use real time data; we test four di erent aggregation rules. Our methodology
+and results may be valuable for the conduct of macroprudential policies, which aim at containing
+very socially costly systemic risk and need to be put in place in a discretionary fashion at the time
+of the risk build up. Of course, our models are unable to test for causality but they can suggest
+some areas of the economy that macro prudential authorities can investigate further with more
+granular data and using their judgement. It is also impossible to predict types of crises, such as
+cyber a acks, that have never occurred historically. Nevertheless, there are important lessons we
+can draw from our estimates. First, the systemic crises of our sample are all predictable ahead
+of time with a low noise-to-signal ratio. Second, there is a lot of heterogeneity across countries
+in terms of which models and variables forecasting ability relies upon and the accuracy of our
+forecasts. Di erent types of models get selected, sometimes they are elastic net logits, sometimes
+they are machine learning models (GAM and SVT), sometimes they are dynamic probits.              ird,
+the EWA aggregation rule seems to be the most robust rule on our small size sample with delayed
+feedback. It performs be er than the OGD, the FS rule or the Ridge across countries. Fourth, there
+is considerable time variation in the information content of various models as more information
+gets revealed. For out-of-sample predictions in quasi-real time, aggregation rules tend to put a
+high weight on models with credit, housing and risk taking variables but those weights are very
+
+
+
+                                                 36
+heterogeneous depending on the countries. For France, credit, real estate and economic activity
+contribute jointly to give a signal three year ahead. International variables and risk taking are
+important two years ahead. For the UK it is long term interest rate and price to rent, which
+give most of the signal three year ahead while asset prices, risk taking and the exchange rate
+are important two year ahead. For Germany it is long term rates, banking credit and real estate
+variables which seem more informative. For Italy it is the real activity, credit, housing market
+and international conditions. Clearly it is very important to allow for time varying weights. Real
+estate variables, credit, risk appetite and monetary and real variables are important at di erent
+times.   is is where the online nature of our algorithm is key as standard methodologies would
+not be able to extract enough information from the sample. Our method is very exible: we could
+incorporate many more experts (deep learning, subjective judgement) and potentially increase
+further the performance of our model. Across our countries we see di erences in the performance
+of our pool of experts.     ey may be well suited for France, German, the UK and less so for
+the Italy. When we switch to the use of vintage data (for France and the UK), we lose a lot of
+relevant information, particularly the credit quantity variables, which seem informative to predict
+ nancial stability. Strikingly the model is however still able to predict the pre-crisis period for
+both France and the UK, though with a lower accuracy. It relies on nancial stress, interest rates,
+liquidity and international variables. In a companion paper we use our methodology of online
+learning on historical data to predict past crises such as the Great Recession and test whether
+crises are di erent across centuries. To sum up, we could add to the le er of the British Academy
+addressed to the    een that, in order to show more imagination, we may have to use machine
+learning tools which can give us precious hints to guide humans in charge of nancial stability
+regarding when and where they should up their game, gather more information and exercise
+their best judgement.
+
+
+
+
+                                                37
+References
+Addo, Peter Martey, Dominique Gugan, and Bertrand Hassani (2018) "Credit Risk Analysis using Machine
+  and Deep learning models," No. 18003, February.
+
+Amat, Christophe, Tomasz Michalski, and Gilles Stoltz (2018) "Fundamentals and exchange rate forecasta-
+ bility with simple machine learning methods," Journal of International Money and Finance, Vol. 88, pp.
+ 1­24.
+
+Barron, Andrew and omas Cover (1991) "Minimum complexity density estimation," Information            eory,
+  IEEE Transactions on, Vol. 37, pp. 1034 ­ 1054, 08.
+
+Bluwstein, Kristina, Marcus Buckmann, Andreas Joseph, Miao Kang, Sujit Kapadia, and Ozg¨   ¨ ur Simsek
+  (2020) "Credit growth, the yield curve and nancial crisis prediction: evidence from a machine learning
+  approach," Bank of England Working Paper 848, National Bureau of Economic Research.
+
+Cesa-Bianchi, Nicolo and Gabor Lugosi (2006) Prediction, Learning and Games: Cambridge University Press.
+
+Coimbra, Nuno and H´ el`
+                       ene Rey (2017) "Financial Cycles with Heterogeneous Intermediaries," NBER Work-
+  ing Papers 23245, National Bureau of Economic Research, Inc.
+
+Coudert, Virginie and Julien Idier (2016) "An Early Warning System for Macro-prudential Policy in France."
+
+Dani, Varsha, Omid Madani, David M Pennock, Sumit Sanghai, and Brian Galebach (2012) "An empirical
+  comparison of algorithms for aggregating expert predictions," arXiv preprint arXiv:1206.6814.
+
+Dashevskiy, Mikhail and Zhiyuan Luo (2011) "Time series prediction with performance guarantee," IET
+  communications, Vol. 5, No. 8, pp. 1044­1051.
+
+De Blasi, Pierpaolo and Stephen Walker (2013) "Bayesian Estimation of the Discrepancy with Misspeci ed
+  Parametric Models," Bayesian Analysis, Vol. 8, pp. 781­800, 12.
+
+Destrero, Augusto, Christine Mol, Francesca Odone, and Alessandro Verri (2009) "A Regularized Frame-
+  work for Feature Selection in Face Detection and Authentication," International Journal of Computer
+  Vision, Vol. 83, pp. 164­177, 06.
+
+Devaine, Marie, Pierre Gaillard, Yannig Goude, and Gilles Stoltz (2013) "Forecasting electricity consump-
+  tion by aggregating specialized experts," Machine Learning, Vol. 90, pp. 231­260, 01.
+
+Diamond, Douglas W and Philip H Dybvig (1983) "Bank Runs, Deposit Insurance, and Liquidity," Journal
+  of Political Economy, Vol. 91, No. 3, pp. 401­19, June.
+
+Diaz-Alejandro, Carlos (1985) "Good-Bye Financial Repression, Hello Financial Crash," Journal of Develop-
+  ment Economics, Vol. 19, No. 1-2, pp. 1­24, September-October.
+
+Duca, Marco Lo, Anne Koba, Marisa Basten, Elias Bengtsson, Benjamin Klaus, Piotr Kusmierczyk,
+  Jan Hannes Lang, Carsten Detken, and Tuomas Peltonen (2017) "A New Database for Financial Crises
+  in European Countries,"Technical Report 194, ECB Occasional Paper.
+
+Duprey, ibaut, Benjamin Klaus, and Tuomas Peltonen (2017) "Dating Systemic Financial Stress Episodes
+  in the EU Countries," Journal of Financial Stability, Vol. 32, 08.
+
+Fisher, Irving (1933) "   e Debt-De ation    eory of Great Depressions," Econometrica, Vol. 1, No. 4, pp.
+   337­357.
+
+                                                   38
+Friedman, Jerome, Trevor Hastie, and Rob Tibshirani (2010) "Regularized Paths for Generalized Linear
+   Models Via Coordinate Descent," Journal of Statistical So ware, Vol. 33, 02.
+
+Gennaioli, Nicola, Andrei Shleifer, and Robert Vishny (2012) "Neglected risks, nancial innovation, and
+   nancial fragility," Journal of Financial Economics, Vol. 104, No. 3, pp. 452 ­ 468.
+
+Gourinchas, Pierre-Olivier and Maurice Obstfeld (2012) "Stories of the Twentieth Century for the Twenty-
+  First," American Economic Journal: Macroeconomics, Vol. 4, No. 1, pp. 226­65.
+
+Grunwald, Peter and ijs van Ommen (2014) "Inconsistency of Bayesian Inference for Misspeci ed Linear
+  Models, and a Proposal for Repairing It," Bayesian Analysis, Vol. 12, 12.
+
+Hastie, T.J. and R.J. Tibshirani (1986) Generalized additive models, Vol. 1, pp.1-335.
+
+Joulani, Pooria, Andras Gyorgy, and Csaba Szepesv´ari (2013) "Online learning under delayed feedback," in
+  International Conference on Machine Learning, pp. 1453­1461.
+
+Kaminski, Graciela and Carmen Reinhart (1999) " e Twin Crises: e Causes of Banking and Balance of
+  Payments Problems," American Economic Review, Vol. 89, No. 3, pp. 473­500, June.
+
+Kindleberger, Charles (1978) Manias, Panic and Crashes.
+
+Laeven, Luc and Fabian Valencia (2020) "Systemic Banking Crises Database: A Timely Update in COVID-19
+  Times,"Technical report.
+
+Lowe, Philip and Claudio Borio (2002) "Asset prices, nancial and monetary stability: exploring the nexus,"
+  BIS Working Papers 114, Bank for International Se lements.
+
+Mallet, Vivien, Gilles Stoltz, and Boris Maurice e (2009) "Ozone ensemble forecast with machine learning
+  algorithms," Journal of Geophysical Research: Atmospheres, Vol. 114, No. D5.
+
+Martinez-Miera, David and Rafael Repullo (2017) "Search for yield," Econometrica, Vol. 85, No. 2, pp. 351­
+  378.
+
+McCallester, David (2001) "PAC-Bayesian Stochastic Model Selection," Machine Learning, Vol. 51, 08.
+
+Mian, Atif and Amir Su (2009) "      e Consequences of Mortgage Credit Expansion: Evidence from the U.S.
+  Mortgage Default Crisis," e        arterly Journal of Economics, Vol. 124, No. 4, pp. 1449­1496, 11.
+
+Minsky, Hyman (1986) "Global Consequences of Financial Deregulation,"Technical Report 96, Washington
+  University Working Paper.
+
+Miranda-Agrippino, Silvia and H´el`
+                                  ene Rey (2020) "U.S. Monetary Policy and the Global Financial Cycle,"
+    e Review of Economic Studies, Vol. 87, No. 6, pp. 2754­2776, 05.
+
+Mol, Christine, Ernesto De Vito, and Lorenzo Rosasco (2009) "Elastic-Net Regularization in Learning     e-
+ ory," Journal of Complexity, Vol. 25, pp. 201­230, 04.
+
+Mol, Christine, So a Mosci, Magali Traskine, and Alessandro Verri (2009) "A Regularized Method for Se-
+ lecting Nested Groups of Relevant Genes from Microarray Data," Journal of computational biology, Vol.
+ 16, pp. 677­90, 06.
+
+Monteleoni, Claire, Gavin A Schmidt, Shailesh Saroha, and Eva Asplund (2011) "Tracking climate models,"
+ Statistical Analysis and Data Mining: e ASA Data Science Journal, Vol. 4, No. 4, pp. 372­392.
+
+                                                      39
+Reinhart, Carmen M. and Kenneth S. Rogo (2009) is Time Is Di erent: Eight Centuries of Financial Folly,
+  Princeton, New Jersey: Princeton University Press.
+
+Rossi, Barbara (2011) "Advances in Forecasting Under Instability," Handbook of Economic Forecasting, Vol.
+  2, 09.
+
+Schularick, Moritz and Alan M. Taylor (2012) "Credit Booms Gone Bust: Monetary Policy, Leverage Cycles,
+  and Financial Crises, 1870-2008," American Economic Review, Vol. 102, No. 2, pp. 1029­61.
+
+Stock, James and Mark Watson (2012) "Disentangling the Channels of the 2007 09 Recession [with Com-
+   ments and Discussion]," Brookings Papers on Economic Activity, pp. 81­156, 01.
+
+Stoltz, Gilles (2010) "Agrgation squentielle de prdicteurs : mthodologie gnrale et applications la prvision
+   de la qualit de l'air et celle de la consommation lectrique," Journal de la Socit Francaise de Statistique,
+   Vol. 151, 01.
+
+Tibshirani, Robert (1996) "Regression Shrinkage and Selection Via the Lasso," Journal of the Royal Statistical
+  Society: Series B (Methodological), Vol. 58, pp. 267­288, 01.
+
+Vovk, V.G. (1990) "Aggregating strategies," COLT, pp. 371­386, 01.
+
+Walker, Stephen and Nils Hjort (2001) "On Bayesian consistency," Journal of the Royal Statistical Society
+ Series B, Vol. 63, pp. 811­821, 02.
+
+Ward, Felix (2017) "Spo ing the danger zone: Forecasting nancial crises with classi cation tree ensembles
+ and many predictors," Journal of Applied Econometrics, Vol. 32, pp. 359­378.
+
+Weinberger, Marcelo J and Erik Ordentlich (2002) "On delayed prediction of individual sequences," IEEE
+ Transactions on Information eory, Vol. 48, No. 7, pp. 1959­1976.
+
+Zhang, Tong (2006) "Information-theoretic upper and lower bounds for statistical estimation," Information
+    eory, IEEE Transactions on, Vol. 52, pp. 1307 ­ 1321, 05.
+
+Zhang, Yongli (2012) "Support Vector Machine Classi cation Algorithm and Its Application,", pp. 179­186,
+  09.
+
+Zinkevich, Martin (2003) "Online convex programming and generalized in nitesimal gradient ascent," in
+  Proceedings of the 20th international conference on machine learning (icml-03), pp. 928­936.
+
+Zou, Hui and T. Hastie (2005) "Regularization and Variable Selection via the Elastic Nets," Journal of the
+  Royal Statistical Society: Series B, Vol. 67, pp. 301­320, 01.
+
+
+
+
+                                                     40
+                                          Appendix
+
+A     Data
+
+A.1    Database of systemic crises
+  We use the o cial database of systemic crises provided by Duca et al. (2017) and replicate the
+same methodology for the US, the only non-european country in our database.            is approach
+consists in two steps. First, it aims at identifying historical episodes of elevated nancial stress
+which were also associated with economic slowdowns. is step provides a preliminary list of
+potential systemic crisis events for consideration. en, each national authority distinguish be-
+tween systemic crisis and residual episodes of nancial stress.
+
+  As in Duca et al. (2017), we construct a country-speci c nancial stress index which captures
+three nancial market segments :
+
+    · Equity market : we capture market stress with two variables : the quarterly average of
+      absolute log-returns of the real stock price index (VSTX) and the cumulative maximum
+      loss (CMAX) that corresponds to the maximum loss compared to the highest level of the
+      stock market over two years. Before computing volatilities, we divide the data by a 10 years
+      trailing standard deviation.
+
+    · Bond market : we capture stress in the bonds market with two variables : the quarterly
+      realised volatility (VR10) is computed as the quarterly average of absolute changes in the
+      real 10-year government bond yields and the increase of a 10-year bond index compared
+      to the minimum (CMIN) over a two-year rolling window.
+
+    · Foreign exchange market : we capture foreign exchange market stress with two vari-
+      ables: the realised volatility (VEER) is computed as the absolute value of the growth rate of
+      the real e ective exchange rate and the cumulative change (CUMUL) over 2 quarters.
+
+     en, we apply a Markov Switching model to endogenously determine low and high nancial
+stress events. Finally, in order to produce a list of potential systemic crisis events, we only select
+  nancial stress episodes associated with real economic stress : i) with at least six consecutive
+months of negative industrial production growth ii) which overlap at least partly with a decline
+in real GDP during at least two possibly non-consecutive quarters.
+
+
+
+
+                                                 41
+    During the second step, each national authority has to identify systemic crisis among the list
+of potential systemic crisis events, following common guidelines - for the US, we contacted the
+Federal Reserve Bank of New York. Particularly, an event of nancial stress is classi ed as a sys-
+temic crisis if it ful ls one or more of the following three criteria :
+i) A contraction in the supply of nancial intermediation or funding to the economy took place
+during the potential crisis event. e nancial system played a role in originating or amplifying
+shocks, thereby contributing substantially to negative economic outcomes. Examples : Despite
+remaining solvent, banks signi cantly contract the supply of credit to the real economy due to
+market distress and funding di culties. Foreign capital is withdrawn and the supply of credit to
+the domestic economy shrinks (currency crisis).
+ii) e nancial system was distressed during the potential crisis event. Examples : Market in-
+frastructures were dysfunctional. ere were bankruptcies among large/signi cant nancial in-
+stitutions.
+iii) Policies were adopted to preserve nancial stability or bank stability during the potential cri-
+sis event. Examples : External support (IMF interventions). Extraordinary provision of central
+bank liquidity. Direct interventions of the state in support of the banking system (liability guar-
+antees, recapitalisation or nationalisation of banks, assisted/forced mergers among institutions
+and creation of bad banks and/or asset management companies). Monetary policy actions with a
+  nancial stability angle.
+
+
+A.2    Indicators
+   To predict systemic crisis, we use the following data sources. Macroeconomic, external, real
+estate and monetary indicators come from the OECD whereas credit and debt indicators come
+from the BIS database. Liquidity data and some market indicators (Risk Appetite Index, Financial
+Condition Index) come from CrossBorder Capital. e notation ###### - ###### denotes di erent
+starting and ending dates depending on the country.
+    Additional data used to predict systemic crisis in real-time come from the CrossBorder Capital
+vintage database.
+
+
+
+
+                                                42
+Variable name                                  Frequency   Time Range (base:1985)   Source
+Dollar e ective exchange rate                  Q              1985Q1-2018Q1         BIS
+Real e ective exchange rate                    Q              1985Q1-2018Q1         BIS
+GDP per capita, constant prices                Q              1985Q1-2018Q1         OECD
+GDP per hour worked, constant prices           Q              1985Q1-2018Q1         OECD
+GDP per person employed, constant prices       Q              1985Q1-2018Q1         OECD
+Price-to-rent ratio                            Q              1985Q1-2019Q1         OECD
+Price-to-income ratio                          Q              1985Q1-2019Q1         OECD
+Banking credit to private sector               Q              1985Q1-2019Q1         BIS
+Total credit to households                     Q              1985Q1-2019Q1         BIS
+Total Credit to private non- nancial sector    Q              1985Q1-2019Q1         BIS
+Total credit to non- nancial rms               Q              1985Q1-2019Q1         BIS
+Debt Service Ratio (Households)                Q              1985Q1-2016Q1         BIS
+Debt Service Ratio (non- nancial corpora-      Q              1985Q1-2017Q4         BIS
+tions)
+Debt Service Ratio (private non- nancial       Q              1985Q1-2017Q4         BIS
+sector)
+Consumer prices                                Q              1985Q1-2019Q2         OECD
+Monetary aggregate M3                          Q              1985Q1-2018Q1         OECD
+Real estate prices                             Q              1985Q1-2019Q1         BIS
+Share prices                                   Q              1985Q1-2019Q3         OECD
+Unemployment rate                              Q              1985Q1-2019Q3         GFD
+Current account                                Q              1985Q1-2019Q3         OECD
+Rent Price Index                               Q              1985Q1-2019Q3         OECD
+Gross domestic product - expenditure ap-       Q              1985Q1-2019Q1         OECD
+proach
+Loans for House Purchasing                     Q              ###### - ######       OECD
+Long-term interest rates (10Y)                 Q              1985Q1-2019Q3         Datastream
+
+
+
+
+                                          43
+Short-term interest rate (3M)              Q   1985Q1-2019Q3   Datastream
+Slope of the yield curve (10Y - 3M)        Q   1985Q1-2019Q4   Datastream
+Household Debt                             Q   ######-######   OECD
+Equity holdings                            Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Financial assets                           Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Oil price                                  Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Shipping indicator                         Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Golden rule                                Q   1985Q1-2018Q4   built
+VIX                                        Q   1990Q1-2019Q3   FRED
+Export growth                              Q   1985Q1-2019Q2   OECD
+Import growth                              Q   1985Q1-2019Q2   OECD
+Terms of trade                             Q   1985Q1-2019Q2   OECD
+Growth of foreign exchange reserves        Q   1985Q1-2019Q2   OECD
+External debt                              Q   ######-2019Q1   BIS
+Multifactor productivity                   A     1985-2017     OECD
+General Goverrnment Debt                   A     1985-2019     AMECO
+Financial Conditions Index                 Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Risk Appetite                              Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+Cross-border ows                           Q   1985Q1-2019Q2   CrossBorder
+                                                               Capital
+
+
+
+
+                                      44
+Economic Political Uncertainty Index        M   ######-2019M9   PolUncertainty
+Consumption                                 Q   1985Q1-2019Q1   OECD
+Investment                                  Q   1985Q1-2019Q2   OECD
+GDP                                         Q   1985Q1-2019Q2   OECD
+Global Factor                               Q   1985Q1-2019Q2   Miranda-
+                                                                Agrippino,
+                                                                Rey
+Housing 1 Forecast                          Q   1985Q1-2019Q2   FED
+Housing 2 Forecast                          Q   1985Q1-2019Q3   FED
+Domestic Liquidity Stock                    Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Policy Liquidity Index                      Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Domestic Liquidity Index                    Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Private Liquidity Index                     Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+   antity Liquidity Index                   Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Total Liquidity Index                       Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Policy Liquidity Stock                      Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Policy Liquidity Flows                      Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+Total Liquidity Stock                       Q   1985Q1-2019Q2   CrossBorder
+                                                                Capital
+
+
+
+
+                                       45
+Total Liquidity Flows            Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Central Bank Intervention        Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Total Liquidity Stock            Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Total Liquidity Flows            Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Central Bank Intervention        Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Financial Assets                 Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Fixed Income Holdings            Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Equity Holdings                  Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Risk Appetite                    Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Private Sector Liquidity         Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Gross Capital Flows              Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Momentum                         Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+Monetized Savings Index          Q   1985Q1-2019Q2   CrossBorder
+                                                     Capital
+
+
+
+
+                            46
+    Bond Exposure Index                            Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Currency Exposure Index                        Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Exposure Risk Index                            Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Financing Risk Index                           Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Forex Risk Index                               Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Composite Risk Index                           Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Exposure Risk Index                            Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Financing Risk Index                           Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Forex Risk Index                               Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+    Composite Risk Index                           Q            1985Q1-2019Q2     CrossBorder
+                                                                                  Capital
+
+
+B    Experts: quasi-real time data
+Samples are de ned so that the batch sample contains one pre-crisis period and the online sample
+has enough observations according to data availability.
+
+          Country            Batch sample      Online sample
+      France - QRT - 3y    1987q3 - 2001q2    2001q3 - 2019q3
+      France - QRT - 2y    1987q3 - 2001q4    2002q1 - 2019q3
+      France - QRT - 2y    1987q3 - 2002q1    2002q2 - 2019q3
+       UK - QRT - 3y       1987q3 - 2000q1    2000q2 - 2019q3
+       UK - QRT - 2y       1987q3 - 2000q1    2000q2 - 2019q3
+        UK - RT - 3y       1987q3 - 2001q1    2001q2 - 2019q3
+    Germany - QRT - 3y     1987q3 - 2001q2    2001q3 - 2019q3
+       Italy - QRT - 3y    1987q3 - 2003q4    2004q1 - 2019q3
+
+  We report whether experts are Generic experts (same speci cation for all the countries) or
+whether the speci cations are country speci c because variables have been selected via country
+
+                                              47
+speci c AUROC. In that case, the country speci cation is reported below the main expert list.31 .
+We have a total of 26 experts.
+
+
+B.1     Experts from the literature
+Our rst set of experts are taken from the economic literature on macroprudential policies:
+
+   1. Expert P1. Dynamic Probit Model: variables selected with a country-speci c AUROC on
+      the batch sample.
+
+   2. Expert P2. Panel logit xed e ect: variables selected with a country-speci c PCA Analysis
+      on the batch sample.
+
+   3. Expert P3 Generic: Panel logit xed e ect. We follow the literature and use the following
+      speci cation: Banking credit to private sector gap-to-trend 32 ; Banking credit to private
+      sector 1y change; Real GDP 1y change; Consumer Prices; Share Prices 1y change; Rent
+      Price Index 1y change; Banking credit to private sector gap-to-trend (global33 ); Banking
+      credit to private sector 1y change (global); Real GDP 1y change (global); Consumer Prices
+      (global); Share Prices 1y change (global); Interaction: Banking credit to private sector gap-
+      to-trend (global)*Banking credit to private sector 1y change; Interaction : Banking credit
+      to private sector gap-to-trend (global)* Banking credit to private sector gap-to-trend; In-
+      teraction: Banking credit to private sector 1y change * Banking credit to private sector 1y
+      change (global).
+
+   4. Expert BMA: Bayesian Model Averaging. Variables selected with a country-speci c AU-
+      ROC on the batch sample.
+
+
+B.2     Experts from Machine Learning
+Our second set of experts come from the Machine Learning literature:
+
+   1. Expert GAM: General Additive Model
+
+          · Generalized additive models (GAM) provide a general framework for extending a
+            standard linear model by allowing non-linear functions of each of the variables, while
+            maintaining additivity. We consider here a General Additive Model such as :
+
+
+                                      yt = 0 + f1 (x1,t ) + f2 (x2,t ) + f2 (x12t )
+  31
+     1-year change and 2-year change are also included for each variable
+  32
+     Trend is computed with hp lter (1600) on the batch sample, and extrapolated with ARIMA forecasts for the
+online sample.
+  33
+     Global variable are a simple average of this variable for each country.
+
+                                                     48
+              e model is     ed with smoothing splines [see Hastie and Tibshirani (1986)].
+
+   2. Expert RF: Random Forest
+
+         · A random forest (RF) consists in three steps :
+           i) Build a number of decisions trees on bootstrapped training samples. ii) Each time
+           a split in a tree is considered, a random sample of m predictors is chosen as split
+           candidate. iii) Aggregate the prediction of each tree.
+
+   3. Expert SVM: Support Vector Machine
+
+         · A Support Vector Machine (SVM) expert classi es observations by constructing a hy-
+           perplane which has the largest distance to the nearest training-data point of any class.
+              e aim is to nd the separating hyperplane that is farthest from the data, that is to
+           say which experiences the smallest perpendicular distance from each training obser-
+           vation, i.e. the smallest margin. In case of non-linear separable data, SVM extends
+           the methodology used in a support vector classi er by enlarging the feature space us-
+           ing kernels. Indeed, a kernel function transforms the data into a higher dimensional
+           feature space to make it possible to perform a linear separation.
+           Our basic Support Vector Machine (SVM) works in three steps :
+           i) Choose an optimal hyperplane which maximizes margin. ii) Applies penalty for
+           misclassi cation. Indeed, a cost function speci es the cost of a violation to the margin.
+           When the cost argument is small, then the margins will be wide and many support
+           vectors will be on the margin or will violate the margin. When the cost argument is
+           large, then the margins will be narrow and there will be few support vectors on the
+           margin or violating the margin. is cost function is ed using a grid on the batch
+           sample. iii) If non-linearly separable data points, transform data to high dimensional
+           space where it is easier to classify with linear decision surfaces. We use here a radial
+           kernel. For more details, see Zhang (2012).
+
+
+B.3    Experts Elastic-net Logits by themes
+Our third set of experts are regularized logistic regressions. All the regularized regressions in-
+clude each variable in level as well as the 1-year change, the 2-year change and the 3-y change.
+Let's recall that Im is the pre-crisis indicator taking values in G = 0, 1. Let p(xi ) = P r(Im =
+1|xi ) = 1+e-(10 +xi i ) be the probability for observation i at a particular value for the parameters
+(0 ,  ). We solve :
+
+
+
+
+                                                 49
+                              N
+                         1
+               min p+1             I (yi = 1)log (p(xi )) + I (yi = 0)log (1 - p(xi )) - P ( )
+            (0 , )R      N   i=1
+
+       where the elastic-net penalty is determined by the value of  :
+                                                 p
+                                                      1      2
+                                     P ( ) =         [ (1 - )j + |j |]
+                                                j =1
+                                                      2
+
+
+
+
+    P ( ) is the elastic-net penalty term and is a compromise between the Ridge regression
+( = 0) and the Lasso penalty ( = 1) and p is the number of paramaters. Whereas Lasso is
+indi erent to correlated predictors, the Ridge regression shrinks the coe cient of correlated pre-
+dictors toward zero. Following Addo et al. (2018) and since there is a risk of correlation among our
+predictors, we pick  = 0.7. We estimate the log-likelihood by applying the Newton Algorithm
+as in Friedman et al. (2010). We also estimate an optimal value of  using 10-folds cross valida-
+tion34 . e folds are randomly selected and the results could face a variability issue. To reduce the
+randomness without increasing considerably the computation time, we run the cross-validation
+50 times and average the error curves.
+    First introduced by Zou and Hastie (2005), the good performance of elastic-net penalty com-
+pared to other regularization methods has been con rmed in various applications (Mol et al.
+(2009); Mol et al. (2009); Destrero et al. (2009)).   is is mainly due to the fact that, because it
+uses a penalty that is part 1 and part 2 , this procedure works almost as well as the Lasso when
+the Lasso does best; but it also improves on the LASSO when the LASSO is dominated by the
+Ridge regression. is is usually the case if there exists high correlations among predictors, as
+in our case when we consider a large set of macroeconomic indicators (Tibshirani (1996)). As a
+consequence, the elastic-net penalty outperforms LASSO while preserving the sparse property
+(Zou and Hastie (2005); Mol et al. (2009)).
+    Five regularized regressions, called the "logit combination" experts, include variables which
+are selected on the batch sample thanks to the following procedure :
+  34
+    To decrease the computation time, we use 5-folds cross validation for France QRT 2-years and France RT 3-years
+and 7-folds cross validation for UK QRT 2 years, UK QRT 3 years, Germany QRT 3 years.
+
+
+
+
+                                                       50
+1.      e variables are selected thanks to an AUROC procedure performed on the batch sample,
+     following Schularick and Taylor (2012) and Coudert and Idier (2016). We retain variables
+     with an AUROC above 0.8.
+
+2.     e number of selected variables in the logit combinations also depends on their AUROCs.
+     Adding too many variables could decrease the forecasting ability. In our case, 3 to 12 vari-
+     ables are included (they correspond to 12 to 48 variables since we always include 1y, 2y
+     and 3y transformations). If several variables have a large AUROC, i.e. superior to 0.8, more
+     variables will be included in the logit combinations. For instance, for the case "France 3y
+     QRT", 65 variables have an AUROC greater than 0.8 (only 29 for the case "France 2y RT").
+     To decrease the risk of over ing, we generally also include one or two models with few
+     variables (3 to 4).
+
+3.      ere is only one pre-crisis to select variables. We do not include several similar variables
+     (for instance GDP and its transformations) and apply the same PCA procedure used for the
+     expert P2 if the AUROC procedure does not select one category of variables.
+
+
+·     e following experts are Generic:
+
+      1. Expert Lre Logit real economy: GDP; GDP per person; GDP per hours work; unem-
+         ployment rate; import, export, public debt.
+      2. Expert Lre2 Logit real economy 2: consumer prices; unemployment rate; GDP per
+         person, GDP per hours work; GDP per capita; public debt; consumption; investment.
+      3. Expert Lval Logit valuation: Share Price Index; Real Estate Price; Global Factor in As-
+         set Prices; Short-term interest rate; Long-term interest rate; Dollar e ective exchange
+         rate.
+      4. Expert Lfor Logit foreign: Cross Border Flows; Real E ective Exchange Rate; Dollar
+         E ective Exchange Rate; Current Account; Terms of Trade.
+      5. Expert Lba Logit bank: Risk Appetite; Share price Index; Equity holdings; Total Liq-
+         uidity Index.
+      6. Expert Lcr Logit credit: Total credit to non- nancial sector; Banking Credit to non-
+           nancial sector; Total Credit to Households; Total Credit to non- nancial corpora-
+         tions.
+      7. Expert Lbis Logit BIS: Logit credit + DSR Households; DSR Non Financial corpora-
+         tions; DSR Total.
+
+                                              51
+       8. Expert Lm Logit monetary: M3; Short-term interest rate; Long-term interest rate;
+          Consumer Prices; Slope of the Yield Curve.
+       9. Expert Lho Logit housing: Price-to-rent; Price to income; Rent Price Index; Real
+          Estate Price.
+      10. Expert Lfgo Logit Foreign Global: Logit Foreign + Global Factor in Asset Prices.
+      11. Expert Lfgho Logit Foreign Global + Housing.
+      12. Expert Lhore Logit housing + real economy.
+      13. Expert Lbfo Logit bank + foreign.
+      14. Expert Lrisk Logit Risk: VXO, Risk Appetite; Equity Holdings.
+
+
+
+   · We then have 5 Logits elastic net which are country-speci c combinations. Expert Lc1
+     to Expert Lc5.    ey are obtained by using the variables with the highest AUROC for a
+     given country on the batch sample.
+
+
+B.4   Variables for quasi-real time experts
+Country-speci c selected variables for each expert :
+
+  1. France :
+
+        · P1 : Real Estate Price (2y), GDP per person (2y), Price-to-rent (2y), Banking Credit to
+          private non- nancial sector (2y).
+        · P2 : Unemployment Rate, Rent Price Index, Loans, Dollar E ective Exchange Rate,
+          Domestic Liquidity Stock
+        · BMA : GDP (2y), Price-to-rent (2y), Banking Credit to private non- nancial sector (2y)
+        · GAM : Real Estate Price (2y)
+        · Lc1 : Price-to-rent, Price-to-income, Real Estate Price, GDP, Oil Price (with 1y and 2y
+          change).
+        · Lc2 : Banking Credit to private non- nancial sector (+ gap to trend), Total Credit
+          to non- nancial corporations (+ gap to trend), Total Credit to private non- nancial
+          sector (+ gap to trend), Total Credit to Households(+ gap to trend), Risk Appetite,
+          EquityHoldings (with 1y and 2y change).
+        · Lc3 : Risk Appetite, Cross Border Flows , Total Liquidity Index , Liquid Assets (with
+          1y and 2y change).
+
+
+                                              52
+     · Lc4 : Real Estate Price, GDP, Total Credit to Households, Rent Price Index, Banking
+       Credit to private non- nancial sector, Price to income, Investment (with 1y and 2y
+       change).
+     · Lc5 : Short-term interest rate, Price to rent, Terms of Trade, Housing 2 forecast , Total
+       Credit to household , Total Credit to non- nancial Corporation, Rent Price Index,
+       Banking Credit to non- nancial sector, Investment (with 1y and 2y change).
+
+2. UK :
+
+     · P1 : Price-to-rent, Total Credit to private non- nancial sector (2y), Multifactor pro-
+       ductivity (1y), GDP per hour worked (2y)
+     · P2 : Loans (2y), Price-to-income, Banking Credit to private non- nancial sector (2y),
+       Total Credit to households (2y), Domestic Liquidity Stock (2y), Price-to-rent.
+     · BMA : Price-to-rent, Total Credit to private non- nancial sector (2y), Multifactor pro-
+       ductivity (1y), loans (2y)
+     · GAM : Long-term interest rate, Price-to-rent
+     · Lc1 : Loans, Domestic Liquidity Stock, Liquid Assets, Total Credit to Households,
+       Banking Credit to private non- nancial sector, Total Credit to private non- nancial
+       sector.
+     · Lc2 : Domestic Liquidity Stock, Dollar e ective exchange rate, GDP, Multifactor Pro-
+       ductivity, Slope of the yield curve.
+     · Lc3 : Lc2 + Lfor.
+     · Lc4 : Lc2 + Lho.
+     · Lc5 : Lc2 + Lfgho.
+
+3. Germany :
+
+     · P1 : Public Debt, Equity Holdings, Banking Credit gap-to-trend, Long-term interest
+       rate
+     · P2 : Price-to-rent ratio, Rent Price Index, Loans, Banking Credit gap-to-trend, Banking
+       Credit 2y change
+     · BMA : Public Debt, Equity Holdings, Banking Credit gap-to-trend, Long-term interest
+       rate
+     · GAM : Public Debt
+     · Lc1 : Price-to-rent, Total credit to non- nancial sector, GDP per hour worked, Price-
+       to-income, terms of trade, Risk Appetite .
+
+                                            53
+      · Lc2 : Real Estate Price, Housing 1 survey of pro forecaster, Housing 2 survey of pro
+        forecaster, Domestic Liquidity Stock , Short-term interest rate, Global Factor in Asset
+        Prices, Total credit to Household.
+      · Lc3 : Housing 1 survey of pro forecaster, Housing 2 survey of pro forecaster, unem-
+        ployment rate, Global Factor in Asset Prices, Real Estate Price;
+      · Lc4 : Price-to-rent, Investment, Housing 1 survey of pro forecaster, Housing 2 survey
+        of pro forecaster, consumption, short term rate.
+      · Lc5 : Housing 1 survey of pro forecaster, Housing 2 survey of pro forecaster, total
+        credit to households, unemployment rate, real estate price, banking credit to private
+        non- nancial sector.
+
+4. Italy:
+
+      · P1 : GDP (2y),Real Estate Price (1y), Price-to-rent (2y), Housing 2 forecast (2y)
+      · P2 : Dollar e ective exchange Rate, terms of trade, Rent Price Index , GDP, Public
+        Debt.
+      · BMA : GDP (2y), Price-to-rent (1y), Housing 2 forecast (2y), loan to income (2y).
+      · GAM : GDP (2y).
+      · Lc1 : Consumption, Investment, Housing 2, Total Credit to Households, Global Factor
+        in Asset Prices.
+      · Lc2 : Consumption, Investment, Housing 1,Housing 2, Total Credit to Households,
+        Global Factor in Asset Prices.
+      · Lc3 : GDP , Housing 1,Housing 2, Total Credit to Households, Global Factor in Asset
+        Prices.
+      · Lc4 : Consumption, Investment, Housing 1,Housing 2, Total Credit to Households,
+        Global Factor in Asset Prices, Dollar E ective Exchange Rate, Real E ective Exchange
+        Rate, Terms of Trace.
+      · Lc5 : Price-to-rent, Housing 1,Housing 2, Total Credit to Households, Total Credit to
+        private non- nancial sector, Global Factor in Asset Prices, Dollar E ective Exchange
+        Rate, Real E ective Exchange Rate, Terms of Trade.
+
+5. France (2 years pre-crisis period) :
+
+      · P1 : Real Estate Price (2y), GDP (2y), Short-term interest rate (2y), Cross Border Flows
+        (1y).
+      · P2 : Unemployment Rate, Terms of Trade, Dollar E ective Exchange Rate, Public Debt.
+
+                                             54
+             · BMA : Real Estate Price (2y), GDP (2y), short term rate (2y), Cross border ows (1y).
+             · GAM : Real Estate Price (2y).
+             · Lc1 : Price-to-rent, Price-to-income, Real Estate Price, GDP, Oil Price, current account,
+               real e ective exchange rate, equity holdings.
+             · Lc2 : Logit Housing + Logit real economy.
+             · Lc3 : Risk Appetite, Cross Border Flows, Total Liquidity Index, Liquid Assets.
+             · Lc4 : Real Estate Price, GDP, Total Credit to Households, Rent Price Index, loans,
+               Banking Credit to private non- nancial sector, Price to income, Investment, share
+               price index, equity holdings.
+             · Lc5 : Short-term interest rate, Price to rent, Terms of Trade, Housing 2 forecast, To-
+               tal Credit to household, Total Credit to non- nancial Corporation, Rent Price Index,
+               Investment, share price index, equity holdings.
+
+
+C        Experts: Real time data
+Generic experts35 :
+
+       · P3 : Private Sector Liquidity stock (1y), Domestic Sector Liquidity stock (1y), Share Price
+         Index (1y), Private Sector Liquidity stock (gap-to-trend), Domestic Sector Liquidity stock
+         (gap-to-trend) (global and country-speci c variables.
+
+       · Lli : Total Liquidity Stock, Total Liquidity Flows, Domestic Liquidity Flows, Domestic Liq-
+         uidity Stock, Domestic Liquidity Stock (local), Private Sector Liquidity Stock, Private Sector
+         Liquidity Flows.
+
+       · Lm : Monetized Saving Index, Short-term interest rate , Long term interest rate.
+
+       · Lrisk : Share Price Index,Equity Exposure Index, Composite Risk Index, Financing risk
+         Index, Risk Appetite.
+
+       · Lfor : Cross Border Flows, Dollar E ective Exchange Rate, Gross Capital Flows, Total Liq-
+         uidity Flows.
+
+       Country-speci c selected variables for each expert (real time) :
+
+    1. France
+  35
+       1-year change and 2-year change are also included for each variable
+
+
+
+                                                          55
+     · P1 : Short-term interest rate (2y), Private Sector Liquidity stock, Domestic Sector Liq-
+       uidity stock (gap-to-trend), Total Liquidity Stock, Risk Appetite.
+     · P2 :    antity Liquidity Index, Total Liquidity Index, Financing RIsk Index,     antity
+       Liquidity Index (2y), Policy Liquidity Index.
+     · BMA : Private Sector Liquidity stock (local), Private Sector Liquidity stock, Domestic
+       liquidity stock (local), Domestic liquidity stock (gap-to-trend).
+     · GAM : Domestic Sector Liquidity, Private Sector Liquidity stock, Domestic Sector Liq-
+       uidity stock (gap-to-trend), Total Liquidity Stock, Risk.
+     · Lc1 : Financial Condition index, Private Sector Liquidity Stock, Exposure Risk Index,
+       Risk Appetite.
+     · Lc2 : Financial Condition Index, Private Sector Liquidity Stock, Exposure Risk Index,
+       Risk Appetite + Logit liquidity.
+     · Lc3 : Monetized Saving, Short-term interest rate, Long-term interest rate, Private Sec-
+       tor Liquidity (local).
+     · Lc4 : Monetized Saving, Short-term interest rate, Long-term interest rate, Cross border
+        ows.
+     · Lc5 : Monetized Saving, Short-term interest rate, Long-term interest rate, Private Sec-
+       tor Liquidity.
+     · Lc6 : Monetized Saving, Short-term interest rate, Long-term interest rate, Financing
+       Risk Index.
+     · Lc7 : Monetized Saving, Short-term interest rate, Long-term interest rate, Domestic
+       Sector Liquidity (gap), Private Sector Liquidity (gap).
+     · Lc8 : Financial Condition Index, Momentum, Private Sector Liquidity, Exposure Risk
+       Index, Gross Capital Flows .
+
+2. UK:
+
+     · Lc1 : Financial Condition index, Private Sector Liquidity Stock, Exposure Risk Index,
+       Risk Appetite, Momentum.
+     · Lc2 : Private Sector Liquidity Stock, Domestic Liquidity Stock (local), Short-term in-
+       terest rate, Long-term interest rate, Private Sector Liquidity Stock (local).
+     · Lc3 : Lc2 + logit risk.
+     · Lc4 : Financial Condition index, Private Sector Liquidity Stock, Exposure Risk Index,
+       Total Liquidity Stock.
+
+
+                                            56
+             · Lc5 : Lc4 + Logit monetary.
+             · Lc6 : Logit Liquidity + Logit foreign.
+             · Lc7 : Lc3 + Lc4.
+             · P1 : Private Sector Liquidity Stock (2y), Domestic Liquidity Stock local (2y), Short-
+               term interest rate, Long-term interest rate.
+             · P2 : Private Sector Liquidity (gap), Domestic Liquidity Sector (gap), Private Sector Liq-
+               uidity, Domestic Liquidity Stock (local), Long-term interest rate, Short-temr interest
+               ratre.
+             · BMA : Private Sector Liquidity Stock (2y), Domestic Liquidity Stock local (2y), Short-
+               term interest rate, Long-term interest rate.
+             · GAM : Dollar e ective exchange rate, Private Sector Liquidity Stock (2y), Domestic
+               Liquidity Stock local (2Y).
+
+
+D        Aggregation rules
+  e xed-share online aggregation rule36 is similar to the EWA aggregation rule, except that we
+now consider a mixed rate   [0, 1]. At each time instance, we include a small probability to
+have a m possibility of shi s in the sequence so that the best expert may change. We denote by
+Et  1, ..., N the set of active experts at a given time instance t and assume that it is always
+non-empty. We de ne the xed-share aggregation rule strategy F, :
+
+Algorithm 4 Fixed-share aggregation rule
+         1. Parameter : Choose the learning rate t > 0 and a mixing rate   [0, 1]
+
+         2. Initialization : (w1,0 , ..., wN,0 ) =       1
+                                                             (I
+                                                        |E1 | 1E1
+                                                                  , ..., IN E1 ).
+
+         3. For each round t = 1, 2, ..., T :
+
+               (a) predict y
+                           ^t =      N
+                                           1
+                                           wk,t-1
+                                                        N
+                                                        j =1   wj,t-1 fj,t
+                                     k=1
+
+                                                                                                                ~
+              (b) (loss update) observe yt and de ne for each i = 1, ..., N : vi,t = wi,t e-Li,t
+
+        (c) (share update) wj,t =       1
+                                      |Et+1|
+                                                    N
+                                                    i   vi,t +     
+                                                                 |Et+1|      iEt Et+1   vi,t + (1 - )Ij Et Et+1 vj,t
+
+
+
+          eorem 2 (Devaine et al. (2013)) Consider the same assumptions than for the EWA aggregation
+  36
+       Each aggregation is computed here with a delayed feedback and with a non-uniform weight vector
+
+
+
+                                                                  57
+rule.     en for all m  {0, ..., T - 1}
+
+                                           m+1         1      1         
+                      sup{RT (F, )}            ln(N ) + ln( m T -m-1 ) + T                          (2)
+                                                                        2
+
+    is calibrated as in the EWA aggregation rule,  is calibrated online using the same method-
+ology :
+
+                                                     ^ t-1 (F, )
+                                          t  arg min L
+                                                       >0
+
+    For the moment, we have restrained our analysis to convex aggregation rules, where the
+weight vector pt is choosen in a simplex P .      ese strategies, usually referred to as Follow-the-
+leader, aim at minimizing the cumulative loss on all past rounds. Follow-the-Regularized-Leader
+strategies add a slight modi cation. e forecaster minimizes the cumulative loss function plus
+a regularization term. e weights do not need to be choosen in a convex space since the regu-
+larization term stabilizes the solution.
+    Consider the case where the regularized term is a linear function.           e aggregation rule
+OGD , for Online Gradient Descent (OGD), was rstly introduced by Zinkevich (2003). It up-
+                                                                                         
+dates parameters by taking a step in the direction of the gradient. De ne ||x|| = x· x and
+d(x, y ) = ||x - y ||. e weight vector pt+1 is selected according to :
+
+                                                               N
+                                 pj,t+1 = Pj (pj,t - t  (             pj,t fj,t , yt ))
+                                                              j =1
+
+    where Pj = arg minpj d(p, y ) = arg minpj ||            N
+                                                            j =1   pj,t fj,t - yt ||
+
+Algorithm 5 Online-Gradient Descent aggregation rule
+        1. Parameter : Choose the learning rate t > 0
+
+        2. Initialization : an arbitrary vector p1 .
+
+        3. For each round t = 1, 2, ..., T , the vector pt+1 is selected according to :
+
+                                                                       N
+                                      pj,t+1 = Pj (pj,t - t  (               pj,t fj,t , yt ))
+                                                                      j =1
+
+
+           where Pj = arg minpj d(p, y ) = arg minpj ||             N
+                                                                    j =1   pj,t fj,t - yt ||
+
+
+   As for the strategy Egrad
+                             , the strategy OGD satis es our robustness requirement.             e fol-
+lowing bound was rst established by Zinkevich (2003) :
+
+
+                                                       58
+                            1
+      eorem 2. If t = t- 2 , the regret is bounded by:
+
+                                               1 
+                                sup{RT (OGD )}  (3 T - 1)                                         (3)
+                                               2
+
+    Consider now the case where the regularized term is the square- 2 -norm regularization, o en
+called the Ridge aggregation rule R . e Ridge aggregation rule minimizes at each time instance
+a penalized criterion. Hence this aggregation rule can be useful if the experts are correlated, which
+is probably the case in our exercise. For this aggregation rule, only the square loss is considered.
+Note that the Ridge aggregation rule is theoretically the most robust strategies for the forecaster.
+Indeed, it competes not only with the best expert or the best combination of experts, but with the
+best combination of experts with some sub-linear shi s.
+       e weight vector pt = (p1,t , ..., pN,t ) is given by :
+
+                                                          t=1           N
+                         pt  arg min       ||v ||2
+                                                 2   +          (ys -          vj fj,s )2
+                                  v RN
+                                                          s=1           j =1
+
+   where the tuning parameter  is calibrated online, as the learning rate 
+
+Algorithm 6 Ridge aggregation rule
+       1. Parameter : Choose the learning rate t > 0
+
+       2. Initialization : an uniform vector p1 .
+
+       3. For each round t = 2, ..., T , the vector pt is selected according to :
+                                                             t=1            N
+                           pt  arg min       ||v ||2
+                                                   2     +         (ys -          vj fj,s )2
+                                    v RN
+                                                             s=1           j =1
+
+
+
+
+   As for strategies Egrad
+                           and OGD , the strategy R satis es our robustness requirement.           is
+theorem is stated by Cesa-Bianchi and Lugosi (2006) and Stoltz (2010) :
+      eorem 3. Since y^t  [0, 1] :
+
+                                                             ln(N )   T
+                                 sup{RT (Egrad
+                                               )}                   +                             (4)
+                                                                      2
+
+D.1    Aggregation rules with delayed feedback
+We modify the standard set up to account for the fact that the forecaster learns about a pre-crisis
+period with a 12 quarter delay. Experts have to learn on a rst crisis episode so for each coun-
+try, we start the exercise at the end of a rst crisis. e robustness theorems ( nite bounds on
+
+                                                     59
+the regret) for the EWA described above hold with uniform initial weights (OGD can start with
+any initial weights). When we start to train experts on a rst crisis episode, we have informa-
+tion on experts' in-sample performances. It can be valuable to use this information to decrease
+the estimation error to increase experts' performances. But this could jeopardise the forecaster's
+capacity to converge towards the best combination of experts. We face the classic dilemma be-
+tween estimation error and approximation error. Consider a vector of arbitrary initial weight
+w1,0 , ..., wN,0 > 0 and the EWA forecaster. Cesa-Bianchi and Lugosi (2006) state the following
+theorem:
+         eorem 3. Under the same conditions as in eorem 1 :
+
+                                                       1 1         lnW0     T
+                       RT (Egrad
+                                 )  min         ln(       )    +        + t                    (5)
+                                    j =1,...N         wj,0 t         t      8
+   For our EWA aggregation rules, weights are chosen in a simplex so that W0 = 1 and ln( w1
+                                                                                          j,0
+                                                                                              )=lnN .
+  e increase in the approximation error due to non uniform weights seems in many relevant cases
+negligible compared to the decrease in the estimation error. Each aggregation rule is therefore
+performed under delayed feedback with non-uniform initial weights.
+
+
+
+
+                                                 60
+             Figure 9: France: Weights.   asi-real time. FS aggregation rule.
+
+
+
+
+Figure 10: France: Experts.   asi-real time. Contribution to forecast. FS aggregation rule.
+
+
+
+
+       Figure 11: France: Experts contribution to forecast. OGD aggregation rule
+
+
+                                           61
+          Figure 12: France: Experts contribution to forecast. Ridge aggregation rule
+
+
+
+
+Figure 13: France: Experts contribution to forecast. EWA aggregation rule. 2 year pre-crisis
+period.
+
+
+
+
+Figure 14: UK: Experts contribution to forecast. EWA aggregation rule. 2 year pre-crisis period.
+
+
+                                              62
+

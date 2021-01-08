@@ -41,7 +41,7 @@ do
             rm -rf "${DIRECTORY}/${NBER_ID}.pdf"
             printf "[SUCCEED ✅]: ${DIRECTORY}/${NBER_ID}.txt\n"
         else
-            printf "[404 📭]: ${DIRECTORY}/${NBER_ID}.pdf page not found\n"
+            printf "[FAIL 📭]: ${DIRECTORY}/${NBER_ID}.pdf is not found or access is denied\n"
         fi
     fi
     START=$(($START + 1))

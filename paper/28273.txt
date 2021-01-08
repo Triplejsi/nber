@@ -1,0 +1,2600 @@
+                              NBER WORKING PAPER SERIES
+
+
+
+
+            IDENTIFYING THE LATENT SPACE GEOMETRY OF NETWORK
+                 MODELS THROUGH ANALYSIS OF CURVATURE
+
+                                        Shane Lubold
+                                    Arun G. Chandrasekhar
+                                     Tyler H. McCormick
+
+                                      Working Paper 28273
+                              http://www.nber.org/papers/w28273
+
+
+                    NATIONAL BUREAU OF ECONOMIC RESEARCH
+                             1050 Massachusetts Avenue
+                               Cambridge, MA 02138
+                                  December 2020
+
+
+
+
+We thank Eric Auerbach, Abhijit Banerjee, Emily Breza, Jacob Burchard, Gabriel Carroll, James
+Evans, Bailey Fosdick, Jeremy Fox, Paul Goldsmith-Pinkham, Ben Golub, Matthew Grant, Fang
+Han, Rachel Heath, Yunmi Kong, Mengjie Pan, Mallesh Pai, Abel Rodriguez, Anna Smith, Xun
+Tang, Matt Thirkettle, Aravindan Vijayaraghavan, and Jon Wellner. We thank participants at the
+2020 Joint Statistical Meeting, CANSSI-Ontario Data Science Applied Research and Education
+Seminar, IDEAL (Institute for Data, Econometrics, Algorithms, and Learning), the Joint
+Econometrics and Statistics Seminar Series at Cornell University, UC-Davis (Statistics), Bocconi
+University (Statistics), and Rice (Applied Micro and Econometrics). The views expressed herein
+are those of the authors and do not necessarily reflect the views of the National Bureau of
+Economic Research.
+
+NBER working papers are circulated for discussion and comment purposes. They have not been
+peer-reviewed or been subject to the review by the NBER Board of Directors that accompanies
+official NBER publications.
+
+© 2020 by Shane Lubold, Arun G. Chandrasekhar, and Tyler H. McCormick. All rights reserved.
+Short sections of text, not to exceed two paragraphs, may be quoted without explicit permission
+provided that full credit, including © notice, is given to the source.
+Identifying the Latent Space Geometry of Network Models through Analysis of Curvature
+Shane Lubold, Arun G. Chandrasekhar, and Tyler H. McCormick
+NBER Working Paper No. 28273
+December 2020
+JEL No. C01,C12,C4,C52,C6,D85,L14
+
+                                         ABSTRACT
+
+Statistically modeling networks, across numerous disciplines and contexts, is fundamentally
+challenging because of (often high-order) dependence between connections. A common approach
+assigns each person in the graph to a position on a low-dimensional manifold. Distance between
+individuals in this (latent) space is inversely proportional to the likelihood of forming a
+connection. The choice of the latent geometry (the manifold class, dimension, and curvature) has
+consequential impacts on the substantive conclusions of the model. More positive curvature in the
+manifold, for example, encourages more and tighter communities; negative curvature induces
+repulsion among nodes. Currently, however, the choice of the latent geometry is an a priori
+modeling assumption and there is limited guidance about how to make these choices in a data-
+driven way. In this work, we present a method to consistently estimate the manifold type,
+dimension, and curvature from an empirically relevant class of latent spaces: simply connected,
+complete Riemannian manifolds of constant curvature. Our core insight comes by representing
+the graph as a noisy distance matrix based on the ties between cliques. Leveraging results from
+statistical geometry, we develop hypothesis tests to determine whether the observed distances
+could plausibly be embedded isometrically in each of the candidate geometries. We explore the
+accuracy of our approach with simulations and then apply our approach to data-sets from
+economics and sociology as well as neuroscience.
+
+Shane Lubold                                    Tyler H. McCormick
+University of Washington                        Department of Statistics
+Department of Statistics                        Department of Sociology
+Box 354322                                      University of Washington
+Seattle, WA 98195                               Box 354322
+sl223@uw.edu                                    Seattle, WA 98195-4322
+                                                tylermc@u.washington.edu
+Arun G. Chandrasekhar
+Department of Economics
+Stanford University
+579 Serra Mall Stanford,
+CA 94305
+and NBER
+arungc@stanford.edu
+                               IDENTIFYING LATENT GEOMETRY                                     1
+
+                                      1. Introduction
+   Social, economic, biological, and technological networks play a crucial role in a myriad
+of environments. Job referrals (Granovetter, 1973; Calvo-Armengol, 2004; Beaman, 2012;
+Heath, 2018), neurological function (Leung et al., 2008), epidemics (Hoff et al., 2002; Bansal
+et al., 2010; Sewell and Chen, 2015), social media (Romero et al., 2011; Myers and Leskovec,
+2014; Cho et al., 2016), informal insurance (Ambrus et al., 2014; Cai and Szeidl, 2017),
+education decisions (Calv´ o-Armengol et al., 2009), sexual health (Handcock and Jones, 2004),
+financial contagion (Gai and Kapadia, 2010; Elliott et al., 2014; Acemoglu et al., 2015),
+international trade (Chaney, 2014), and politics (DiPrete et al., 2011) are among the many
+settings in which networks play a major role. Modeling network formation is, therefore,
+essential for both descriptive and counterfactual analyses.
+   Constructing such models is, however, challenging from a statistical perspective since
+networks typically feature higher-order dependence between the connections. Phenomena
+such as transitivity and the tendency for a friend of a friend to be a friend are common
+in networks and mean that standard statistical approaches, which assume independence
+across connections, aren't appropriate. One common approach for modeling this dependence
+structure is the latent space model, introduced by (Hoff, Raftery, and Handcock, 2002). The
+latent space model estimates a probability distribution over graphs that is consistent with
+the single instance of the graph observed in practice. It assigns each actor in the network to a
+position on a low-dimensional manifold. Likelihood of a connection is inversely proportional
+to distance between actors on a manifold with a pre-specified dimension and geometry.
+Connections are assumed independent conditional on the latent positions.
+   In this paper, we address the question of how to choose the type and dimension of the man-
+ifold in latent space network models. To do this, we present a hypothesis testing framework
+which connects distances in the latent space to feasible embeddings on simply connected,
+complete Riemannian manifolds with constant curvature. The intuition for our work is as
+follows. First, we must characterize each graph in a manner that is agnostic to manifold
+type (otherwise we assume the result), but is interpretable on each manifold (otherwise we
+cannot compare). Given a way to characterize the graph, we can construct a test statistic
+and perform inference. Distance is a natural candidate for such a characterization, particu-
+larly given the extensive literature on representing distance matrices on manifolds. Distance
+is typically defined given a particular geometry, however. Our solution is to define distance
+based on interactions between cliques, or completely connected subgraphs. We define the
+distance between two cliques as probability of interaction of a node in clique A with a node
+in clique B , which we can define using the definition of the latent space model plus the
+observed fraction of realized links between clique members out of the total possible. Given
+a distance matrix, we rely on three main results from mathematical geometry. The first two
+results give conditions for embedding distance matrices isometrically on a given manifold
+type and a third which provides a consist estimator of the smallest possible dimension for
+this embedding. To characterize uncertainty, we develop hypothesis tests for a particular
+geometry. These tests describe how different we expect contact patterns between cliques
+to be when seeing single draws from a probability model based on the latent space. We
+show, theoretically, that our procedure consistently identifies the latent space characteristics
+and, empirically, that the method has appealing properties in simulations and consequential
+implications using two datasets.
+2                        LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+   The choice of latent manifold type and its curvature is extremely consequential for both
+the interpretation of the latent space model and its theoretical properties. First, the choice
+of the geometry in particular determines the nature of network structure captured by the
+latent space. For a simple example, consider a two dimensional Euclidean space (a plane). In
+this geometry it is not possible to place four nodes in such a way that they are equidistant
+from one another, meaning that it isn't possible to represent groups of four such that,
+holding constant node effects, each node has the same likelihood of interacting with any
+other. Another way to see the impact of geometry is through triangles. Since a spherical
+space wraps, there is an upper bound to how far apart nodes can be from one another before
+they start getting closer together. This property also encourages the formation of triangles
+and communities as on account of the limited real estate on the (hyper)sphere's surface.
+Additionally, certain networks, such as a network of neurons or a network exchange built
+along a supply chain, may have a tree-like structure. Trees are difficult to embed in spherical
+or Euclidean space--indeed infinite trees cannot be--but fit more naturally in hyperbolic
+space. Recent work on statistical modeling has also shown the importance of modeling
+networks using non-Euclidean latent representations. For instance, McCormick and Zheng
+(2015) model latent space as a sphere and Krioukov, Papadopoulos, Kitsak, Vahdat, and
+Bogun´  a (2010) and Asta and Shalizi (2015) use hyperbolic space. Smith, Asta, Calder et al.
+(2019) provides a comprehensive review of the implications and consequences of the choice
+of geometry.
+   A second consequence of the choice of geometry arises in the theoretical properties of latent
+space model estimates. A question open until recently was on consistency of the estimates
+of the individual locations on the unobserved manifold. This has now been addressed by
+Shalizi and Asta (2017) for a more general class of models who demonstrate that indeed latent
+locations are consistently estimated in the case of where the researcher ex-ante assumes a
+manifold type within a class of rigid manifolds and there are no fixed effects nor covariates.
+Breza et al. (2019) extend this to the general case including fixed effects and covariates.
+However, since the distribution of the network formation process depends on the manifold
+itself, the key open question is whether a researcher can consistently estimate the latent
+space. After all, the network formation process is sensitive to the geometry of the latent
+space inclusive of its curvature and dimension. We study and prove consistent estimation of
+the latent space geometry in the present paper.
+   As previously mentioned, it is currently common practice to assume the latent dimension,
+the manifold type, or both. Our approach provides a data-driven alternative. It also contrasts
+with cross-validation based selection procedures that are sometimes used, in particular to
+estimate the manifold dimension. These approaches subsample connections and then use
+either model fit diagnostics or out-of-sample prediction metrics. Our approach avoids a
+critical issue with these approaches, namely that subsampling can fundamentally alter graph
+properties in unpredictable ways (Chandrasekhar and Lewis, 2016), calling into question the
+relevance of the subsampled distribution.
+   We also approach the question from a fundamentally different perspective than currently
+available alternatives that use the likelihood or penalized likelihood to estimate model fit.
+First, rather than characterizing fit or predictive accuracy with a particular dataset, our
+approach takes a more classical hypothesis testing perspective. Comparing (for example)
+an information metric across a model fit with a spherical or hyperbolic latent space is fun-
+damentally characterizing the congruence between the embedding for a given dataset and
+                                IDENTIFYING LATENT GEOMETRY                                         3
+
+the spaces under consideration. Uncertainty in this framework arises from sampling, but
+also from potential model mis-specification. A likelihood based metric for a spherical space
+with small curvature will likely perform quite well for a graph generated from Euclidean
+embeddings, for example. In our approach we isolate uncertainty to only sampling error by
+using a test for isometric embeddings of distances into the space under consideration. In our
+context we variability in the observed distance matrix as representing expected noise due
+to sampling realizations of a graph of a given size. Second, we isolate the test to uniquely
+distance, rather than to the model as a whole, as would be the case with a likelihood-based
+measure. A likelihood ratio test for whether or not the curvature of the space is zero, for
+example, may seem to be an appealing alternative, to our approach. Such a test would,
+however, confound changes in the latent geometry with changes in the fixed effects. To see
+this, recall that the surface area of the sphere changes as a function of the curvature. To
+preserve the overall density of the graph, therefore, the individual effects must change when
+the curvature changes. In our framework we sidestep this issue by leveraging the struc-
+ture of the network formation model to isolate the test as specific to the latent geometry.
+Constructing an appropriate likelihood-based test, in contrast, would require marginalizing
+over the individual effects, which would be computationally intensive and require specifying
+distributions for the individual effects (which we do not require).
+   We close this section with a formal definition of the latent space model and an overview of
+the structure of the remainder of the paper. Beginning with the latent space model, consider
+the graph G = (V, E ) where n = |V | are actors (also called individuals or nodes) and E
+are edges (also called links or connections). For simplicity, we assume throughout that the
+graph is un-directed, all connections are symmetric, and unweighted, all connections are
+either present or absent. Our methods readily extend to the weighted and directed case,
+though it increases the complexity in terms of both notation and exposition. We assume
+that edges in G are drawn independently according to
+
+(1)                P (Gij = 1 | , z, Mp ()) = exp i + j - dMp () (zi , zj ) ,
+
+which is the probability model for the graph, or network formation model in the economics
+nomenclature. In (1) we have Gij = 1 if there's a connection between i and j and 0 otherwise.
+We represent  = (1 , . . . , n ) as the vector of individual effects, restricted to be negative to
+ensure Equation (1) is a probability. These are independent effects that encode individual
+gregariousness, and are related to the total number of connections Chatterjee et al. (2011);
+Graham (2017). The dMp () (zi , zj ) terms represent the distance on the manifold Mp (),
+with dimension p and curvature , between locations zi and zj . We assume that the space is
+a simply connected, complete Riemann manifold of constant curvature. By the Killing-Hoff
+theorem (Killing, 1891), there are only three such manifolds. These are Euclidean space (Rp
+equipped with the usual inner product) with  = 0, the p-sphere (Sp ()) with strictly positive
+curvature, and hyperbolic space (Hp ()) with strictly negative curvature. We present addi-
+tional background on these geometries and their properties in Section 1.1. The propensity
+to form ties between pairs of individuals is assumed independent conditional on the vector
+z = (z1 , . . . , zn ) of these positions on the manifold. Hoff et al. (2002) present this model with
+a logit link and subsequent authors have extended the mapping from latent space distances
+to probability using both univariate and multivariate distributions (see Salter-Townshend
+and McCormick (2017) for example). We choose the simple exponentiation here to simplify
+the decomposition between the  and z components, though in general our results are robust
+4                        LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+to the choice of the link function. We further assume the following about the latent space
+model throughout the paper.
+
+   Assumption 1.1 means (by Killing (1891)) that the geometry must be Euclidean, spherical,
+or hyperbolic with a bounded dimension and possible curvatures in some compact set. This
+condition implies that, as we accumulate more data, the manifold must meaningfully curve
+(in that it is not arbitrarily close to Euclidean).
+Assumption 1.1. Mp () is a simply connected, complete Riemannian manifold of constant
+sectional curvature , with p  Z with known upper bound and   [-b, -a]  {0}  [a, b]
+with a > 0, b > 0.
+    Assumption 1.2 ensures that (1) produces probabilities.
+Assumption 1.2. Every node i has a fixed-effect i i.i.d. from a distribution F on (-, 0].
+
+   Before we proceed, we use C to denote an clique in G. That is, C is a complete
+subgraph on nodes. Our results relies on latent positions of nodes in completely connected
+subgraphs, or cliques. Under any model for Fz , nodes in cliques will be close together in the
+latent space, since cliques are completely connected subgraphs and nodes close together in
+the latent space are likely to connect.
+   Assumption 1.3 sets out a general requirement for Fz which makes explicit the condition
+that is required for our proofs: that proportionally most of the cliques in the graph are
+comprised of nodes that are proximate in latent space. This assumption of local cliques
+captures a typical feature of latent space models and empirical data.
+Assumption 1.3. Every node i resides at a location zi that is drawn independently and
+are identically distributed from a distribution Fz on manifold Mp (). The latent location
+distribution must satisfy two properties:
+     (a) Identifiability: The support of Fz must consist of at least K > p distinct points that
+         uniquely identify the manifold.
+     (b) Local cliques: The distribution of locations should be such that the following is true.
+         For any collection of nodes with locations drawn i.i.d. from Fz we have   > 0,
+                   P(C exists | maxi,j d(zi , zj )   ) P(maxi,j d(zi , zj )   )
+            lim                                        ×                          = .
+           n,      P(C exists | maxi,j d(zi , zj ) >  ) P(maxi,j d(zi , zj ) >  )
+   This provides an explicit condition for the rate at which nodes in a clique should near one
+another as the size of the graph grows. Aside from this condition, we impose no restrictions
+on the distribution of Fz . This general requirement allows for continuous, discrete, or mixed
+distributions as well as dependence on n.
+   To give one expository example of a distribution that has this property and does not
+depend on n, consider a sphere with K locations. Say that these locations are distributed
+evenly about sphere such that they satisfy part (a) of Assumption 1.3 and all nodes are
+sampled independently and are identically distributed uniformly distributed over these loca-
+tions. With this distribution, nodes that are connected in clique will, with high probability
+be placed at the same location relative to being at several locations. When we consider a
+sufficiently large clique--in practice even as few as five nodes works well as this yields ten
+rare events (potential links)--the overwhelming likelihood is that we see nodes at a single lo-
+cation, rather than spread across several locations, which is the requirement for Assumption
+                                 IDENTIFYING LATENT GEOMETRY                                           5
+
+1.3. As a consequence, cross-clique links allow us to estimate cross-location probabilities for
+these K locations, which play the major role in studying isometric embedding conditions
+used to determine the geometry.
+   The remainder of the paper is organized as follows. In Section 1.1 we review key concepts
+of curvature and embedding from geometry which are crucial for our testing procedure. We
+present a strategy for creating distance matrices that are manifold-type agnostic in Section
+2. After we outline this strategy, we present two uses for these distance matrices, estimating
+the minimal latent dimension (Section 3) and testing for geometric class (Section 4) We also
+show that the estimators for minimal dimension and the hypothesis tests are consistent. Also
+in Section 4 we provide a bootstrap approach to testing the latent geometry type. In Section
+5 we present simulation experiments that explore the efficacy of our approach. In Section 6,
+we apply our results to two empirical examples. The first empirical example considers data
+from Indian village social networks, comprised of informal finance, information, and social
+links and also study how the introduction of microfinance impacts geometry. The second
+example focuses on the neural network of a worm. Section 7 concludes.
+
+1.1. Preliminaries: A Review of Core Geometric Results. We now provide back-
+ground on several key results from geometry. An important insight of our paper is that,
+once we appropriately define distance, we can leverage these results directly.
+
+1.1.1. Sectional Curvature. We will study geometries given by simply connected, complete
+Riemannian manifolds of constant sectional curvature, defined formally below. Each of
+these assumptions are ex ante parsimonious. Simple connectedness and completeness are
+innocuous as well and constant curvature at least provides a place to start and nests all
+manifolds used in the literature.
+   The Killing-Hoff theorem in Killing (1891) states that any simply connected complete
+Riemannian manifold of constant sectional curvature is either Euclidean, spherical, or hy-
+perbolic. This restricts our class to these manifolds.
+   These three types of manifolds span a large and usable set of empirically relevant networks.
+With zero curvature, we model networks that allow for many paths where following them
+along nodes takes one increasingly far from nodes in other directions, while preserving local
+clustering. So while there is clustering, a flat space models a sort of vastness. Meanwhile, a
+sphere which has constant positive curvature does force such behavior. Following friends of
+friends of friends and so forth typically leads to encountering some distant friends in common
+at a much higher rate. Therefore there is a sort of cloistering in addition to clustering.
+Finally, hyperbolic spaces in contrast naturally embed trees or hierarchical networks or any
+context where expansiveness is a key feature. Intuitively this is because any set of initially
+parallel lines spread apart. Figure 1 presents intuitions.
+
+1.1.2. Sectional Curvature Definitions. Some preliminary definitions are required. We re-
+view these concepts in a self-contained way. The reader may look to O'Neill (1983) for a
+more in-depth explanation of these concepts. The tangent space at m  Mp is denoted
+Tm (Mp ), defined as the set of all tangent vectors to the manifold at m: that is, all real-
+valued functions v that map any smooth function f : Mp  R to v (f (m))  R that is
+R-linear and Leibnizian.1
+  1An   obvious tangent vector is the directional derivative at a point on the manifold: it maps a smooth
+function to its derivative in that direction evaluated at that point on the manifold.
+6                                LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+
+
+
+                             (a) Flat  = 0                          (b) Positive  > 0
+
+
+
+
+                                                (c) Negative  < 0
+
+        Figure 1. How curved geometries affect network embeddings where each displayed graph
+        has 36 nodes.
+
+
+  A Riemannian manifold (Mp , g ) comes equipped with a metric tensor g which at every
+point m  Mp takes two vectors in the tangent space of the manifold at m, u, v  Tm (Mp ),
+and maps it to a non-negative number: gm (u, v )  R0 and the map is symmetric, non-
+degenerate, and bilinear. That is, g defines a scalar product over the manifold; on a smooth
+manifold the metric tensor smoothly varies over the manifold itself.
+  To define curvature, we first need to define the Riemann curvature tensor, R evaluated
+at point m  Mp , which takes three tangent vectors in the tangent space at m--u, v, w 
+Tm (Mp )--and returns Rm (u, v )w  Tm (Mp )2
+                                       Rm (u, v )w := [u,v] w - [u , v ]w.
+Here is a simple intuition. Consider the vector w which is tangent to the manifold at m.
+Consider the plane defined by u and v which are tangent at m as well. Now take w and
+parallel transport it, meaning take it along the parallelogram in the u direction and then v
+direction and compare that to taking the same w along the v direction and then u direction
+to the same point. The returned vector has entries that describe how much w changes
+relatively across the two paths. If this is identically zero, this means of course that there was
+no change in this parallel transportation. Intuitively, if one does this on a flat manifold, for
+instance R2 with the usual Euclidean metric, it is clear that the vector w does not change
+whatsoever. But on a sphere, for instance, the reader can intuit that things change.
+    2Here   [., .] is the usual Lie bracket.
+                                     IDENTIFYING LATENT GEOMETRY                                                  7
+
+   Then the sectional curvature at m, which we refer to simply as curvature for the remainder
+of this paper, is given by
+                                                     gm (Rm (u, v )v, u)
+                               m (u, v ) :=                                        .
+                                              gm (u, u) · gm (v, v ) - gm (u, v )2
+It turns out that this is independent of basis u, v whatsoever (see Lemma 39 in O'Neill (1983)
+for instance) so we can simply write m . That the manifold has constant sectional curvature
+means that for all m  Mp , m =  and so we simply write Mp ().
+
+1.1.3. Candidate Geometries. In order to study the candidate manifold Mp (), we embed
+them in Rp+1 . Clearly the Euclidean case is trivial. In the spherical case we embed it in
+Euclidean space (Rp+1 with the usual metric) and in the hyperbolic case we use Minkowski
+space (R1,p ). Note that the only difference is that the bilinear form of the space, given by
+Q, varies in signature described below.
+  The model for each is constructed by looking at a locus of points in the ambient space in
+which it is embedded:3
+                                Mp () := x  Rp+1 : Q(x, x) = -1 .
+This implies a way of calculating distances between points on the manifold. Specifically,
+                                                      arccos (Q (x, y ))
+                                      dMp (x, y ) =                      .
+                                                              
+
+   Let us turn to our candidate cases. In the case of the sphere Sp , we have the usual Eu-
+clidean inner product QRp+1 (x, y ) := p +1        4
+                                        i=1 xi yi . The locus of points and distances between
+                   p+1
+two points x, y  R     for the embedding is
+
+                                                                                       arccos (QRp+1 (x, y ))
+ Sp () := x  Rp+1 : QRp+1 (x, x) = -1 ,  > 0                     and dSp (x, y ) =                            .
+                                                                                                
+
+  Hyperboloic space Hp is embedded in Minkowski space, R1,p which is Rp+1 equipped with
+the Minkowski pseudo-metric: QR1,p (x, y ) := -x0 y0 + p               5
+                                                            i=1 xi yi . The important point is
+that the signature is distinguished from the Euclidean space which will play a key role in
+distinguishing the geometries. As a consequence the locus of points and distances are given
+by
+            Hp () := x = (x0 , x1:p )  R1,p : QR1,p (x, x) = -1 , x0 > 0,  < 0
+and
+                                                    arccos (QR1,p (x, y ))
+                                    dHp (x, y ) =                          .
+                                                             
+  3For   the hyperboloid x0 > 0 is an additional restriction.
+  4It  can be checked that the metric tensor at a point x  Sp is induced by the ambient Euclidean space:
+ Sp                         Sp
+gx   := QRp+1 |Tx (Sp ) or gx  (u, v ) = i ui vi for u, v  Tx (Sp ).
+    5One can check that across the tangent bundle at all points this indefinite inner product in the ambient
+                                                                     Hp                        Hp
+space is positive definite, thereby defining a Riemannian metric: gx    := QRp,1 |Tx (Hp ) or gx  (u, v ) = -u0 v0 +
+   p                           p
+   i=1 ui vi for u, v  Tx (H ).
+8                             LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+1.1.4. Embedding Conditions. Let D be a known distance matrix from K points given by
+Z = {z1 , . . . , zK }. We say that Z can be isometrically embedded in manifold Mp (), written
+      isom
+as Z  M, if there exists an isometry  such that for all l, l , dM ((zl ), (zl )) = dll .
+   In our case, we want to study if Z can be isometrically embedded in some manifold
+Mp () satisfying Assumption 1.1 and, specifically, given the class of the manifold (Euclidean,
+spherical, or hyperbolic), the minimal dimension required for the embedding. As such, we
+review how one determines if it is possible to isometrically embed these points into Euclidean
+space or any of the curved spaces.
+   We define the K × K matrix corresponding to the bilinear form above,
+                                            1    
+                                  W (D) = cos( D) if  = 0
+                                            
+where we apply the cosine operation element-wise, as before. We use the convention that
+for  = 0, W0 (D) = - 1       2
+                               JD  DJ , where J := IK - K   1
+                                                              1K 1T
+                                                                  K . By using a Taylor series of
+W (D) around  = 0, one can see that there is a close relationship between the expression
+of W (D) for  > 0 and W0 (D).6 The motivation for these expressions is that the signatures
+of these matrices will tell us whether such an isometric embedding is possible. We write
+W = W (D), suppressing the dependency on D unless otherwise noted.
+   First we review the Euclidean case.
+                                                                     isom
+Proposition 1.1 (Schoenberg (1935b), Theorem 1). Z  Rp for some p if and only if W0
+                                                                   isom
+is positive semi-definite. In addition, the smallest p such that Z  Rp is p = rank(W0 ).
+
+   Next we turn to the case of curved manifolds. Recall that the signature of a square matrix
+A is a triple (a, b, c), where a, b, c are respectively the number of positive, zero, and negative
+eigenvalues of A.
+   Returning to our general formulation above, we can write distance matrix among a vector
+of points Z  Mp () as
+                                                 arccos ((Z ) (Z ))
+                                       DMp () =           
+                                                            
+where we have written the general bilinear form as Q = (Z ) (Z ). Notice that  =
+diag (+1, . . . , +1, 0, . . . , 0) in the case of spherical geometry and  = diag (-1, 0, . . . , 0 +
+1, . . . , +1) in the case of hyperbolic geometry. The logic of the approach is to identify the
+signature which then tells us which geometry we are in and precisely why W takes its form
+for  = 0.
+
+  Formally, the following result from Begelfor and Werman (2005) provides necessary and
+sufficient conditions for points to be isometrically embedded in spherical and hyperbolic
+space.
+                                                                            isom
+Proposition 1.2 (Begelfor and Werman (2005), Theorem 1). Z  Sp () if and only if
+                                                                               isom
+the signature of W is (a, n - a, 0) for some a  p + 1 and some  > 0. Also, Z  Hp ()
+if and only if the signature of W is (1, n - a - 1, a) for some a  p and some  < 0.
+ Of course, we want the smallest dimension such that Z can be embedded isometrically in
+Mp (). In the Euclidean case, the smallest dimension is rank(W0 ). For the spherical case,
+    6We   would like to thank Gabriel Caroll for pointing this out to us.
+                              IDENTIFYING LATENT GEOMETRY                                    9
+
+any admissible dimension p must satisfy n+ (W )  p + 1, where n+ (W ) is the number of
+positive eigenvalues of W . So p must satisfy p  n+ (W ) - 1 and the smallest valid value of
+p = n+ (W ) - 1 for some  > 0. Using a similar argument, one can show that the smallest
+               isom
+p such that Z  Hp () is p = n- (W ) + 1 for some  < 0 where n- (W ) is the number of
+negative eigenvalues of W .
+  Taken together, these two results allow us to determine when a collection of points can
+be isometrically embedded in a Euclidean, spherical, or hyperbolic space. In addition, we
+can determine the smallest possible dimension of the space. To preview how we will use the
+results from this section, suppose for now that we have access to distances between points
+on Mp (), the latent space in (1). Our approach connects the eigenstructure of the distance
+matrix to an underlying manifold, leveraging the results from this section which indicate
+that only distance matrices with certain eigenstructure can be isometrically embedded on
+a particular manifold. We care about positive definiteness for the Euclidean and spherical
+cases (for W0 and W for  > 0 respectively). For the hyperbolic case we have a more
+peculiar requirement: that the spectrum only has one positive eigenvalue and the remainder
+are zero and negative. Further, in all cases we care about rank of W , which indicates the
+(smallest possible) dimension of Mp ().
+  In practice, of course, we must use the graph G to estimate a set of distances on Mp ().
+Using this estimator, which we describe in the next section, we can then provide estimators of
+the curvature of the space, provide a hypothesis testing framework to classify the geometry
+(Euclidean, spherical, or hyperbolic), and provide an estimator of the dimension of the
+manifold.
+
+            2. Mapping Graphs to Manifolds via Distance Matrices
+   We now move from a general discussion of a geometry in the previous section to the specific
+case of the graph. We first show how we define a distance matrix based on connections
+between cliques. With an appropriately defined distance matrix, the geometric results from
+the previous section can be used to generate hypothesis tests for latent geometry type and
+estimates for the dimension of this geometry. With sufficient data we could estimate the
+distance matrix with arbitrarily small noise and apply the results from the previous section
+directly. In practice, however, we see a fixed graph size and, thus, have sampling uncertainty
+about the distance matrix we observe.
+   With these assumptions in mind, we now move to defining the distance matrix, D and
+its estimator, D^ . In the typical setup for the latent space model, D is only defined after
+assuming a particular geometry. In this setting, the definition of D changes depending
+on the presumed geometry (arc-length on a hyper sphere for example, Euclidean distance
+on a plane). Since we do not want to take the geometry as given, the distance matrix
+cannot use a metric that is specific to a single geometry. The distance matrix also must
+be comparable across geometries, however, otherwise we will be performing different tests
+in each geometry. Our solution is to use probabilities defined by the latent space model in
+(1). Rather that using distance on a given manifold as the input to these probabilities, as
+would be typical in the latent space model, we use overlap between cliques. In particular,
+we define the fraction of potential interactions between two clique members out of the total
+possible interactions. A potential consideration with this approach is that it requires the
+existence of cliques, a requirement not put forth in our assumptions. The existence of
+cliques is guaranteed by the latent space model under our assumptions as the number of
+10                      LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+nodes increases, however. In particular, the conditional independence relation that is key
+to the latent space model requires an assumption of exchangeability. The Aldous-Hoover
+Theorem implies that exchangeable sequences of nodes correspond to dense graphs in the
+limit (Aldous, 1981; Orbanz and Roy, 2015), which implies that cliques are present in the
+limit. We also examine the existence of cliques in practice using our empirical and simulated
+examples. We find that, in general the number and size of cliques in our empirical examples
+is sufficient to match settings in simulations where the method controls Type 1 error and
+has high power.
+    To motivate our approach to constructing a distance matrix, we consider a simplification
+of the main model in (1). We make two assumptions for illustration, which are subsequently
+relaxed. First, suppose there are no individual effects (so i = 0 i). Second, suppose
+that the distribution of node locations are degenerate distributions fixed at K locations
+z1 , . . . , zK on Mp (). That is, all nodes occupy one of K locations in the latent space.
+Define Vk = {j  {1, . . . , n} : zj = zk } to be the set of nodes at location zk . Under this
+simplification, we can write the distance between points zk and zk using the definition of
+the latent space model in (1) as
+
+
+(2)                                  dk,k = - log(pk,k )
+
+
+where pk,k := P (Gk,k = 1|z ) is the probability that nodes at locations zk and zk connect
+for any k, k  {1, . . . , K }. Then, we can estimate the probability pk,k by
+
+
+                                              1
+                               p
+                               ^k,k :=                               Gij .
+                                         |Vk ||Vk |
+                                                      (i,j )Vk ×Vk
+
+
+
+
+In words, this estimator counts the number of observed edges between zk and zk and divides
+                                                                i.i.d.
+by the number of possible edges, given by |Vk ||Vk |. Since Gij  Bernoulli(pk,k ) for (i, j ) 
+Vk × Vk , this estimator is unbiased for pk,k . In addition, supposing that |Vi |   as
+                                                              p
+n  , the weak law of large numbers implies that p        ^k,k  pk,k . By (2), we can estimate
+the distance between zk and zk by d    ^k,k = - log(^
+                                                    pk,k ). We can then apply the continuous
+                                        p
+                                  ^
+mapping theorem to show that dk,k  dk,k . To summarize, we have used the edges in G to
+estimate the connections between locations on the unobserved latent space Mp () and then
+used the graph model to estimate distances.
+   We now return to the original model in (1) and relax the two simplifying assumptions made
+above. The individual effects describe heterogeneity in the propensity for an individual to
+form connections and are not directly related to which connections they will form, which
+is what the latent space captures. We would prefer, therefore, to estimate the distances
+used to test hypotheses about latent geometry without potential confounding by individual
+effects not specifically related to the geometry. We accomplish this by marginalizing over
+the individual effects in (1). Recalling that the support of i is (-, 0], we integrate to find
+                                 IDENTIFYING LATENT GEOMETRY                                                  11
+
+that
+                                       0          0
+                          p
+        P (Gij = 1|z, M ()) =                           P (Gij = 1|z, i , j , Mp ()) dF (i ) dF (j )
+                                     -          -
+                                      0          0
+                                 =                      exp (i + j - d(zi , zj )) dF (i ) dF (j )
+                                     -          -
+                                                                 0    0
+                                 = exp(-d(zi , zj ))                      exp (i + j ) dF (i ) dF (j )
+                                                                -    -
+
+where the last line uses the fact that exp(x + y ) = exp(x) exp(y ). Since the fixed effects i
+are i.i.d., we simplify this last double integral so that
+  0     0                                               0                     0
+            exp (i + j ) dF (i ) dF (j ) =                  exp(i ) dF (i )       exp(j ) dF (j ) = E (exp(i ))2 .
+ -     -                                              -                       -
+
+We therefore conclude that, after marginalizing the individual effects,
+                      P (Gij = 1|z, Mp ()) = E (exp(i ))2 exp(-d(zi , zj )) .
+We now solve for the distance d(zi , zj ) to conclude that
+(3)                           dk,k = - log(pk,k ) + 2 log(E (exp(i )) .
+Note that if i = 0 with probability 1, which we assumed in the simplified model above, then
+E (exp( )) = 1, so that (19) becomes (2). We must now estimate (i) the term pk,k and (ii)
+the term log(E (exp( )) .
+   We first discuss how to estimate the term pk,k . Under (1), individuals have distinct loca-
+tions in the latent space and we only observe one instance of a connection (or lack thereof)
+between individuals, so the strategy from the simplified model work with individual position.
+Instead, we focus on cliques in the graph, G. An -clique C of a graph G = (V, E ) is a set of
+nodes such that all possible edges between pairs of nodes in C exist. That is, C is a complete
+sub-graph of G consisting of nodes. In the formation model in (1), individuals who are
+close together in the latent space are likely to form ties. Since cliques are connected we know
+that these individuals have formed ties, and, thus, will have similar latent locations. More
+formally, suppose that {z                  ~ } are the latent space locations of points in an -clique.
+                              ~1 , . . . , z
+Then, it is likely that each d(~         zi , z
+                                              ~j ) is small. If this were not the case (meaning that the
+locations of the nodes were far apart), then it is unlikely that we would observe such a clique.
+   Let C1 , . . . , CK denote a collection of -cliques. For each k, k  {1, . . . , K }, compute the
+K × K matrix P       ^ = {p
+                          ^k,k } with
+                                                 n
+                                       1
+(4)                           p
+                              ^k,k =       2
+                                                        Gi,j 1{i  Ck , j  Ck } ,
+                                               i,j =1
+
+In words, this estimator counts the number of edges between cliques Ck and Ck and divides
+by the number of possible edges 2 . As previously discussed, the existence of cliques arises
+through the properties of the formation model in (1) as the number of nodes increases. Ideal
+cliques would be distinct, meaning that any node in the graph belongs to at most one clique,
+and complete - cliques as described above. In practice, however, we require neither of these
+and demonstrate empirically that the methods we propose maintain desirable properties with
+cliques that are partially overlapping and are not complete (meaning that most but not all
+12                          LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+edges are realized).7 Further, for the convenience of notation we assume that all cliques are
+of size , though this is also not required.
+   We now discuss how to estimate the term log(E (exp( ))2 . To construct such an estimator
+we focus on nodes that are close together in the latent space, since the distance term in
+such cases will be (nearly) zero in (1) and thus won't confound estimation of the individual
+effects. Since we use cliques to estimate pk,k , we may consider using these nodes to also
+estimate log(E (exp( ))2 . We could, for example, compute the number of edges in the cliques
+out of the number of possible edges. However, this estimate will be 1, since by definition all
+edges exist between nodes in the same clique. Therefore, we define a closely related idea,
+which we call the "almost-clique."
+   Fix an -clique Ck and a number t < . We define an "almost-clique" Ik (t) by
+                              Ik (t) := j : j  Ck , |Ck | >            Gi,j  t
+                                                                iCk
+
+to be the set of nodes not in Ck that connect to at least t nodes in Ck . The intuition behind
+this definition is that if t  , then the distance between nodes in Ik (t) should be close to
+zero, but since they are not in the clique not all connections will be realized.
+  We can estimate the probability that nodes in the sub-graph induced by Ik (t) connect,
+given by
+                                                  -1
+                             ^           |Ik (t)|
+                             E (t, k ) =                      Gi,j .
+                                            2
+                                                         (i,j )Ik (t)×Ik (t)
+Now, to estimate E (exp( )), we average the above term over all cliques, leading to an
+estimate
+                                              K
+                             ^             1     ^ (t, k ) .
+                             E (exp( )) :=       E
+                                           K k=1
+In practice, this approach will suffer from selection bias when the clique size is large. That
+is, by Assumption 1.2 all individuals have independent and identically distributed vi terms.
+Conditional on being part of a large clique, however, an individual is likely to be on the
+right tail of the vi distribution. We could adjust for this bias by, for example, assuming a
+parametric model for vi . If we made such an assumption we could compute a correction
+for the selection bias based on the tail of the assumed distribution. In practice, we found
+our non-parametric estimator worked sufficiently well without such a correction. We suggest
+taking t to be large, for example t = - 1 because our simulations suggest that large values
+of t reduce the selection bias and therefore increases the accuracy of our method.
+
+                3. Estimating the Curvature and Minimal Latent Dimension
+  Having defined a consistent estimator of the distance matrix, D, we now explore how
+to use this estimator in conjunction with the geometry results from Section 1.1. First, we
+address the question of choosing the dimension of the latent space. We assume here that the
+manifold type is given and present a test for manifold type in the next section. Propositions
+1.1 and 1.2 show that the rank of W tells us the dimension of the underlying space. Since
+W depends on the curvature of the space, we first present an estimator of the curvature of
+     7Indeed,
+            our argument extends to the case of subgraphs, where we are interested in cross-link probabilities
+across structures that are clique-like but have missing links, provided they are more likely to occur locally
+in the manifold.
+                                   IDENTIFYING LATENT GEOMETRY                               13
+
+the latent space and then discuss estimating the minimal dimension. Throughout we focus
+on estimating the minimal dimension in which points can be embedded isometrically, since
+points isometrically embedded in dimension p can be trivially embedded in dimension p ,
+with p > p.
+   We use Proposition 1.2 to motivate our estimate of the curvature of Mp (), noting that
+estimating curvature is required only for the spherical and hyperbolic cases (since curvature
+is 0 by definition in Euclidean space). For illustration, suppose that a set of points Z can be
+embedded in Sp (0 ) for some p. Suppose that the value 0 is unique. Then, for any  = 0 ,
+it follows that |1 (W )| > 0. This follows from Proposition 1.1, which says that for any
+ = 0 , it must be true that 1 (W ) = 0, but 1 (W0 ) = 0.
+   The true 0 , therefore, satisfies8
+(5)                                    0 = arg min 1 (W ) .
+                                                0
+                                                                  p
+  In practice, we don't know D but we do have access to D      ^     D, as described in the
+previous section. We can therefore use D ^ in place of D to estimate . This approach leads
+to the following estimator of the curvature:
+                                      ^ )) ,
+                 ^ S := arg min 1 (W (D                                     ^ ))
+                                                    ^ H := arg min K -1 (W (D
+                         [a,b]                              [-b,-a]
+
+for some 0 < a < b. In Appendix C, we discuss how to pick a and b in practice. As the
+graph size approaches infinity the estimates approach the true curvature, as the following
+proposition shows.
+Proposition 3.1. Suppose that Z contains K points in either Sp () or Hp (). Suppose
+          ^ is a K × K matrix containing pairwise distances between points in Z such that
+also that D
+    p
+^
+D  D. Finally, suppose that either
+                                                     isom
+      (1) there is a unique   [a, b] such that Z  Sp () for some p. Our estimate of the
+          curvature is
+                               ^ n := argmin 1 W (D  ^) ,
+                                            [a,b]
+                                                             isom
+      (2) or there is a unique   [-b, -a] such that Z  Hp () for some p. Our estimate
+          of the curvature is
+                                                        ^)
+                                  ^ n := argmin K -1 W (D             .
+                                         [-b,-a]
+                              p
+In cases (1) and (2), ^ n   as n  .
+   We prove the above result in Appendix A. The estimators we propose for curvature are
+similar to those proposed in Wilson et al. (2014), though Wilson et al. (2014) does not
+prove that these estimators are consistent. Wilson et al. (2014) does, however, also note
+difficulties in finite samples with the hyperbolic curvature estimates. Given an estimate of
+the curvature, , we are now ready to compute W     ^ ^ and, in doing so, estimate the minimal
+latent dimension. We want to estimate the rank of W , since, by Proposition 1.2, this gives
+the minimal latent dimension.
+  8It   is immaterial whether we rescale by .
+14                        LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+   Robin and Smith (2000) provides a method to consistently estimate the dimension of
+the latent space, p, in our framework. Robin and Smith (2000) shows that, under certain
+conditions on the population matrix, the eigenvalues of the sampled version of the matrix
+converge to a weighted sum of independent chi-square random variables. Robin and Smith
+(2000) uses this fact to propose a consistent estimate of the matrix rank. The Robin and
+Smith (2000) approach is appealing because it provides a consistent estimator of the rank.
+Therefore, when applied to our problem, we can recover consistent estimates under our
+assumptions.
+   Recent work, by Luo and Li (2016), however, has been shown to have more appealing
+finite sample performance and in Appendix E, we provide the algorithm to estimate the
+rank with this method. Luo and Li (2016) prove that in a number of problems, their rank
+estimate is consistent. We are not able to verify these conditions in practice, since they
+assume that their data consists of i.i.d. data. However, in our case, our data is independent
+but not identically distributed. Therefore, we do not make a claim about the consistency of
+this approach when applied to our problem.
+   To estimate the dimension of Mp (), we first estimate the rank of W and then use
+Propositions 1.1 and 1.2 to determine the dimension of Mp (). In Algorithm 3 we provide
+an estimator r^ of the rank r of W . Then, we use the following steps to estimate the
+dimension of the manifold:
+      (1) If Mp
+              ^(^
+                ) is Euclidean, then p ^= r
+                                          ^.
+      (2) If Mp
+              ^(^
+                ) is spherical, then p
+                                     ^= r^ - 1.
+              p
+              ^
+      (3) If M (^
+                ) is hyperbolic, then p^= r^ - 1.
+   An assumption that Luo and Li (2016) makes is that the matrix whose rank we estimate
+is positive semi-definite. In the hyperbolic case, W is not positive semi-definite. We can
+                                                        T
+estimate the rank of the positive semi-definite matrix W  W , however, which has the same
+rank as W .
+
+                             4. Testing for Geometric Class
+   We now derive a formal test for the geometric class of the latent manifold. We do this
+by leveraging the formation model and the graph to estimate a distance matrix D       ^ with
+estimated curvature    ^ , which we use to test hypotheses about the geometry of D. We first
+present two consistent hypothesis tests. One is general to any distance matrix, whether
+related to a social network or not, but requires an estimator of the distance matrix which
+goes in probability to the true matrix. For the second, we present a consistent test which is
+specific to the latent space model for networks. Rather than making any assumptions about
+the distance matrix itself, we show the test is consistent based on properties of the graph
+and the latent space model.
+   To begin, consider the Euclidean case. We are interested in testing the following pair of
+hypotheses:
+                      H0,e = D is Euclidean, Ha,e = D is not Euclidean.
+                                                    isom
+By the phrase "D is Euclidean" we mean that Z  Rp for some p. By Proposition 1.1, we
+can write the above pair of hypotheses as the equivalent pair
+(6)                          H0,e : 1 (W0 )  0, Ha,e : 1 (W0 ) < 0.
+                               IDENTIFYING LATENT GEOMETRY                                      15
+
+Essentially, we use Proposition 1.1 to reframe the geometry requirement of isometric embed-
+ding into a testable statement about the eigenstructure of a function of the distance matrix.
+Using the same reasoning, we can use Proposition 1.2 to write the hypotheses that D is
+spherical for some  > 0 as
+(7)                         H0,s : 1 (W )  0, Ha,s : 1 (W ) < 0 .
+Finally, to determine if D is hyperbolic for some  < 0, we want to test
+(8)                     H0,H : K -1 (W ) = 0, Ha,K : K -1 (W ) = 0 .
+By Proposition 1.2, concluding that in the hyperbolic case K -1 (W ) = 0 is not enough to
+conclude that D is hyperbolic, since we must test the first and smallest eigenvalues of W
+too. In practice, however, we found that testing only one eigenvalue was typically sufficient
+and, thus, use this simpler test. Clearly, it would also be possible to test all three eigenvalues
+using an intersection test, which we leave to future work.
+   Given this general setup, we now move to the case where the distance matrix is observed
+with noise and propose a series of tests for the hypotheses above. We begin by showing a con-
+sistent testing framework and then give a bootstrap method, which we evaluate empirically
+in Section 6.
+4.1. Consistent Hypothesis Tests for Latent Geometry. To test H0,e , first, define a
+rejection region Rn = (-, n ] for some real-valued sequence n  (-, 0] and we define
+our test n (W^ 0 )  {0, 1} as
+                                                  ^ 0 )  Rn
+                                            0, 1 (W
+(9)                                ^ 0) =
+                               n ( W              ^ 0 )  Rn ,
+                                            1, 1 (W
+where 0 indicates that we reject H0,e and 1 indicates that we fail to reject H0,e . The motivation
+for this approach is that if 1 (W ^ 0 ) is sufficiently far enough away from 0, then we can
+confidently say that 1 (W0 ) is not zero.
+   When testing if D is spherical, let  ^ denote an estimate of , defined in Proposition 3.1.
+We define our rejection region of H0,s as Rn = (-, n ] and define our test as
+                                                  ^
+                                            0, 1 (W ^ )  Rn ,
+(10)                              ^
+                               n (W ^) =          ^
+                                            1, 1 (W ^ )  Rn ,
+
+   Finally, when testing if D is hyperbolic, let ^ denote an estimate of  < 0, defined in
+Proposition 3.1. We define our rejection region of H0,h as Rn = [n , ) and define our test
+as
+                                          0, 1 (W ^^ )  Rn ,
+(11)                         n (W  ^) =           ^
+                                          1, 1 (W  ^ )  Rn ,
+
+  We now study what conditions must hold on this sequence n in order for the three tests
+to be consistent, by which we mean that the probability the test rejects the null goes to 1
+under the alternative hypothesis and that the probability it fails to reject the null goes to 1
+under the null.
+Proposition 4.1. Let n = oP (1) be a random or deterministic sequence.
+  (1) If n  (-, 0], n = oP (1) and P 1 (W   ^ 0 )  n = 1 - o(1), then the test for H0,e
+      in (6) with rejection region Rn := (-, n ] is consistent.
+16                       LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+
+     (2) If n  (-, 0], n = oP (1) and P 1 (W         ^ ^ )  n = 1 - o(1) with ^  (0, ), then
+         the test for H0,s in (7) with rejection region Rn := (-, n ] is consistent.
+     (3) If n  [0, ), n = oP (1) and P 1 (W      ^ ^ )  n = 1 - o(1), then the test for H0,h in
+
+        (8) with rejection region Rn := [n , ) is consistent.
+
+   We prove Proposition 4.1 in Appendix A. Intuitively, this Proposition shows that we can
+use the observed distance matrix D   ^ to test the hypotheses that the latent space is Euclidean,
+spherical, or hyperbolic. From these tests we define Mp    ^(^
+                                                             ) as the intersection of the three
+                                                             ^
+tests. That is, the estimated latent geometry based on D is defined by the result of three
+hypothesis tests in Equations 9, 10, and 11. More specifically, we can select any estimator
+that preserves the consistency. For example, we can use an ordered test to estimate the
+geometry type.
+   Thanks to Proposition 4.1, with sufficiently large n the probability that more than one
+of these tests will fail to reject the null goes to zero. As the sample size becomes infinite,
+therefore, we can define our estimated geometry as an indicator for whether each of the tests
+fails to reject the null. Using this intuition, we can now show consistency for estimating the
+latent geometry type in two settings. The first, Theorem 4.1, is a general setting which does
+not rely on our context of graphs, but instead applies in any setting where there is a noisy
+distance matrix from a manifold of unknown type and dimension. We leverage this more
+general result to prove consistency for the network case in Theorem 4.2. Before stating this
+result, we first state some technical conditions needed to verify our results.
+Assumption 4.1. Suppose that D is a K × K distance matrix from K points on Mp ()
+satisfying Assumption 1.1, with K chosen such that the Mp () is uniquely identified. Assume
+                                    ^ and  such that W
+further that for any , there exists D                   ^^ = W
+                                                              ^ ^ (D
+                                                                   ^ ) satisfies
+                                               D
+                                  n(W^^ - W )  N(0,  ) ,
+
+for some covariance matrix . We also suppose there exists some estimator  ^ such that
+   p
+^  . Finally, we suppose that K is chosen such that the dimension of Mp (), denoted by
+
+p, satisfies
+                                               1+K
+                           0p<K · 1-                     .
+                                                 2K
+
+Theorem 4.1. Let Assumption 4.1 hold. Define the tests of manifold type as in (9), (10),
+and (11). Further, let the real-valued sequence n  (-, 0] be consistent with Proposi-
+tion 4.1. Define p
+                 ^ as the dimension estimate from Robin and Smith (2000) and let ^ denote
+                                                       p
+                                                       ^     p
+the curvature estimate from Proposition 3.1. Then, P(M = M ) = o(1) and    ^ -  = oP (1).
+  We provide a sketch of the proof here. The full proof is in Appendix A. The key ideas
+come from Schoenberg (1935a) and Begelfor and Werman (2005), which provide necessary
+and sufficient conditions for a set of points to be embedded in Euclidean, spherical, and
+hyperbolic spaces. With a sequence n for each of the three spaces, we have consistent
+tests for each geometry. Taking the intersection, we have the first result. In addition,
+Proposition 3.1 shows that   ^ -  = oP (1) under the stated conditions. In addition, the
+dimension estimator p ^ from Robin and Smith (2000) is consistent for the true dimension.
+                                   IDENTIFYING LATENT GEOMETRY                                               17
+
+   The following proposition provides upper bounds on the Type 1 error  of a hypothesis
+test for the geometry. The main idea behind this result is that we can control the deviation
+of the estimated eigenvalue around the population eigenvalue by Weyl's inequality.
+Proposition 4.2. Suppose that D is a K × K distance matrix from K points on Mp ()
+satisfying Assumption 1.1, with K chosen such that the Mp () is uniquely identified. Assume
+               p
+             ^
+further that D   D. Let  be defined as the th quantile of the distribution of W  ^ ^ - W F .
+Then,
+
+(12)                                P k W   ^
+                                         ^ (D ) <    .
+
+
+   We now move to our second result. Once we have a consistent estimate for the distance
+matrix, D, we can use the same techniques used in the proof of Theorem 4.1 to prove the
+following result. To introduce this result, recalling the graph model in Equation (1), the
+likelihood L for observing the graph G is given by
+                           n
+               p
+   L(G|z, , M ()) =             P (Gij = 1|, z, Mp ())
+                          i<j
+                           n                                       n
+                     =          (exp(i + j - d(zi , zj ))   Gij
+                                                                        (1 - exp(i + j - d(zi , zj ))1-Gij
+                          i<j                                     i<j
+
+and by taking the log of this expression, we see that the log-likelihood (G|z, , Mp ()) is
+                     n                                     n
+(G|z, , Mp ()) =          Gij (i + j - d(zi , zj )) +           (1 - Gij ) log(1 - exp(i + j - d(zi , zj )) .
+                    i<j                                   i<j
+
+Our goal is to solve for the maximum likelihood estimators ^i and z
+                                                                  ^i , which satisfy
+(13)                     (^ ^) 
+                          , z              arg max                (G|z, , Mp ()) .
+                                                   n
+                                   (,z )(-,0]n ×   i=1   Mp ()
+
+  Recall that once we have assumed a geometry Mp (), we know the expression for d(zi , zj ),
+which allows us to evaluate the log-likelihood and solve for the maximum likelihood estima-
+tors. It is challenging, however, to study the accuracy of these maximum likelihood estima-
+tors since the number of parameters, which is 2n in our case, grows as the graph size grows.
+Lemma A.1 of Breza et al. (2019) shows that, once we assume a latent space geometry, the
+maximum likelihood estimators are consistent in the sense given in the following result.
+Theorem 4.2. Assume that Assumptions 1.1-1.3 hold, and that G is distributed as in (1).
+Let Mp  ^(^
+          ) denote the estimate of the geometry based on the tests from (9), (10), and (11)
+with  ^ and p
+            ^ denoted the corresponding estimates of the curvature (from Proposition 3.1)
+and dimension (from Robin and Smith (2000)). Let z      ^i and ^i denote the manifold-specific
+maximum likelihood estimator for zi and i defined in (13), using the estimated latent space
+type, dimension, and curvature. Finally, suppose that there exists a consistent estimator of
+the mean of the individual effects distribution, E (exp(i )). Then, the following three results
+hold.
+   (1) We can consistently estimate the type, dimension and curvature of Mp (): P(Mp
+                                                                                   ^=
+        p
+       M ) = o(1) and  ^ - k = oP (1).
+18                       LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+     (2) We can consistently estimate the model parameters (, z ) in the following sense:
+                                     max |i - ^i | = oP (1)
+                                     1in
+
+        and                            n
+                               inf          dMp () (zi , (^
+                                                          zi )) = oP (1)
+                            isom(M)
+                                      i=1
+        where isom(M) denotes the set of isometries on Mp ().
+Remark 1. Recall that an isometry defined on Mp () is a function  : Mp ()  Mp ()
+such that dM ((x), (y )) = dM (x, y ). In words, an isometry is a function that preserves the
+distance between its arguments. We denote the set of isometries on Mp () by isom(M).
+For example, isometries on Rp include rotations and translations. The result in Theorem
+4.2 says that we can estimate the locations z1 , . . . , zn in the sense that there exists some
+isometry  such that n   i=1 dMp () (zi , (^
+                                          zi )) = oP (1).
+   We now outline the proof of this result, with full details given in Appendix A. We first
+showed how to use the geometry embedding theorems from Schoenberg (1935a) and Begelfor
+and Werman (2005) to conduct hypothesis tests about the geometry of the latent space
+model. Using these hypothesis tests, we proposed three tests, one for each geometry type
+(Euclidean, spherical, or hyperbolic). We further that these tests are consistent in the sense
+that, given an appropriate sequence of threshold values and sufficiently large graph, we show
+that they will always fail to reject in cases where the null is true and reject when the null
+is false. Finally, we combine our proposal with previous results from Breza et al. (2019)
+to show that under the model in (1), we can consistently estimate all of the parameters of
+interest: the type, dimension, and curvature of the latent space, as well as the individual
+fixed effects and the latent space locations.
+4.2. A Bootstrap Test for Geometry. We now provide a bootstrapping method to test
+the three hypotheses in (6), (7), and (8). Before we describe our bootstrapping method, we
+describe two problems that make bootstrapping the eigenvalues of W challenging. First,
+W0  RK ×K does not have full rank, because
+               rank(W0 ) = rank(JD  DJ )  min(rank(J ), rank(D))  K - 1 .
+where we have used the fact that rank(J ) = K - 1. So 1 (W0 ) must lie in (-, 0] and under
+H0,e , 1 (W0 ) lies on the boundary of the parameter space. Classical bootstrapping in such a
+case is not valid (Andrews, 2000). The second problem is that W have repeated eigenvalues
+at zero. Again, classical bootstrapping also does not work in this case (Eaton and Taylor,
+1991).
+   To address these problem and provide a bootstrapping method that delivers strong perfor-
+mance, we will use the sub-sampling method from Politis and Romano (1994), which is valid
+in a broader set of problems. Before continuing, we want to emphasize that in Politis and
+Romano (1994), the data are i.i.d., but in our case, they are independent but not identically
+distributed, therefore the coverage guarantees we present in Appendix D are not expected to
+hold exactly, though in practice these results do hold approximately. Additional details are
+in Appendix D. We break our method up into two distinct algorithms. The first, Algorithm
+1, provides a method to bootstrap the distance matrix D. The second algorithm, Algorithm
+2, uses the bootstrapped distance matrix to test the three hypotheses about the underlying
+geometry. This second algorithm is based on the methods in Politis and Romano (1994).
+                                   IDENTIFYING LATENT GEOMETRY                                       19
+
+The input to this algorithm is the adjacency matrix G, the number of bootstrap samples
+B , the geometry under the null hypothesis, and two parameters that appear in the Politis
+and Romano (1994) method. These two parameters are the sub-sample rate m and a rate
+parameter . We discuss how to select these in the context of the empirical examples in
+Section 6.1.
+
+                                    5. Simulation evaluation
+   In this section, we examine the performance of our proposed method on simulated data
+from each of the three candidate geometries. The goal is to understand how well the methods
+perform in a setting where we know the (simulated) true geometry. We first examine the
+
+ Algorithm 1: Bootstrapping Distance Matrix. See Appendix D for additional details.
+  Input: adjacency matrix G, number of bootstrap samples B and sub-sample rate m
+     (1) Let I := I1 , . . . , Im and J := J1 , . . . , Jm denote two sets of integers of length m
+         drawn independently and uniformly from {1, . . . , } with replacement.
+     (2) Compute the bootstrapped between-clique probability matrix P by first
+           estimating pk,k where
+                                              n
+                                          1
+                                 pk,k =            Gij 1{i  Ck [I], j  Ck [J]}
+                                          m i,j =1
+          where Ck [I] := Ck  I and Ck [J] := Ck  J where Ck is the set of nodes
+            in clique k . Then set Pk,k = max(1/ 2 , pk,k ).
+      (3) Then set Db = - log(P /E   ^ ) where the division is component-wise.
+                         B
+      (4) return {Db }b=1
+
+
+ Algorithm 2: Hypothesis Testing Geometry via Bootstapping
+  Input: adjacency matrix G, number of bootstrap samples B and sub-sample rate m
+     (1) Compute the observed eigenvalue k (W     ^ ),
+     (2) For b = 1, . . . , B , do the following:
+          (a) Sample Db from Algorithm 1 and compute Wb based on the null hypothesis.
+          (b) Compute the eigenvalue k (Wb )
+     (3) Compute
+                             B
+               ^ n (x) = 1
+               L                                     ^ )  x},
+                                   1{m2 k (Wi ) - k (W                      for any x  R .
+                         B   i=1
+
+     (4) Compute cn (1 - ) = inf {x : L^ n (x)  1 - } be the (1 - )% percentile of
+         m2 k (Wi ) - k (W   ^) .
+     (5) Reject H0 when
+  (14)         2
+                 k (W^ ) < cn () if the null hypothesis is Euclidean or spherical
+          and we reject H0 when
+                   2
+                     k (W^ ) > cn (1 - ) if the null hypothesis is hyperbolic.
+20                      LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+Type 1 error and power of the proposed hypothesis tests and then show the performance of
+our algorithm for estimating the latent dimension. We provide additional simulation results,
+including results for estimating curvature in Appendix G.
+   In this section, we discuss the Type 1 error and power of our proposed tests under various
+values for the clique size ( ) and the number of cliques we select for our estimation (K ). In
+all cases, we simulate graphs in the following way. First, we generate a set of groups centers
+randomly in the latent geometry and dimension to be tested. We generated 15 centers and
+a graph of size n = 1200. We then spread points around these latent centers, with an
+equal number of points at each center. We use this approach rather than (for example)
+assigning points uniformly across the surface to mimic community structure in empirical
+networks (Newman et al., 2000; Girvan and Newman, 2002; Jackson, 2008; Leskovec et al.,
+2008; Newman, 2010). We can, of course, interpolate between a setting with extreme within-
+group homophily and uniform latent positions by adjusting the spread of points around these
+centers. We generated 25 sets of latent positions and then, for each set of latent positions,
+construct 100 graphs. When comparing across values of K and , we use the same graphs
+for all comparisons (e.g., when comparing K = 10 vs K = 5, the cliques in the K = 5 set
+are randomly selected from among those in K = 10). We provide specific values we used for
+simulations and additional results in Appendix B.
+                                      IDENTIFYING LATENT GEOMETRY                                         21
+
+
+
+                   Type 1 Error, Null = E                                    Type 1 Error, Null = S
+  0.35                                                       0.30
+  0.30                                                       0.25
+  0.25
+                                                             0.20
+  0.20
+  0.15                                                       0.15
+  0.10                                                       0.10
+  0.05
+                                                             0.05
+  0.00
+               5             7              9                            5             7              9
+                        Clique size                                               Clique size
+                          (a)                                                       (b)
+
+                                                Type 1 Error, Null = H
+                                0.7
+                                0.6
+                                0.5
+                                0.4
+                                0.3
+                                0.2
+                                0.1
+                                0.0
+                                            5             7              9
+                                                     Clique size
+                                                       (c)
+
+         Figure 2. Estimated type 1 error using 25 simulated LS positions. For each set of LS
+         positions, we perform the test 100 times and plot the average rejection probability.
+
+
+
+
+  Figures 2 and 3 show results for Type 1 error and power of the tests we propose using the
+simulation procedure described above. Each point in the boxplot is the fraction of rejections
+out of 250 graphs for a given set of latent space positions. The variation in the boxplot,
+therefore, represents heterogeneity across latent space locations that are consistent with the
+true underlying geometry and the simulation procedure we use. Figure 2 shows boxplots of
+the Type 1 error for each of the three null hypotheses for three values of . We focus on
+variation in the Type 1 error across values of to see whether the properties of the Politis
+and Romano (1994) bootstrap procedure are preserved empirically. We see that, in all three
+cases, the Type 1 error decreases as the clique size increases. Further, for the Euclidean and
+hyperbolic cases the Type 1 error tends to be below the nominal level of five percent, but
+the spherical type 1 error is higher than five percent. In Figure 3 we see that the power
+increases as we increase K for all three geometries. Recall that all of our manifolds are locally
+Euclidean--indeed that is part of their definition. So, it is unsurprising, if not expected, that
+power against Euclidean alternatives rises more slowly than power against alternatives of the
+opposite curvature.
+22                             LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+
+
+                        Power, Null = E                                       Power, Null = S
+     0.8                                                     0.8
+                     S Data                                  0.7           E Data
+                     H Data                                  0.6           H Data
+     0.6
+                                                             0.5
+Power
+
+
+
+
+                                                         Power
+     0.4                                                     0.4
+                                                             0.3
+     0.2                                                     0.2
+                                                             0.1
+     0.0                                                     0.0
+                 5              7               10                     5               7         10
+                                K                                                      K
+                     (a) Euclidean null                                    (b) Spherical null
+
+                                                   Power, Null = H
+                                 0.7            E Data
+                                 0.6            S Data
+                                 0.5
+                             Power
+
+
+
+
+                                 0.4
+                                 0.3
+                                 0.2
+                                 0.1
+                                 0.0
+                                            5               7              10
+                                                            K
+                                                (c) Hyperbolic null
+
+           Figure 3. Estimated power using 25 simulated LS positions. For each set of LS positions,
+           we perform the test 100 times and plot the average rejection probability.
+
+
+
+
+  Moving now to the estimates of the minimal dimension, we consider p  2 and take
+       ^) as our estimate of the dimension of Mp (). In Table 1 we give our estimates of the
+max(2, p
+dimension for the three geometries. Table 1 shows that our method is was always within one
+dimension in the simulation experiments we conducted. For the curved space, the simulated
+graph size was sufficient to achieve an accurate estimate of the minimal dimension in every
+simulated graph.
+                                IDENTIFYING LATENT GEOMETRY                                      23
+
+       Table 1. Probability of predicting dimension for the three geometries using 100 simula-
+       tions from each geometry, with K = 5 and clique size         = 9.
+
+                                                    True Geometry
+                                              R3         S2 (1)     H2 (-1)
+                              P (^
+                                 p = 2)      0.52         1.0         1.0
+                              P (^
+                                 p = 3)      0.48          0           0
+                              P (^
+                                 p > 3)       0            0           0
+
+
+                      6. Examples from Economics and Biology
+   In this section we demonstrate the performance of our method's performance in a setting
+with the complexity of observed data. We demonstrate that, in two vastly distinct contexts,
+our approach captures features of the underlying geometry that provide contextually salient
+insights. We begin by offering guidance on choices a practitioner would make when imple-
+menting the method, then provide examples from two contexts: (a) 75 village social networks
+with fully observed graph data from Banerjee et al. (2019) and (b) a neural network of a
+single Caenorhadbitis elegans worm Kaiser and Hilgetag (2006).
+
+6.1. Choices for Implementation. Since our method relies on distances between cliques,
+a key decision for implementation is how to ascertain cliques for a given graph. Overall,
+there are a two key considerations. First, we would like to take the number (K ) and size ( )
+                                                                                  ^ decreases.
+of cliques to be as large as possible. As increases, the variance of estimates of D
+The power of the test increases as K increases, since we have more distances between points
+on the manifold. Figure 3 from our simulations shows that the as K increases, the power
+of our tests increase. Second, we need cliques that are well-separated on the manifold, but
+connected in the graph. Since we use cliques as "points" on the manifold to measure distance,
+the cliques should not overlap (have nodes in common), otherwise there is not a well-defined
+distance to measure between them. Further, if two cliques are fully disconnected, then the
+distance between them is not defined.
+   In practice, our approach is to first select K and , given the considerations described
+above. Then, we want to find K cliques, each of size , such that these cliques have a small
+overlap. Written formally, our goal is to solve
+                                                  K
+                     ^1 , . . . , C
+                     C            ^K  argmin            |Ci  Cj |
+                                     C1 ,...,Ck
+                                                  i,j
+(15)
+                        such that |Ci | = for each i and
+                                  P^ (C1 , . . . , CK ) does not contains a 0.
+   As discussed previously, we generally want K and to be as big as possible. In practice,
+we set K and by first looking at the number of cliques of various sizes in the graph and
+choosing and that is close to the size of the largest cliques in the graph, but where there
+are still enough cliques of that size to find K and are well-separated. We then take random
+draws from the (very large) set of possible cliques and evaluate the objective function in (15).
+Searching over the set of possible cliques is a well-studied (NP-hard) problem in computer
+science and graph theory, however, we found that our relatively simple approach yielded
+24                          LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+high quality cliques after around 106 draws from the clique distribution. We evaluate the
+quality of the cliques we select by running the optimization independently several times. A
+stable objective function value across the runs indicates high quality cliques. In the data
+from Banerjee et al. (2019), we take K as either 7 or 10. The value we choose is based on
+how easy it is to find appropriate cliques in a given network using the problem formulation
+in (15).
+   To select , we use the size of the largest clique found in the graph minus one. In most of
+the villages, choosing in this way resulted in dozens of possible cliques to choose from. We
+present more details about cliques in the Banerjee et al. (2019) data in Appendix F. For the
+C. Elegans data, we select K = 12 and set = 5, which is the size of the largest clique in
+the graph.
+
+6.2. Village Risk-sharing Networks and the Introduction of Microfinance. We be-
+gin by studying the underlying geometries of Indian village networks. We use the Wave
+II village network data of Banerjee et al. (2019) which is the sequel to the Wave I data in
+Banerjee et al. (2013), both in part collected by one of the authors of the present paper. This
+consists of a collection of graphs for each of 75 villages in Karnataka, India constructed by
+surveying 89% of all households in each village, thereby generating a 99% edge sample for the
+resulting undirected graph. There are a total of 16,451 households in the sample. In every
+village we have relationship data between households on each of 12 dimensions: 5 social di-
+mensions, 4 financial dimensions, and 3 information sharing dimensions. See Banerjee et al.
+(2019) for more details including descriptive statistics. The links across these dimensions
+line up for the most part, consistent with a theory of multiplexed incentives to form links,
+so we study the undirected, unweighted graph following the prior literature using this data
+(Jackson and Lopez-Pintado, 2013; Banerjee et al., 2013; Breza and Chandrasekhar, 2019;
+Banerjee et al., 2019).
+   The social networks literature has long been interested in excess closure Coleman (1988).
+Friends of friends tend to be friends more than one might expect and this is particularly true if
+network relationships substitute for formal institutions. A literature focusing on equilibrium
+informal financial networks, which facilities the sharing of risk between households in a
+village, describes why the equilibrium network shapes exhibit excess closure (e.g., Ambrus
+et al. (2014); Jackson (2013)). The basic idea is that in order to maintain cooperation,
+when individuals can renege on their promises to aid each other in times of need, it is useful
+to have friends in common to amplify punishment, thereby maintaining good behavior in
+equilibrium.
+   From the perspective of a latent space model, this means that we might expect excess
+closure in the village. There are incentives by households to "curve" the space, so friends of
+friends and so on are much more likely to themselves link, discussed in greater depth below.
+A natural hypothesis, therefore, is that village networks for the most part not be hyperbolic.
+Rather, they may be more likely to be spherical or, perhaps, Euclidean.9
+     9We briefly note that common modeling assumptions in the socio-economic literature imply constant
+curvature from the perspective of our model (1), though certainly there are perspectives that would violate
+constant curvature which would require future work. To see this, consider two examples. First, imagine a
+model in which nodes have some random locations. They can choose their efforts to link and the value of
+their links depends on the number of their friends who are themselves friends in expectation. There is a
+parameter that governs the value of closure among one's friends which can be positive, zero, or negative,
+which may depend on the socio-economic context. In such a model, this parameter exactly maps to curvature.
+                                          IDENTIFYING LATENT GEOMETRY                                     25
+
+                 Table 2. Estimates of Geometry for Indian Village Networks
+
+                                         Geometry         Rp       Sp       Hp        N/A
+                                 % Classification 26% 36% 12% 25%
+
+
+   Our proposed method gives hypothesis tests (and corresponding p-values) for each of the
+three candidate geometries. As a descriptive summary, we "classify" each of the villages into
+one of the geometry types using the following procedure. For villages where at least one
+village has a p-value over .05, we consider, for the purposes of summarizing our results, the
+manifold type that has the largest p-value. If all three geometries reject the null at the .05
+level, then we say that the village cannot be classified. This outcome could mean a number
+of things, ranging from a false-rejection by chance to a village whose underlying geometry is
+not captured by one of the three candidates (e.g., curvature may be nonconstant). Table 2
+presents the results. We see that we are able to classify 75% of the villages. It is important to
+note that the vast majority of empirical villages were able to be classified despite the fact that
+N/A was a possibility--classification was not forced. Further, the results are consistent with
+the socio-economic hypothesis on villages needing closure. 48% of the classified networks are
+spherical, 35% are Euclidean, and only 16% are hyperbolic. Figure 4 presents the estimated
+dimensions, which irrespective of curvature is important to know the minimal dimension of
+the space required to model location decisions by agents.
+
+
+                                           Predicted Dimension vs Frequency
+                                  0.30
+
+                                  0.25
+                          Frequency
+
+
+
+
+                                  0.20
+
+                                  0.15
+
+                                  0.10
+
+                                  0.05
+
+                                  0.00
+                                              2       4        6        8        10
+                                                  Predicted Dimension
+        Figure 4. Predicted dimensions for the predicted geometries of the Indian village net-
+        works. Most predictions are low-dimensional, usually between 1 and 3. Some of the predic-
+        tions are higher. In these cases, our method is predicting that W is full rank.
+
+
+Second, one can imagine a model in which agents can take an action to influence the extent to which their
+neighbors know each other. For instance, the action could be imagined as throwing parties (selecting positive
+curvature) or the opposite and ensuring "worlds do not collide" (selecting negative curvature) (David and
+Seinfeld, 1995). In such a model, if we study the symmetric equilibrium, then the equilibrium choice of the
+extent of forced socialization or barred socialization among one's friend exactly maps to constant curvature.
+Both of these examples also illustrate the limitations of such models. While these examples demonstrate
+how conventional assumptions map to constant curvature, certainly more complex models with heterogeneity
+would require modeling manifolds with non-constant curvature, which we leave to future work.
+26                         LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+                                         Average loans (in thousands of INR)
+                                                 by latent geometry
+
+                                                             Euclidean (p=.10)
+
+
+
+
+                                                             Hyperbolic (p=.03)
+
+
+
+
+                                                             Undetermined (p=.72)
+
+
+
+                                    -5          0            5          10          15
+
+                                               Linear regression coefficient
+
+
+       Figure 5. Regression coefficients showing the relationship between loans and geometry.
+       Each line in the plot corresponds to the coefficient in a multivariate linear regression where
+       the outcome is the average amount of loans (in thousands of INR) and the predictors are
+       geometry types (with spherical as the reference). The wide bars correspond to one standard
+       error and the narrow bars represent two standard errors. The reference value for spherical
+       is 16.71 (again in thousands of INR).
+
+
+   We now explore the relationship between the latent geometry and socio-economic phe-
+nomena. It goes without saying that these are observational, not causal, analyses. First,
+we look at how the volume of informal financial transactions vary with network geometry.
+Specifically, we are interested in how the volume of informal loans that a household has with
+network neighbors (e.g., friends or members of their rotating, savings, and credit associa-
+tions) varies with geometry. Both the theoretical and empirical economic literatures suggest
+that it is ex ante ambiguous as to the relationship between the amount of network financial
+flows and curvature. For example, Kinnan and Townsend (2012) study how informal financial
+flows efficiently allocate credit to households that experience negative shocks in the network.
+Theory suggests that such flows are more efficient in more expansive networks, which require
+negative curvature (Ambrus et al., 2014). At the same time, as discussed above, the ability
+to facilitate informal financial transactions may increase in the importance of closure, and
+therefore require positive curvature. Which force dominates is an empirical question.
+   To study this, we estimate the following regression:
+                                    ^ = E } +  1{Mp
+     Network Loan Amounti =  + E 1{Mp i       H
+                                                  ^ = H} +  1{N/A } +
+                                                    i      N     i                                      i
+
+where i indexes the village. Network Loan Amounti is the average volume of loans from
+either friends or rotating savings and credit association members that a household has in
+the village. The loan amount is presented in INR (USD 1  INR 73.5). Here, the omitted
+category () corresponds to the loan amount for a sphere.
+   Figure 5 presents the results. We find that a Euclidean village relative to a spherical
+one has INR 3940 or 24% (p = 0.098) more informal network loans. Further decreasing
+                               IDENTIFYING LATENT GEOMETRY                                      27
+
+curvature, we compare hyperbolic villages to spherical ones and find that hyperbolic villages
+have INR 5865 or 35% (p = 0.034) more in informal network loans. These increases are
+extremely large in real economic terms: the difference in credit between the hyperbolic
+and spherical geometries corresponds to an individual in the hyperbolic geometry receiving
+additional credit worth 20 days of wages. Taken together, we have seen greater financial
+flows precisely in geometries that permit more expansive network topologies.
+   Second, having studied how informal financial transaction patterns are associated with
+geometry, we now turn to studying determinants of geometry. Our primary interest is in
+whether the introduction of a formal credit market (microfinance) to a setting otherwise
+dominated by only informal financial transactions changes the network structure by changing
+the latent geometry. In our setting, as described below, microcredit was introduced to only
+some of the villages, allowing us to compare the impact of access to microfinance on network
+structure.
+   In addition to microcredit access, we focus on three other determinants: wealth, inequality,
+and caste fractionalization. It is ex ante not obvious as to how any of these might correlate
+with geometry and is therefore an important empirical question. For example, wealthier
+villages may have a reduced need to sustain informal insurance--their worst case scenario
+is better off than their poorer counterparts--and as a consequence may require less positive
+curvature. Or, in contrast, wealthier villages may be able to take on greater entrepreneurial
+risk as they can sustain losses, and such endeavors require group cooperation and therefore
+closure. Similarly, within-village wealth inequality can change incentives for triadic closure,
+as can ethnic fractionalization (Currarini et al., 2009). Ultimately, the empirical correlations
+are of interest.
+   The most important relationship to study is how the introduction of formal credit to
+villages that otherwise used informal network transactions affects geometry. From 2007, a
+microfinance institution entered 43 of the 75 villages studied here and the network data we
+utilize is taken after the intervention (Banerjee et al., 2013, 2020). This allows us to study the
+effect of the introduction of microcredit on network geometry as a way to understand whether
+credit access differentially changes the need for ones' friends to maintain relationships with
+each other. Note that this is different from clustering or other measures of closure per
+se, which are also affected by the locations z and fixed effects  . So we can specifically
+address that, all things being equal, whether the demand for one's friends to themselves
+be linked increases, decreases, or is unchanged when the village now has access to formal
+financial instruments. Note that it is a priori not obvious. On the one hand, the new credit
+opportunity may encourage re-lending or joint business ventures among clients of microcredit,
+increasing the need for closure and generating positive curvature. On the other hand, the
+new credit opportunity may reduce reliance on informal financial relationships with others
+in the village and push towards negative curvature. In either case, the answer as to how a
+large credit intervention may affect geometry is of empirical interest.
+28                                         LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+                    Euclidean                                      Hyperbolic                                  Undetermined
+             (relative to spherical)                         (relative to spherical)                       (relative to spherical)
+ Microfinance (p=.36)                              Microfinance (p=.09)                          Microfinance (p=.35)
+
+
+
+
+ Wealth (p=.95)                                    Wealth (p=.10)                                Wealth (p=.64)
+
+
+
+
+ Inequality (p=.33)                                Inequality (p=.38)                            Inequality (p=.92)
+
+
+
+
+ Upper caste (p=.59)                               Upper caste (p=.23)                           Upper caste (p=.82)
+
+
+-3       -2        -1       0          1      2   -3       -2       -1        0         1   2   -3       -2       -1        0         1   2
+          Multinomial logit coefficient                     Multinomial logit coefficient                 Multinomial logit coefficient
+
+
+           Figure 6. Regression coefficients showing the determinants of geometry. Plots show the
+           coefficients from a multinomial logistic regression where the outcome is the predicted geom-
+           etry type for each village. Each panel shows all coefficients for a particular geometry (with
+           spherical as the reference). Each line in the plot corresponds to an estimated coefficient.
+           The wide bars correspond to one standard error and the narrow bars represent two standard
+           errors. The constant values for the Euclidean, hyperbolic, and undetermined comparisons
+           are .005, -.69, and -.01, respectively.
+
+
+     To study the determinants of geometry, we estimate a multinomial regression:
+
+     P(Mp            ^ = S) exp( +  S MFI +  S Wealth +  S Inequality +  S Frac )
+        ^ = E ) = P(Mp
+          i            i        1  MFI   i  W        i  I            i  F      i
+
+
+
+     P(Mp           ^ = S) exp( +  H MFI +  H · Wealth +  H Inequality +  H Frac )
+        ^ = H) = P(Mp
+          i           i        2  MFI   i  W          i  I            i  F      i
+
+
+
+P(Mp             ^ = S) exp( +  N MFI +  N Wealth +  N Inequality +  N Frac ) .
+   ^ = N/A) = P(Mp
+     i             i        2  MFI   i  W        i  I            i  F      i
+
+
+
+Here MFIi denotes whether the microfinance institution entered village i. Wealthi denotes a
+wealth index measure.10 Inequalityi is within-village standard deviation of wealth.11 Finally,
+Fraci = U (1 - U ) where U is the share of households that are of upper caste. The score
+is zero if society is perfectly homogenous and 1/4 for an even split.
+
+     10TheBanerjee et al. (2019) dataset does not have consumption nor expenditure measures. So we utilize
+the score constructed from the first principle component of a number of household features that correlate
+with wealth in the village. This consists of access to private electricity, home ownership, quality of roofing
+material, and number of rooms in the household.
+   11Specifically, we take the score from the first principle component of the within-village standard deviation
+of each of the constituent wealth measures.
+                               IDENTIFYING LATENT GEOMETRY                                     29
+
+   Figure 6 presents the results. We begin by looking at microfinance. We estimate        ^H =
+                                                                                           MFI
+-1.40 (p = 0.093). This means that when a village receives microcredit, there is a 8.8%
+decline in the probability of being hyperbolic relative to spherical. In other work, (Banerjee
+et al., 2020), we have shown that introducing microcredit has decreased density and also the
+number of triads in the network. Our analysis here demonstrates that the fundamental value
+of having friends in common itself increased suggesting that the effects documented in our
+prior work came from shifts in node locations (zi ) and efforts of socializing (i ) in the latent
+space, rather than changes in the relative value of closure which appears to have increased.
+   We also find that wealthier villages are less likely to be hyperbolic relative to spherical.
+We estimate    ^H = -1.02 (p = 0.098). This corresponds to a 8.4% decline in the relative
+                W
+probability of being hyperbolic as compared to spherical. We do not find any significant
+relationship between wealth inequality nor caste fractionalization and geometry.
+   Taken together, we have shown the empirical content of the estimation of the latent
+geometry. We can classify the vast majority of villages (despite allowing for N/A) and
+they are predominantly spherical. We find informal financial loans are higher in villages
+that exhibit negative curvature. Finally, and importantly, introducing microcredit nudges
+villages to have more spherical structure. This can perhaps be interepreted as showing that
+access to microcredit generates, ceteris paribus, demand for greater triadic closure.
+6.3. Network of Neurons. Our second setting looks at a network of neurons. There is a
+neuroscience literature that is interested in documenting regularities in network structure as
+well as modeling network structure through statistical network formation models.
+   The first strand of the literature looks at how patterns of the graph of neurons relate to
+neurological mechanisms (Karwowski et al., 2019). For instance, these networks exhibit short
+path lengths­disparate regions of the human brain are connected by a few steps. Further, the
+degree distribution reflects thick tails: certain nodes have numerous connections. Moreover,
+the network is dynamic: early in age the network exhibits high amounts of homophily whereas
+as the individual ages this declines.
+   The second strand attempts to develop a low dimensional statistical representation of the
+neural networks since this allows for interpretability, counterfactuals, and deals with the
+fact that otherwise there is a litany of statistics that can be used to simply correlated with
+biological outcomes without any interpretable control (de Lange et al., 2014; Recanatesi et al.,
+2019). To this end, conditional edge independence models, scale-free models, block models,
+and latent space models have been explored (VanRullen and Reddy, 2019; Karwowski et al.,
+2019).
+   Third, and particularly relevant for latent space models, is the concept of the functional
+graph of neurons rather than the structural graph of neurons (Petersen and Sporns, 2015;
+Abdelnour et al., 2018). The idea is that while a graph can be drawn of the phyiscal
+links between all nodes, predominantly the graph that is able to be activated­the functional
+network­is a network that is distinct. Much like individuals who reside in geographic space
+but functionally interact in a network that can be thought of as in a latent space, the
+functional network perspective presents an opportunity leverage latent space models.
+   Our specific application is to a network of neurons of Caenorhadbitis elegans, which are
+soil-dwelling roundworms. There is a long history of using C. elegans as a model organism for
+studying nervous systems of animals. In fact neurons of C. elegans are extremely similar to
+that of humans Leung, Williams, Benedetto, Au, Helmcke, Aschner, and Meyer (2008). For
+our example, we use the C. elegans neuron data of Kaiser and Hilgetag (2006), which has been
+30                       LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+used a number of times in order to model neural network structure. There are several goals
+in modeling neural network structure. For instance, the relative location distribution, how
+distance affects linking rates, and the geometry all inform how signals could be passed across
+nodes. Moreover, though beyond the scope of our knowledge, there may be interpretations
+to the distribution of fixed effects--latent heterogeneity in the propensity for certain neurons
+to systematically link to others.
+   A priori it is unclear what the right latent geometry ought to be. For instance, if the
+network of neurons ought to have a high degree of expansiveness, it ought to be embedded in
+hyperbolic space. In contrast, if it ought to reflect strong, localized redundancies, or a high
+degree of homophily it may be better modeled as being embedded in a spherical geometry.
+   The dataset contains a neural network from a single C. elegans, consisting of a connected
+graph of 131 neurons, with 764 edges, and a clustering coefficient of 0.245. The clique
+number of this graph is 6, but it has only one clique of size 6, but it has 29 cliques of size
+5, so we use = 5. We find K = 12 cliques using the problem formulation in (15) and
+then take a maximally disjoint clique set which is sufficient for our test. We compute the
+p values for the Euclidean, spherical, and hyperbolic geometries and find these values are:
+pE = .378, pS = 0.05, and pH = 0.267, so we reject the spherical hypothesis (noting that we
+can do so despite there being a high level of clustering). However, in this data set, we can
+only say that there is weakly negative curvature, but are not powered to distinguish between
+hyperbolic nor Euclidean hypotheses.
+   Therefore, we can strongly conclude that the C. elegans network of neurons is inconsistent
+with a latent space with positive curvature, where neurons are excessively likely to exhibit
+triadic closure relative a flat benchmark. We can only say that there is no or negative
+curvature, but the data does not allow us to distinguish this.
+
+                                       7. Conclusion
+   Latent space models are widely used in network analysis across numerous disciplines in-
+cluding, but not limited to sociology, economics, biology, and computer science. The pre-
+dominant approach is to assume a Euclidean latent space, though there is current discussion
+about adopting a hyperbolic space in certain contexts. Nonetheless, the current methods
+employed do not provide a way to estimate the geometry itself. Unfortunately, incorrect
+embedding spaces can deliver misleading results and while there may be convergence to
+pseudo-true values, counterfactual analysis will be affected.
+   The observed network provides information about latent space distances between nodes.
+A matrix of distances must be consistent with the geometry in which it is embedded; given a
+collection of distances, this can be checked. A finite sample network corresponds to a noisy
+set of distances, so we develop a testing procedure to classify and estimate the geometry--
+meaning manifold type, dimension, and curvature. We show that this procedure is consistent
+as the number of nodes tends to infinity.
+   An important advantage of our approach is that, unlike other strategies, we need not
+estimate the fixed effects nor the locations in a candidate manifold (nor integrate them out)
+in the estimation procedure. Instead, by focusing on a strategy that directly checks isometric
+embeddings and exploiting cliques, we can estimate the geometry without ever estimating
+the numerous other parameters and only move to them after having obtained the geometry.
+   We also demonstrate the the empirical content of estimating the latent geometry which is
+novel in the literature. Strikingly, even though N/A is a possibility, we were able to classify
+                              IDENTIFYING LATENT GEOMETRY                                    31
+
+the vast majority of a set of 75 villages. Further, consistent with theory we show Indian
+risk sharing villages are often spherical. Additionally, villages that are more expansive are
+associated with a greater flow of informal financial loans through the network. And, finally,
+the introduction of microcredit is associated with a shift to positive curvature: the relative
+value of having triadic closure increases when villages have access to formal credit. These are
+interpretable economic findings, consistent with theory, borne out of a geometric exercise.
+When we turn to the structure of a network of neurons, despite the neural network having a
+high degree of clustering, we are able to strongly reject positive curvature. We do are unable
+to distinguish between hyperbolic and Euclidean geometries, and can only conclude that in
+this setting curvature is weakly negative. This is consistent with a setting where there is at
+least limited value for branching and expansion for rapid signal transmission.
+   A number of next steps come to mind. First, in many contexts aggregate data, such as
+aggregated relational data (ARD), rather than network data at the edge level is what the
+researchers have at their disposal (McCormick and Zheng, 2015; Breza et al., Forthcoming).
+So, an important avenue for future research is to extend methods to cases where different
+samplings are involved rather than just observing the network.
+   Second, while our assumptions on geometry--that it is a simply connected, complete
+Riemannian manifold--are parsimonious and natural, they are also limited. While nests
+the current assumptions in the literature--we know of no empirical research that assumes
+a torus of genus two for instance--it is still admittedly lacking. We speculate that there
+may be strategies to use local structures in the network to patch together some more global
+structure. That is, for instance, if it can be arranged into a pseudo-block diagonal structure,
+perhaps in each block there is room for a different geometry and then these can be stitched
+together. This is a loose and speculative discussion of course.
+
+
+                                        References
+Abdelnour, F., M. Dayan, O. Devinsky, T. Thesen, and A. Raj (2018):
+ "Functional brain connectivity is predictable from anatomic network's Laplacian eigen-
+ structure," NeuroImage, 172, 728­739.
+Acemoglu, D., A. Ozdaglar, and A. Tahbaz-Salehi (2015): "Systemic risk and
+ stability in financial networks," American Economic Review, 105, 564­608.
+Aldous, D. J. (1981): "Representations for partially exchangeable arrays of random vari-
+ ables," Journal of Multivariate Analysis, 11, 581­598.
+Ambrus, A., M. Mobius, and A. Szeidl (2014): "Consumption Risk-Sharing in Social
+ Networks," American Economic Review, 104, 149­82.
+Andrews, D. (2000): "Inconsistency of the Bootstrap When a Parameter Is on the Bound-
+ ary of the Parameter Space," Econometrica, 68, pp. 399­405.
+Asta, D. M. and C. R. Shalizi (2015): "Geometric network comparisons," in Proceedings
+ of the Thirty-First Conference on Uncertainty in Artificial Intelligence, AUAI Press, 102­
+ 110.
+Banerjee, A., E. Breza, A. Chandrasekhar, E. Duflo, C. Kinnan, and M. Jack-
+ son (2020): "Changes in social network structure in response to exposure to formal credit
+ markets," Working Paper.
+Banerjee, A., A. Chandrasekhar, E. Duflo, and M. Jackson (2013): "Diffusion
+ of Microfinance," Science, 341, 1­7.
+32                     LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+Banerjee, A., A. G. Chandrasekhar, E. Duflo, and M. O. Jackson (2019): "Us-
+  ing Gossips to Spread Information: Theory and Evidence from Two Randomized Con-
+  trolled Trials," The Review of Economic Studies.
+Bansal, S., J. Read, B. Pourbohloul, and L. A. Meyers (2010): "The dynamic
+  nature of contact networks in infectious disease epidemiology," Journal of biological dy-
+  namics, 4, 478­489.
+Beaman, L. (2012): "Social Networks and the Dynamics of Labour Market Outcomes:
+  Evidence from Refugees Resettled in the U.S." Review of Economic Studies, 79 (1), 128­
+  161.
+Begelfor, E. and M. Werman (2005): "The world is not always flot or learning
+  curved manifolds," School of Engineering and Computer Science, Hebrew University of
+  Jerusalem., Tech. Rep, 3, 8.
+Breza, E. and A. G. Chandrasekhar (2019): "Social networks, reputation, and com-
+  mitment: evidence from a savings monitors experiment," Econometrica, 87, 175­216.
+Breza, E., A. G. Chandrasekhar, T. McCormick, and M. Pan (2019): "Con-
+  sistently estimating graph statistics using Aggregated Relational Data," arXiv preprint
+  arXiv:1908.09881.
+Breza, E., A. G. Chandrasekhar, T. H. McCormick, and M. Pan (Forthcoming):
+  "Using aggregated relational data to feasibly identify network structure without network
+  data," American Economic Review.
+Cai, J. and A. Szeidl (2017): "Interfirm relationships and business performance," Quar-
+  terly Journal of Economics, 133, 1229­1282.
+Calvo-Armengol, A. (2004): "Job contact networks," Journal of Economic Theory, 115,
+  191­206.
+Calvo ´ -Armengol, A., E. Patacchini, and Y. Zenou (2009): "Peer effects and social
+  networks in education," The Review of Economic Studies, 76, 1239­1267.
+Chandrasekhar, A. and R. Lewis (2016): "Econometrics of sampled networks," Stan-
+  ford Working Paper.
+Chaney, T. (2014): "The network structure of international trade," American Economic
+  Review, 104, 3600­3634.
+Chatterjee, S., P. Diaconis, A. Sly, et al. (2011): "Random graphs with a given
+  degree sequence," The Annals of Applied Probability, 21, 1400­1435.
+Cho, Y.-S., G. Ver Steeg, E. Ferrara, and A. Galstyan (2016): "Latent space
+  model for multi-modal social data," in Proceedings of the 25th International Conference
+  on World Wide Web, 447­458.
+Coleman, J. (1988): "Social Capital in the Creation of Human Capital," American Journal
+  of Sociology, 94, S95­S120.
+Currarini, S., M. Jackson, and P. Pin (2009): "An economic model of friendship:
+  Homophily, minorities, and segregation," Econometrica, 77, 1003­1045.
+David, L. and J. Seinfeld (1995): "The Pool Guy," Seinfeld.
+de Lange, S., M. de Reus, and M. Van Den Heuvel (2014): "The Laplacian spectrum
+  of neural networks," Frontiers in computational neuroscience, 7, 189.
+DiPrete, T. A., A. Gelman, T. McCormick, J. Teitler, and T. Zheng (2011):
+  "Segregation in social networks based on acquaintanceship and trust," American Journal
+  of Sociology, 116, 1234­83.
+                              IDENTIFYING LATENT GEOMETRY                                  33
+
+Eaton, M. L. and D. E. Taylor (1991): "On Weilandt's Inequality and Its Application
+  to the Asymptotic Distribution of Eigenvalues of a Random Symmetric Matrix," Annals
+  of Statistics, 19, 260­271.
+Elliott, M., B. Golub, and M. O. Jackson (2014): "Financial networks and conta-
+  gion," American Economic Review, 104, 3115­53.
+Gai, P. and S. Kapadia (2010): "Contagion in financial networks," Proceedings of the
+  Royal Society A: Mathematical, Physical and Engineering Sciences, 466, 2401­2423.
+Girvan, M. and M. E. Newman (2002): "Community structure in social and biological
+  networks," Proceedings of the national academy of sciences, 99, 7821­7826.
+Graham, B. S. (2017): "An econometric model of network formation with degree hetero-
+  geneity," Econometrica, 85, 1033­1063.
+Granovetter, M. S. (1973): "The Strength of Weak Ties," The American Journal of
+  Sociology, 78, 1360­1380.
+Handcock, M. S. and J. H. Jones (2004): "Likelihood-based inference for stochastic
+  models of sexual network formation," Theoretical population biology, 65, 413­422.
+Heath, R. (2018): "Why do firms hire using referrals? evidence from bangladeshi garment
+  factories," Journal of Political Economy, 126, 1691­1746.
+Hoff, P., A. Raftery, and M. Handcock (2002): "Latent Space Approaches to Social
+  Network Analysis," Journal of the American Statistical Association, 97:460, 1090­1098.
+Jackson, M. (2008): Social and Economic Networks, Princeton: Princeton University
+  Press.
+------ (2013): "Unraveling Peers and Peer Effects: Comments on Goldsmith-Pinkham and
+  Imbens' "Social Networks and the Identification of Peer Effects"," Journal of Business
+  and Economic Statistics, 31:3, 270­273, DOI: 10.1080/07350015.2013.794095.
+Jackson, M. and D. Lopez-Pintado (2013): "Diffusion and Contagion in Networks with
+  Heterogeneous Agents and Homophily," Network Science, 1:1, 49­67.
+Kaiser, M. and C. C. Hilgetag (2006): "Nonoptimal component placement, but short
+  processing paths, due to long-distance projections in neural systems," PLoS computational
+  biology, 2.
+Karwowski, W., F. Vasheghani Farahani, and N. Lighthall (2019): "Applica-
+  tion of graph theory for identifying connectivity patterns in human brain networks: a
+  systematic review," Frontiers in Neuroscience, 13, 585.
+Killing, W. (1891): "Ueber die Clifford-Klein'schen Raumformen," Mathematische An-
+  nalen, 39, 257­278.
+Kinnan, C. and R. Townsend (2012): "Kinship and financial networks, formal financial
+  access, and risk reduction," The American Economic Review, 102, 289­293.
+Krioukov, D., F. Papadopoulos, M. Kitsak, A. Vahdat, and M. Boguna                  ´ (2010):
+  "Hyperbolic geometry of complex networks," Physical Review E, 82, 036106.
+Leskovec, J., K. J. Lang, A. Dasgupta, and M. W. Mahoney (2008): "Statistical
+  properties of community structure in large social and information networks," in Proceedings
+  of the 17th international conference on World Wide Web, 695­704.
+Leung, M. C., P. L. Williams, A. Benedetto, C. Au, K. J. Helmcke, M. As-
+  chner, and J. N. Meyer (2008): "Caenorhabditis elegans: an emerging model in
+  biomedical and environmental toxicology," Toxicological sciences, 106, 5­28.
+Luo, W. and B. Li (2016): "Combining eigenvalues and variation of eigenvectors for order
+  determination," Biometrika, 103, 875­887.
+34                      LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+McCormick, T. H. and T. Zheng (2015): "Latent surface models for networks using
+  Aggregated Relational Data," Journal of the American Statistical Association, 110, 1684­
+  1695.
+Myers, S. A. and J. Leskovec (2014): "The bursty dynamics of the twitter information
+  network," in Proceedings of the 23rd international conference on World wide web, 913­924.
+Newey, W. K. and D. McFadden (1994): "Large sample estimation and hypothesis
+  testing," Handbook of Econometrics, 4, 2111­2245.
+Newman, M. (2010): Networks: An Introduction, Oxford University Press.
+Newman, M., C. Moore, and D. Watts (2000): "Mean-field solution of the small-world
+  network model," Physical Review Letters, 84, 3201­3204.
+O'Neill, B. (1983): Semi-Riemannian Geometry with Applications to Relativity, vol. 103,
+  Academic press.
+Orbanz, P. and D. M. Roy (2015): "Bayesian models of graphs, arrays and other ex-
+  changeable random structures," IEEE Transactions on Pattern Analysis and Machine
+  Intelligence, 37, 437­461.
+Petersen, S. E. and O. Sporns (2015): "Brain networks and cognitive architectures,"
+  Neuron, 88, 207­219.
+Politis, D. N. and J. P. Romano (1994): "Large Sample Confidence Regions Based on
+  Subsamples Under Minimal Assumptions," Annals of Statistics, 22, 2031 ­ 2050.
+Recanatesi, S., M. Farrell, G. Lajoie, S. Deneve, M. Rigotti, and E. Shea-
+  Brown (2019): "Predictive learning extracts latent space representations from sensory
+  observations," bioRxiv, 471987.
+Robin, J.-M. and R. J. Smith (2000): "Tests of Rank," Econometric Theory, 16, 151­175.
+Romero, D. M., B. Meeder, and J. Kleinberg (2011): "Differences in the mechanics
+  of information diffusion across topics: idioms, political hashtags, and complex contagion on
+  twitter," in Proceedings of the 20th international conference on World wide web, 695­704.
+Salter-Townshend, M. and T. H. McCormick (2017): "Latent space models for
+  multiview network data," The Annals of Applied Statistics, 11, 1217.
+Schoenberg, I. (1935a): "A remark to Maurece Frechets article," Ann. of Math, 36.
+Schoenberg, I. J. (1935b): "Remarks to Maurice Frechet's Article "Sur La Definition
+  Axiomatique D'Une Classe D'Espace Distances Vectoriellement Applicable Sur L'Espace
+  De Hilbert," Annals of Mathematics, 36, 724­732.
+Sewell, D. K. and Y. Chen (2015): "Latent space models for dynamic networks,"
+  Journal of the American Statistical Association, 110, 1646­1657.
+Shalizi, C. R. and D. Asta (2017): "Consistency of maximum likelihood for continuous-
+  space network models," arXiv preprint arXiv:1711.02123.
+Smith, A. L., D. M. Asta, C. A. Calder, et al. (2019): "The geometry of continuous
+  latent space models for network data," Statistical Science, 34, 428­453.
+VanRullen, R. and L. Reddy (2019): "Reconstructing faces from fMRI patterns using
+  deep generative neural networks," Communications biology, 2, 1­10.
+Wilson, R. C., E. R. Handcock, E. Pekalska, and R. P. Duin (2014): "Spher-
+  ical and Hyperbolic Embeddings of Data," IEEE Transactions on Pattern Analysis and
+  Machine Intelligence, 36, 2255­2269.
+                                IDENTIFYING LATENT GEOMETRY                                    35
+
+                                   Appendix A. Proofs
+A.1. Proof of Proposition 3.1.
+Proof of Proposition 3.1. We prove this proposition for the spherical case. The hyperbolic
+case follows from a similar argument. By Theorem 2.1 in Newey and McFadden (1994), we
+have consistency if (i) the limit objective function is uniquely maximized at the truth, (ii) the
+parameter space is compact, (iii) the limit objective function is continuous in the parameter,
+and (iv) there is uniform convergence of the empirical objective function to its limit. The
+latter holds if there is point-wise convergence and stochastic equicontinuity. The parameter
+space is compact and since under the null D is positive semi-definite, the minimum eigenvalue
+is 0 as long as K > p. Identification comes from continuity of eigenvalues in parameters of
+the matrix. Finally we check uniform convergence. First, note by hypothesis that D    ^ p D as
+n  . Since eigenvalues are continuous functions of their matrix arguments, we have by the
+                                                      p
+continuous mapping theorem that 1 W (D          ^)      1 (W (D)) for every   [a, b], and so
+we have pointwise convergence. To complete the proof, we will show stochastic equicontinuity
+to show uniform convergence. A sufficient condition is a Lipschitz condition (Lemma 2.9,
+Newey and McFadden (1994)): that for any 1 , 2 , |1 1 W1 (D          ^ ) - 1 2 W2 (D    ^) 
+Bn |1 - 2 | for some random variable Bn = Op (1). To do this, fix any 1 , 2  [a, b]. By
+Weyl's inequality,
+                     ^ ) - 1 2 W2 (D
+             1 1 W1 (D             ^)                     ^ ) - 2 W2 (D
+                                                  ||1 W1 (D           ^ )||F
+
+where ||A||F is the Frobenius norm of A, that is ||A||2    F =
+                                                                       2
+                                                                  l,l all . Since W (D ) =
+       
+cos( D) and cos(·) is Lipschitz continuous with Lipschitz constant 1, we have for each
+l, l ,
+                         1/2 ^            1/2 ^      ^l,l · 1/2 - 1/2 .
+                     cos( d 1 l,l ) - cos(  2dl,l )  d         1         2
+
+For   [a, b],
+                                   1 - 2   1
+                       | 1 - 2 | =          |1 - 2 | ,
+                                    1 + 2 2 a
+           ^i,j ,
+so for any d
+                              1/2 ^             1/2 ^
+                                                             ^i,j
+                                                             d
+                        cos(1 d    i,j ) - cos( 2
+                                                   d i,j )        1 - 2 .
+                                                            2a1/2
+Putting this all together, we see that
+                                                                                     2
+                    ^ ) - 1 2 W2 (D
+            1 1 W1 (D             ^)                              ^ ) - 2 W2 (D
+                                                            1 W1 (D           ^)
+                                                                                     i,j
+                                                      i,j
+
+                                                                                2
+                                                             ^i,j
+                                                             d
+                                                                  1 - 2
+                                                      i,j
+                                                            2a3/2
+                                                                    2
+                                                             ^i,j
+                                                             d
+                                                =                       |1 - 2 | .
+                                                      i,j
+                                                            2a3/2
+36                            LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+                  ^i,j   2
+                  d
+Since      i,j   2a3/2
+                             = Op (1), the desired Lipschitz condition holds, which completes the
+proof. The hyperbolic case is handled in a similar way.
+
+
+A.2. Proof of Propositions 4.1 and 4.2.
+Proof of Proposition 4.1. We prove the Euclidean case (part a) and note that the proofs
+of parts b and c (spherical and hyperbolic) are nearly identical. Define Rn = (-, n ].
+Let P0 (A) denote the probability of the event A under the null hypothesis that Mp () is
+Euclidean. By (9),
+                                    ^ 0 )  Rn ) = P0 (1 (W
+                             P0 (1 (W                    ^ 0 )  n ) = o(1) ,
+by assumption. Under H1 , 1 (W0 ) < 0 by Proposition 1.1. Since n = oP (1),
+                 ^ 0 )  Rn ) = P(1 (W
+          P1 (1 (W                                        ^ 0 )  n = 1 - o(1) .
+                                    ^ 0 )  n ) = 1 - P 1 (W
+
+This proves that the test for (6) is consistent, as claimed.
+   Our second result constructs a sequence of cutoffs for the decision rule that is conservative
+at an -level that is known to the researcher.
+   Now we demonstrate that we can calculate a specific and conservative -bound for the
+decision rule. That is, we can specify an upper bound for the Type 1 error rate. The idea
+is to use Weyl's inequality: the eigenvalue of a perturbed matrix can only vary so much--
+the extent of this depends on the size of the perturbation, which in our case has a known
+distribution. This result is given in Proposition 4.2, which we now prove.
+Proof of Proposition 4.2. We only prove this claim for the Euclidean case, but the same
+argument proves the claim for the other two geometries. We have by Weyls's inequality
+that |1 (W^ 0 ) - 1 (W0 )|  ||W
+                              ^ 0 - W0 ||F . Then, we have that P(|1 (W^ 0 ) - 1 (W0 )| < ) 
+    ^ 0 - W0 ||F < ) for all . Under H0,e , 1 (W0 ) = 0, so we have that P(|1 (W
+P(||W                                                                              ^ 0 )| < ) 
+    ^ 0 - W0 ||F < ). By setting  to be the  quantile of ||W
+P(||W                                                          ^ 0 - W0 ||F , we conclude (12).
+This completes the proof.
+
+                                            n
+  Notice if we take a sequence of cutoffs    (n) with (n)  0 then the decision rule has will
+in the limit never falsely reject the null. To make this not vacuous it needs to be chosen
+                  n
+at any rate that   (n)  0 as n   which ensures that the thresholds themselves tend to
+zero. To see how this can be done, see Section 5 of Robin and Smith (2000).
+
+A.3. Proof of Theorem 4.1.
+                                                            p
+Proof of Theorem 4.1. By assumption, we know that D       ^    D, so by Proposition 3.1 we have
+        p
+that  ^  . We will use Proposition 4.1 to argue that M ^ is consistent for Mp (). To do
+                                                               p
+
+this, note that if Mp () is Euclidean, then by Proposition 4.1, Mp      ^ is consistent. To prove
+
+the claim for the spherical case, recall that we define (W  ^ 0 ) = 1 to mean that we reject the
+hypothesis that Mp () is Euclidean. If (W    ^ 0 ) = 0 then we fail to reject the hypothesis that
+   p
+M () is Euclidean. Similar definitions hold for the spherical and hyperbolic cases.
+                              IDENTIFYING LATENT GEOMETRY                                  37
+
+  If Mp () is spherical, then we have that
+                          ^ = Sp ()) = P ((W
+                     PS (Mp             S
+                                            ^ 0 ) = 1, (W ^^ ) = 0)
+                                            ^ 0 ) = 1)PS ((W
+                                     = PS ((W                ^ ^ ) = 0)
+                                      1,
+where the notation PS indicates that Mp () = Sp () and the third line follows from Propo-
+sition 4.1. A similar argument proves that Mp    ^ is consistent when Mp () is hyperbolic.
+
+   We now prove that the estimate p   ^ is consistent for p. To do this, we must verify the
+assumptions of Theorem 5.2 of Robin and Smith (2000). Before continuing, we note that
+in our discussion of Robin and Smith (2000), we keep the original notation given there for
+consistency. The goal of the Robin and Smith (2000) paper is to estimate the rank of a
+matrix p × q matrix B using an estimate B    ^ . In practice, Robin and Smith (2000) tries to
+                                          T
+estimate the rank of the matrix B B where B is a p × q matrix,  is a p × p positive
+definite matrix and  is a q × q positive definite matrix. Since  and  are positive definite,
+it follows that rank(B B T ) = rank(B ). In our work, we set both  = Ip and  = Iq to be
+the identity matrix. We now list the assumptions in Robin and Smith (2000).
+Assumption A.1. The matrix B of interest has finite rank.
+                                      ^ such that
+Assumption A.2. There is an estimator B
+                                            d
+                                    ^ - B) 
+                              T vec(B         N(0, )
+as T   for some covariance matrix  with rank() = s  (0, pq ].
+Assumption A.3. There are estimators ^ and ^ with ^ -  = oP (1) and ^ -  = oP (1).
+
+   Let C be a p × p matrix containing the eigenvectors of BB T . We order the entries of C
+such that C = (Cr , Cp-r ) such that the first r columns correspond to the r eigenvalues
+of BB T and the remaining p - r eigenvectors are in Cp-r . Similarly, we define D to be
+a q × q matrix containing the eigenvectors of B T B . We order the entries of D such that
+D = (Dr , Dq-r ) such that the first r columns correspond to the r eigenvalues of B T B
+and the remaining q - r eigenvectors are in Dq-r .
+Assumption A.4. If r < q  p (meaning that the matrix B is not full rank), then we
+assume that the (p - r )(q - r ) × (p - r )(q - r ) matrix
+(16)                     Ar := (Dq-r  Dp-r )T  (Dq-r  Cp-r )
+is non-zero.
+  The test-statistic based on the eigenvalues (or characteristic roots, as Robin and Smith
+(2000) calls them) at an estimate r of the rank is given by
+                                                q
+                                  CRTr := T           h(^i) ,
+                                              i=r+1
+
+where h is an arbitrary function and    ^ i are the eigenvalues of the matrix ^B
+                                                                               ^ ^B
+                                                                                  ^ T . The
+following assumption restricts the set of admissible functions h.
+Assumption A.5. The function h is non-negative, finite and posses continuous derivatives
+at least of order 1 with h(0) = 0 and h (0) = 1.
+38                               LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+     Some examples of admissible h functions include h(z ) = z .
+Assumption A.6. There is an estimator ^ with ^ -  = oP (1).
+  We now define the estimator from Robin and Smith (2000). Let Z1 , . . . , be i.i.d. standard
+                                       (p-r)(q -r)
+normal random variables and let {r  i }i=1         be the ordered eigenvalues of the matrix
+                   T ^
+Ar = (Dq-r  Dp-r )  (Dq-r  Cp-r ). Then, for   (0, 1), define cr     1- as the solution to
+                                            r
+(17)                                   P         r  2
+                                                 i Zi  c   =1-,
+                                           i=1
+where here the super-script r indicates that these eigenvalues come from the matrix Ar and
+does not indicate that the eigenvalues are being raised to the power r. This is the notation
+from Robin and Smith (2000), which we use in this section for consistency. Our estimate of
+the rank is then
+(18)       ^=
+           r        min                 ^i
+                             {r : CRTi  c                                          ^r
+                                          1-iT for i = 0, . . . , r - 1 and CRTr < c 1-rT }
+                r{0,1,...,q -}
+
+In words, the estimate r                                                                  ^r
+                       ^ is the first index r such that CRTr is smaller than the quantile c
+defined in (17).
+Proposition A.1 (Theorem 5.2 of Robin and Smith (2000)). Suppose that r < q and that
+Assumptions A1-A6 hold. Then, the estimator r
+                                            ^ defined in (18) is consistent for r , provided
+that T = o(1) and -T log(rT ) = o(1).
+   We now prove that these assumptions hold in our problem in order, returning to our
+notation. First, the matrix B in our case is W . The rank of W is clearly finite, so
+Assumption A.1 holds. By the assumptions in Theorem 4.1, we can use the delta method to
+show that Assumption A.2 is satisfied, since in all cases, W is a differentiable transformation
+of D. Assumption A.3 since we set  =  = I . We discuss Assumption A.4 at the end of
+this proof. Assumption A.5 is satisfied by taking, say, h(x) = x. Assumption A.6 is satisfied
+by the assumptions of Theorem 4.1, since if we have a consistent estimate of , then we can
+apply the delta method and obtain a consistent estimate of W (D).
+   Finally, we show that Assumption A.4 is satisfied. To do this, note that the discussion
+immediately after Assumption 2.4 in Robin and Smith (2000) says that this Assumption is
+satisfied if
+                                         1
+                            p  [0, K -        4K 2 - 4rank(i )) .
+                                         2
+One can show that rank(i ) = K    2
+                                      By the assumption given in the theorem, K is chosen
+such that the above statement is true. Therefore, we have that Assumption A.4 is satisfied.
+We have shown that all of the assumptions in Theorem 5.2 of Robin and Smith (2000).
+Therefore, we can conclude that p^ is consistent for the true rank of W . This completes the
+proof.
+
+A.4. Proof of Theorem 4.2.
+                                                         p
+Proof of Theorem 4.2. If we can show that D      ^ -D      , then we can use Proposition 3.1 to
+                    p
+conclude that   ^  . By using the same argument as that given in the proof of Theorem 4.1
+to argue that p ^ is consistent for p. In addition, by Proposition 4.1 and Theorem 4.1 we have
+that Mp ^ is consistent, P(Mp  ^ = Mp ()) = o(1). Further, given a consistent estimator of Mp ^,
+                                 IDENTIFYING LATENT GEOMETRY                                  39
+
+we can use results from Breza et al. (2019) to show consistency of the model parameters.
+In constructing this proof, therefore, we first claim that it is possible to estimate a distance
+matrix such that its deviation from the true distance matrix among a collection of points
+converges in probability to zero using the properties of the model in (1). This construction,
+along with Proposition 4.1 and Theorem 4.1, is sufficient for the first two statements in the
+proof. We then turn to the third, consistency of the model parameters, and demonstrate
+how it follows from the results in Breza et al. (2019).
+  We now seek to show that the deviation of a distance matrix estimated using cliques from
+the true distance matrix converges in probability to zero. Recall from Section 2 that it is
+possible to construct an estimator that converges in probability under a model with two
+simplifying assumptions. Relaxing these assumptions, (1) yields, after marginalizing the
+individual effects,
+                      P (Gij = 1|z, Mp ()) = E (exp(i ))2 exp(-d(zi , zj )) .
+Solving for the distances d(zi , zj ),
+(19)                         dk,k = - log(pk,k ) + 2 log(E (exp(i )) .
+   We assume the existence of a consistent estimator of E (exp(i )). Though it works well in
+practice, the estimator we present in Section 2 suffers from selection bias due to only using
+nodes that have many connections (since they are part of near cliques). If we were to make
+a distributional assumption on the vi 's we could correct for this selection bias by adjusting
+the estimate using the tail probability of assumed distribution. We could also explore a
+nonparametric estimate that is consistent by using subgraphs of different sizes in an attempt
+to mitigate the selection bias. Since the approach from Section 2 works well in practice we
+leave these as areas for future work and proceed here with the assumption that we have used
+of the two methods described here to drive a consistent estimator.
+   Moving now to estimating the pk,k term, recall that in Section 2 we made the simplifying
+assumption that all individuals had latent positions that were on one of a small number of
+points. We now instead follow the full generality of (1) and allow each individual to have
+their own latent position. We argue that, once the graph becomes sufficiently large, the
+distances between nodes in completely connected cliques becomes negligible and, thus, we
+can treat each clique as though it were a point in the simplified model presented in Section 2.
+Lemma A.1. Take D as a K × K distance matrix of between-clique distances based on
+the Fr´ echet mean of the latent space positions of the nodes in each clique. Assume that
+Assumptions 1.1-1.3 hold, and that G is distributed as in (1). Let Mp    ^ denote the estimate
+
+of the geometry based on the tests from (9), (10), and (11). Using Mp     ^, let ^ and p
+                                                                                       ^ denote
+the estimates of the curvature and dimension. Let z      ^i and ^i denote the manifold-specific
+maximum likelihood estimator for zi and i defined in (13), using the estimated latent space
+type, dimension, and curvature. Finally, suppose that there exists a consistent estimator
+                                                                      p
+of the mean of the individual effects distribution,  ^ , such that ^  E (exp(i )). Let Ck =
+(VCk , ECk ) be a subgraph clique with |VCk | = and let K be the number of such cliques. Under
+these conditions,
+
+                                            ^ - D||F >
+                                    lim P ||D               =0
+                                   n
+40                       LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+Proof of Lemma A.1. There are two main points in the proof of Lemma A.1. First, unlike the
+case in Theorem 4.1 where D is a (fixed) set of positions on the (unknown) manifold, there
+is an additional layer of randomness in the case of the graph. Specifically, since distances
+manifest as counts of links, the "true" distance matrix, D based on the Fr´     echet mean of the
+latent space positions of the nodes in each clique, and calculate the distances between these
+points, depends on the graph, which is a single draw from the network formation model in
+(1). The first task in this proof, therefore, is to show that, for any realization from the graph
+generating process (1), the observed counts are a sufficient approximation of the underlying
+(random variable) D. Presented in more detail below, this argument uses the assumption
+that we have a consistent estimator of the expectation of the individual effects and relies
+heavily on the idea that, conditional on the latent positions the probabilities of forming ties
+are independent, which allows us to treat links between cliques as a series of independent
+Bernoulli trials.
+   The above argument establishes that the variation in the observed between-clique frequen-
+cies vanishes sufficiently quickly as the size of the graph grows. The second issue we must
+address for this result to hold arises in how we compute these cross-clique frequencies. In
+contrast to the example we give in Section 2 where all latent positions have the same point
+in the latent space, in estimating D  ^ each person has their own latent position. Intuitively
+people in cliques should be close together in the latent space (since if they weren't close to-
+gether they would be unlikely to be connected). To show convergence of the distance matrix,
+we need to argue that the distances between people in the same clique become sufficiently
+small as the size of the graph (and thus ) grows that any bias becomes negligible. To es-
+tablish this result we use the model from (1) to compute the likelihood of observing a clique
+under the assumption that all members of a clique are within an arbitrarily small distance,
+ , compared to the likelihood that one member of the clique is outside the  -window. A
+critical point for this logic is that the cliques are observed, so the computations are true
+likelihood computations rather. That is, we ask, given a model, how likely are the data
+we have already observed. Though straightforward algebra we show that the ratio of these
+likelihoods diminishes as the size of graph (and thus cliques) move towards infinity.
+   We now move to the formal proof. First, consider the Frobenius (vector) norm of the
+distance between D and D    ^:
+
+
+          ^ - D||F =
+        ||D                  - log(^               ) + log(pk,k ) - 2 log(E (exp(i ))
+                                   pk,k ) + 2 log(^
+                       k,k
+
+                             log(pk,k ) - log(^
+                                              pk,k ) + 2                 ) - log(E (exp(i )) .
+                                                                    log(^
+                       k,k                                  k,k
+
+
+where the second line follows from the triangle inequality. By the continuous mapping
+                 p
+              )  log(E (exp(i )). Thus, since K does not change with , the second term
+theorem, log(^
+above goes to zero in probability. We now consider the first term in the second line.
+  We now recall the definition of p^k,k ,
+
+                                             1
+                                    p
+                                    ^k,k =   2
+                                                            Gij .
+                                                 iCk j Ck
+                               IDENTIFYING LATENT GEOMETRY                                    41
+
+Each Gij is a Bernoulli trial, so Var(Gij )  1/4. In addition, the Gij are all mutually
+independent, so
+                                    1                    1
+                      Var(^pk,k ) = 2         Var(Gij )  2  0
+                                      iC j C
+                                                        4
+                                                 k         k
+
+as    .
+  Given that the variance of p  ^kk vanishes as the graph size increase based on the arguments
+above, we now move to show that the estimate based on cross-clique interactions converges
+to the correct point.
+  Recall from Section 2 that if the all points have the same latent position then p      ^kk is
+unbiased and the weak law of large numbers gives the desired result. Assumption 1.3 provides
+the final step to show the result. That is, using Assumption 1.3 we show that indeed all
+members of the clique are going to be located arbitrarily close together in the limit. To
+see this, we can calculate the relative likelihood of nodes being within or outside a  -ball as
+n,  . Specifically, observe that for any  > 0, by Assumption 1.3,
+            P(maxi,j C d(zi , zj )   |C exists) P(C exists| maxi,j d(zi , zj )   )
+                                                  =
+            P(maxi,j C d(zi , zj ) >  |C exists) P(C exists| maxi,j d(zi , zj ) >  )
+                                                       P(maxi,j d(zi , zj )   )
+                                                    ×
+                                                       P(maxi,j d(zi , zj ) >  )
+                                                 
+from which the result follows.
+
+   Using Lemma A.1, we can now leverage the same estimator p    ^kk as in Section 2 and apply
+a similar logic, appealing to the weak law of large number and continuous mapping theorems,
+to get the desired result. We move now to the final part of the proof, namely that, given
+a consistent estimate of geometry type and dimension, we can consistently estimate the
+remaining parameters using their maximum likelihood estimates. To prove this claim, we
+apply the following result from Breza et al. (2019). We have slightly rewritten this result in
+the notation of the current paper.
+Lemma A.2 (Lemma A.1 from Breza et al. (2019)). Suppose that we observe complete graph
+data generated from a formation model noted as a Continuous Latent Space (CLS) model
+in Shalizi and Asta (2017). Specifically, let
+                  P(gij = 1 | , z,  )  exp{i + j +  T Xij - dMp (zi , zj )}
+where dMp (zi , zj ) is the distance between the latent position of person i and person j on the
+latent simply connected, complete Riemannian manifold of constant curvature , Mp ().
+Our goal is to show that we can consistently estimate , z,  given Mp (). Let Xij  Rh so
+  Rh . Let V n  (-, 0)n a compact subset with (1 , ...n )  V n . Then, under the same
+conditions as Shalizi and Asta (2017), we have
+                      max | ^i - i0 | +d(^
+                                         z1:n , z1:n )+ | ^ -  | = oP (1)
+                     1in
+
+as n  , where
+                                                               n
+                                    0
+                          d(z1:n , z1: n)   =        inf             dMp (zi , (zi ))
+                                                isom(M )
+                                                               i=1
+42                         LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+where isom(M) is the set of isometries on Mp () as in Shalizi and Asta (2017) and
+                             (^
+                              , z
+                                ^, ^) =         argmax                (, z,  ),
+                                                      n
+                                          ,z, V n ×   i=1   Mp ×Rh
+
+the maximum likelihood estimates.
+     Since we have that P (Mp
+                            ^ = M) = 1 - o(1), the result follows.
+
+
+                      Appendix B. Generating latent space points
+  We now describe how we generate our points in the three latent spaces. The basic idea is
+to generate K group centers. we then call the first n/K nodes to be in group 1, the second
+n/K nodes to be in group 2, and so on. Let ci  {1, . . . , K } denote the group membership
+of node i. Finally, we distribute the node latent space positions centered at their group
+locations according to some procedure that is unique for each of the three geometries. To
+generate the LS positions in the Euclidean case, we do the following:
+                                                                                    i.i.d.
+      (1) Generate K group centers µ  Rp distributed according to µ  N(0p ,  2 Ip ).
+                                                                     i.i.d.         2
+      (2) Then simulate the positions of the nodes as zi |ci  N µci ,  I .
+                                                                      K p
+     To generate the latent space positions in the spherical case, we do the following:
+                                                                                                  i.i.d.
+      (1) Generate K group centers µ  S2 (). To do this, we generate two angles:  
+                         i.i.d.
+          Unif(0,  ) and   Unif(0, 2 ). Then compute
+                     µi = -1/2 (sin(i ) cos(i ), sin(i ) sin(i ), cos(i ))  R3 .
+      (2) Then simulate the positions of the nodes. To do this, generate two angles i 
+          Unif(ci - , ci +  ) and i  Unif(ci - , ci +  ) and compute
+                     µi = -1/2 (sin(i ) cos(i ), sin(i ) sin(i ), cos(i ))  R3 .
+   To generate the latent space positions in the Hyperbolic case, we do the following:
+    (1) Generate K group centers µ  H2 (). To do this, we generate two locations xi
+        and yi distributed uniformly on [-s, s] × [-s, s] and select the third coordinate z =
+                                                           2
+          1/ + x2        2
+                    i + yi so by construction (x, y, z )  H ().
+    (2) Then simulate the positions of the nodes. To do this, generate two coordinates xi
+        and yi distributed uniformly on [xci - , xci +  ] × [yci - , yci +  ] then set zi =
+          1/ + x2        2
+                    i + yi .
+   We next present the parameters used for the simulations in Section 5. In the table below,
+ is the curvature used for the Spherical geometry. The  parameter determines the spread
+of the points in the Euclidean geometry. For the Hyperbolic geometry the scale referrers to
+the scale of the first two coordinates of the space. In all of these results, we use rate = 1/3.
+
+             Table 3. The parameter values used to make the results in Section 5
+
+                E                          S                                  H
+              E  = 0.5                      = 0.8                              = 0.8
+              S  = 0.75                    =1                                  = 0.75
+              H scale = 2.5,  = 0.75       scale = 2.5,  = 0.75               scale = 2.5,  = 1
+                                                      IDENTIFYING LATENT GEOMETRY                                                       43
+
+
+
+                                      Objective function                                                         Objective function
+                     1.0                                                                            1.75
+                                                                                                    1.50
+Objective Function
+
+
+
+
+                                                                               Objective Function
+                     0.8
+                                                                                                    1.25
+                     0.6                                                                            1.00
+                     0.4                                                                            0.75
+                                                                                                    0.50
+                     0.2
+                                                                                                    0.25
+                     0.0                                                                            0.00
+                       0.2      0.4     0.6    0.8    1.0    1.2                                            -1.2 -1.0 -0.8 -0.6 -0.4 -0.2
+                                                                                                                         
+                                      (a) Spherical                                                              (b) Hyperbolic
+
+                           Figure 7. Plot of the objective function from (5) when D corresponds to 15 points in
+                           S2 (1) (left) and 15 points in H2 (-1) (right). On the horizontal axis we plot the curvature
+                                                                                                      
+                            and on the vertical axis we plot the value of the function   1 (cos( D)) . We see
+                           that at the true , the objective function is minimized.
+
+
+                                  Appendix C. Choosing Bounds for Curvature Estimate
+  We now discuss a way to pick a, the lower bound in the spherical
+                                                               method to pick . Note
+that the maximum distance between any two points is r = / , which occurs when the
+points are antipodal. This shows that for a distance matrix D = {dij }, which contains
+distances between K points on Sp (), it must be that
+                                                 
+                                     max di,j   .
+                                   1i,j K         
+By solving for , we see that  satisfies
+                                                                             2
+                                                                      
+                                                                             := b .
+                                                                    max dij
+                                                                   1i,j K
+
+Based on the discussion in Wilson et al. (2014), we set
+                                                                                                    2
+                                                                         1
+                                                            a :=                                        .
+                                                                    3 mini,j di,j
+The suggestion for a comes from Wilson et al. (2014), which says that for curvature values
+less than a, the space is essentially Euclidean. We use the same bounds for the hyperbolic
+case, but we flip the signs so that [a, b]  (-, 0]. Future work could more thoroughly
+investigate how to pick the bounds for the hyperbolic case.
+   Figure 7a plots the function   1 (W ) when D corresponds to K = 15 points drawn
+randomly on S2 (1). Figure 7b plots the function   K -1 (W ) when D corresponds to
+K = 15 points drawn randomly on H2 (-1). The functions are both minimized at the true
+curvature (0 = 1 for the spherical case and 0 = -1 for the hyperbolic case), matching the
+intuition from (5).
+44                        LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+          Appendix D. Additional details on the bootstrap procedure
+  Given n independent and identically distributed data points X1 , . . . , Xn drawn from a
+distribution H , we want to estimate a parameter  = (H ) with an estimator     ^n . We make
+the following assumption about   ^n , which appears in Politis and Romano (1994).
+
+Assumption D.1. There exists a deterministic sequence n such that n (^n - ) converges
+in distribution to some random variable L.
+  Suppose that the goal is to construct confidence intervals for  using X1 , . . . , Xn . To do
+this, we select a sub-sample rate m = m(n), where m  n. Then, let Y1 , . . . , Y(n) be all the
+                                                                                   b
+
+subsets of X of size b, and let    ^n,i be the estimate of  using the ith subset Yi . Using the
+rate n from Assumption D.1, with n replaced by the "sub-sample" size b, we can form the
+empirical CDF of b (  ^n,i - ^n ),
+                                            (n
+                                             b)
+                                        1               ^n,i - ^n )  x .
+                            Ln (x) :=   n         1  b (
+                                        b   i=1
+
+Intuitively, as n and b  , we expect that Ln converges to the CDF of n (       ^n - ), denoted
+by L. If this were true, then we could use the quantiles of b ( ^n,i - ^n ) as estimates of the
+quantiles of n ( ^n,i - ^n ), which would allow us to compute confidence intervals for . The
+following result shows when we can use Ln to construct asymptotically correct confidence
+intervals for .
+Proposition D.1 (Theorem 2, (iii) of Politis and Romano (1994)). Let cn (1 - ) := inf {x :
+^ n (x)  1 - }. Similarly, let c(1 - ) = inf {x : L(x)  1 - } where L is the CDF of X1 .
+L
+If the CDF of X1 is continuous at c(1 - ) and b /n  0 and b/n  0 then
+                             P  n (^n - )  cn (1 - )  1 -  .
+
+   This proposition allows us to construction asymptotically correct confidence intervals for
+ from the sub-sampled data. Note that when n is large, computing all n              b
+                                                                                        subsets of X
+is computationally infeasible, so we instead select a collection {Y1 , . . . , Ys } for some integer
+s n  b
+        , and compute
+                                         s
+                            ^         1           ^n,i - ^n )  x .
+                            Ln (x) :=       1  b (
+                                      s i=1
+According to Politis and Romano (1994), we have the following result:
+Proposition D.2 (Theorem 2, (iii) of Politis and Romano (1994)). Let cn (1 - ) := inf {x :
+^ n (x)  1 - }. Similarly, let c(1 - ) = inf {x : L(x)  1 - } where L is the CDF of X1 .
+L
+If the CDF of X1 is continuous at c(1 - ) and b /n  0 and b/n  0, then
+                             P  n (^n - )  c
+                                           ^n (1 - )  1 -  .
+
+  This result allows us to construct confidence intervals for .
+  Having described the sub-sampling method from Politis and Romano (1994), we now
+return to our original problem and show how to apply this method to our problem. The
+parameter interest  is the eigenvalue k (W ). To study this, we will show how to use the
+                                  IDENTIFYING LATENT GEOMETRY                                 45
+
+Politis and Romano (1994) method to sub-sample the distance matrix D. Using this sub-
+sampled distance matrix, we can then compute sub-sampled matrices W and compute their
+eigenvalues, since W is just a simple transformation of D.
+   The data in our problem is the adjacency matrix G. More concretely, it is the adjacency
+matrix for the subgraph with nodes K    k=1 Ci , the union of all K cliques. We fix some sub-
+sample rate m. In Section 4.2, we describe how to do this. With the sub-sample rate, we
+then want to re-sample the entries of D. To do this, we will focus on how to do this for
+the (k, k ) entry of D. This process is repeated for all the entries of D. Let G  ~ k,k denote
+the adjacency matrix corresponding to the sub-graph induced by the nodes in Ck  Ck . For
+example, if = 3, then a potential Y~k,k might take the form
+                                                       
+                                                1 0 0
+                                   G~ k,k = 1 1 0 .
+                                                0 1 0
+This indicates that the first node in Ck connects to the first node in Ck,k but not to the
+second or third nodes in Ck . We then sample two sets of integers of length m, denoted by Ik
+and Ik , independently and uniformly from {1, . . . , }, without replacement. These indices
+will be the re-sampled nodes. We then compute
+                                  1     ~ k,k ]ij 1{(i, j )  Ik × Ik } .
+                         Pk,k = 2      [G
+                                 m
+Since it is possible that Pk,k is zero (meaning that the re-sampled pairs of nodes do not
+connect), we use Pk,k = max(1/ 2 , Pk,k ), since we observe at least one edge in G  ~ k,k . We
+repeat this procedure for all pairs of edges (k, k ). We then compute D using (1). We provide
+a step-by-step implementation of the sub-sampling method in Algorithm 1.
+  Recalling that our parameter of interest is the eigenvalue k (W ), we use the above pro-
+cedure to compute k (Wb ) for b = 1, . . . , B. We then compute
+                          B
+            ^ n (x) = 1
+            L                                     ^ )  x},
+                                1{m2 k (Wi ) - k (W                 for any x  R .
+                      B   i=1
+
+                                                                              ^ n (x)  1 - }
+  We then perform hypothesis testing. To do this, we let cn (1 - ) = inf {x : L
+be the (1 - )% percentile of m2 k (Wi ) - k (W  ^ ) . Then, from Proposition 4.2, we know
+               ^ ) - k (W ))  cn (1 - ))  1 -  + o(1) for large . This motivates the
+that P ( 2 (k (W
+bootstrapping method we summarize in Algorithm 2.
+
+                                 Appendix E. Rank Estimator
+   In Algorithm 3 we formally describe the algorithm and the estimate of the rank of W .
+   The Luo and Li (2016) estimator uses two pieces of information. The first is the scree
+function, which plots the sample eigenvalues in order from larges to smallest. In Figure 8
+we plot the scree function for a distance matrix computed between K = 15 points on a
+3-dimensional Euclidean latent space. We see that the scree plot is large but decreasing for
+the first three eigenvalues but becomes flat after that point. The second piece of information
+this estimator uses is the variability of the bootstrapped eigenvectors of the matrix W , given
+in step (4) of Algorithm 3. Luo and Li (2016) argues that the for j < r, the true rank of W ,
+there is little variation in the term fn (j ) in step (4) but for j  r, this function increases.
+46                        LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+We see this behavior in Figure 8: For j < 3, the bootstrap variability is lower than when
+j  3. See Luo and Li (2016) for a more thorough explanation of why this phenomenon
+occurs. Based on these two pieces of information, Luo and Li (2016) suggests adding the two
+functions together to produce a final objective function. They claim that this new function
+has a "ladle" shape. The minimum of this new function is our estimate of the rank of W .
+
+       Appendix F. Additional details for the Banerjee et al. (2019) data
+   In Figure 9 we give violinplots of the number of cliques of size  {4, 5, 6} in the Indian
+village data set. The median values are 132, 13, and 0, respectively. The variances are 14797,
+703, and 12, respectively. We show commutative distribution plots of the number of cliques
+across the 75 villages in Figure 10.
+
+                      Appendix G. Additional simulation results
+   We now give plot curvature estimates for 100 simulated graphs using cliques of size 
+{5, 7, 9}. We see that as increases, the variance and bias of   ^ S decreases in the spherical
+case (Figure ).
+   We now analyze the accuracy of the curvature methods for the spherical and hyperbolic
+latent space models. The estimator in Proposition 3.1 minimizes   1 (W         ^  ). But from
+                                                                        ^
+Proposition 1.2, we in fact know that the first few eigenvalues of cos( D) are zero, which
+suggests that we can use the estimator
+                                       q
+                                  1                                ^ )
+(21)                     ^ (q ) =           ^i, ^ i = arg min i W (D
+                                  q   i=1                 [a,b]
+
+
+
+ Algorithm 3: Estimating Rank of W
+                                                          -j -1
+                                                               ^
+                                                               
+        (1) Compute the scree function n (j ) := KK          ^ for j  {0, 1, . . . , K - 1}.
+                                                         i=1 i
+        (2) Sample B bootstrapped D1 , . . . , DB matrices from Algorithm 1 and use them to
+            compute W1 , . . . , WB .
+        (3) For j  {0, 1, . . . , K - 1},
+             (a) Define A  ^j  RK ×j with A   ^j = (^
+                                                    vK -j +1 , . . . , v
+                                                                       ^K ).
+             (b) Let v1 , . . . vK denote the eigenvectors of Wi corresponding to its eigenvalues
+                 1  . . .  K .
+             (c) Set Aj,i  RK ×j with Aj,i = (vK -j +1 , . . . , vK ).
+        (4) Compute
+                                                        B
+                                        0           1                  ^T A )|
+                                      fn (j ) = 1 -        | det(A      j   j,i
+                                                    B i=1
+        (5) Compute
+                                                                    0
+                                                                   fn (j )
+                                              fn (j ) =        K -1
+                                                                                .
+                                                                        0 (i)
+                                                                       fn
+                                                               i=0
+        (6) The estimate r
+                         ^ of the rank of W is
+     (20)                             r
+                                      ^=      arg min          (n (j ) + fn (j )) .
+                                            j {0,1,...,K -2}
+                                                        IDENTIFYING LATENT GEOMETRY                                47
+
+
+                                                                  Estimating Rank
+                                                    0.6
+                                                                       Scree function
+                                                    0.5                Bootstrap variability
+
+
+
+
+                                       function value
+                                                    0.4                Objective function
+                                                    0.3
+                                                    0.2
+                                                    0.1
+                                                    0.0
+                                                          1   2   3 4 5 6 7            8   9
+                                                                  Eigenvalue index
+
+       Figure 8. We generate a graph using a 3-dimensional Euclidean latent space with K =
+       10 cliques. We plot the scree function  and the bootstrap variability function fn defined in
+       Algorithm 3. We also plot their sum, defined as the objective function. The horizontal axis
+       represents the possible ranks of the matrix. We see the objective function has a minimum
+       at 3, so we estimate the rank of the matrix to be 3, which is the true dimension of the latent
+       space.
+
+
+
+                                   600                                    20
+                   Number of Cliques
+
+
+
+
+                                   500
+                                                                          15
+                                   400
+                                   300                                    10
+                                   200
+                                                                           5
+                                   100
+                                     0                                     0
+                                                           4       5                  6
+                                                          Clique Size            Clique Size
+       Figure 9. Number of cliques of size                        {4, 5, 6} for the Indian village data set. The
+       median values for                  = 4, 5, and 6 are 132, 13, 0, respectively.
+
+Assuming that q << K , we can reasonably believe that the first through q th eigenvalues
+of cos( D) are zero. In fact, it is easy to modify the proof of Proposition 3.1 to show
+             p
+that  ^ (q )  , provided that t << K. Taking q > 1 does not always reduce the variance
+of ^ (t), which could be because the ^1, . . . , ^ t are not necessarily independent. In Figure 11
+we plot 250 estimates of  when Mp () = S2 (1) and when Mp () = H2 (-1) using K = 10.
+Although Proposition 3.1 says that the estimate is consistent as the sample size grows, we
+see that in finite samples this estimator performs poorly. In the future we would like to
+determine an estimator that performs better in finite samples.
+48                                               LUBOLD, CHANDRASEKHAR, AND MCCORMICK
+
+
+                                    CDF of Number of Cliques                                              CDF of Number of Cliques
+                        1.0                                                         1.0
+
+                        0.8                                                         0.8
+
+                        0.6                                                         0.6
+                     CDF
+
+
+
+
+                                                                             CDF
+                        0.4                                                         0.4
+                                                       clique size = 4                                                         clique size = 4
+                        0.2                            clique size = 5              0.2                                        clique size = 5
+                                                       clique size = 6                                                         clique size = 6
+                        0.0                                                         0.0
+                               0   100    200    300   400   500       600                          0     25      50    75     100   125   150
+                                         Number of cliques                                                      Number of cliques
+                                                (a)                                                                    (b)
+
+                      Figure 10. CDF of number of cliques for clique sizes  {4, 5, 6} for the 75 Indian villages.
+
+                              Spherical Curvature Estimates                                                    Hyperbolic Curvature Estimates
+                                 q= 1
+                                                                                                    0.5
+                 1.4
+                                                                               Curvature Estimate
+Curvature Estimate
+
+
+
+
+                                 q=3                                                                0.6
+                 1.2             q=5
+                                                                                                    0.7                                          q= 1
+                 1.0                                                                                                                             q=3
+                                                                                                    0.8                                          q=5
+                 0.8
+                                                                                                    0.9
+                 0.6
+                                                                                                    1.0
+                               4              6                    8                                             4                6               8
+                                         clique size                                                                         clique size
+                                    (a) Spherical                                                                    (b) Hyperbolic
+
+                           Figure 11. Left: Curvature estimates for S2 (1) using K = 10 cliques, with clique size
+                             = 4, 6, 8 on the horizontal axis. We use q = 1, 3, 5 where q is defined in (21). We plot the
+                           true curvature  = 1 in the black dashed line. Right: Curvature estimates for H2 (-1) using
+                           K = 10 cliques, with clique size = 4, 6, 8 on the horizontal axis.
+

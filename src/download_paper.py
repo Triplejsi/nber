@@ -10,13 +10,12 @@ if __name__ == "__main__":
     while status_code != 200:
         try:
             url = f'https://www.nber.org/system/files/working_papers/w{nber_id}/w{nber_id}.pdf'
-            response = requests.get(url, proxies={'https': proxy})
+            response = requests.get(url, proxies={'https': proxy}, timeout=5)
             status_code = response.status_code
-            if status_code == 404:
+            if status_code in [403, 404]:
                 break
             with open(f'paper/{nber_id}.pdf', 'wb') as file:
                 file.write(response.content)
-        except Exception as err:
-            print(traceback.print_exc())
-            print(f'{err}: {nber_id}')
+        except Exception:
+            print(f'{traceback.print_exc()}: {nber_id}')
             pass

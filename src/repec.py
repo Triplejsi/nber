@@ -42,12 +42,13 @@ class RePEc:
             url = f'{self.url}{self.string_id()}'
             response = requests.get(url, proxies={'http': self.proxy})
             status_code = response.status_code
-            if status_code == 200:
-                try:
-                    xml = et.fromstring(response.text)
-                    return xml
-                except UnboundLocalError: return None
-                except et.ParseError: return None
+            if status_code in [403, 404]:
+                break
+            try:
+                xml = et.fromstring(response.text)
+                return xml
+            except UnboundLocalError: return None
+            except et.ParseError: return None
 
     def reference(self):
         '''
@@ -56,18 +57,19 @@ class RePEc:
         status_code = None
         while status_code != 200:
             url = f'http://citec.repec.org/api/amf/RePEc:nbr:nberwo:{self.string_id()}'
-            response = requests.get(url, proxies={'http': self.proxy})
+            response = requests.get(url, proxies={'http': self.proxy}, timeout=5)
             status_code = response.status_code
-            if status_code == 200:
-                try:
-                    parser = et.XMLParser(encoding='utf-8')
-                    xml = et.fromstring(response.text, parser=parser)
-                    text = list(xml)[0]
-                    reference = [list(x)[0].text for x in text if 'isreferencedby' not in x.tag]
-                    return reference
-                except UnboundLocalError: return None
-                except IndexError: return None
-                except et.ParseError: return None
+            if status_code in [403, 404]:
+                break
+            try:
+                parser = et.XMLParser(encoding='utf-8')
+                xml = et.fromstring(response.text, parser=parser)
+                text = list(xml)[0]
+                reference = [list(x)[0].text for x in text if 'isreferencedby' not in x.tag]
+                return reference
+            except UnboundLocalError: return None
+            except IndexError: return None
+            except et.ParseError: return None
 
     def save(self):
         '''
@@ -109,11 +111,13 @@ def main(start, end, interval):
             print(f'{err}: {start}')
             pass
 
-        # break iteration if it reaches +5 hours
+        # break iteration if it reaches +3 hours
         # because max GitHub Actions for public is 6 hours
-        if sum(timestamp) >= 18000:
+        if sum(timestamp) >= 10800:
             break
-
+        
+        start += 1
+    
     return avg.result(timestamp)
 
 if __name__ == '__main__':

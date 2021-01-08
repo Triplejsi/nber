@@ -43,7 +43,14 @@ class HTML:
         '''
         Make a web request for the corresponding NBER paper.
         '''
-        return requests.get(self.url(), proxies={'https': self.proxy})
+        status_code = None
+        while status_code != 200:
+            response = requests.get(self.url(), proxies={'https': self.proxy}, timeout=5)
+            status_code = response.status_code
+            if status_code in [403, 404]:
+                break
+
+            return response
     
     def content(self):
         '''
@@ -220,10 +227,11 @@ def main(start, end, interval):
         else:
             print(f'[IGNORE \U0001F4C1]: {raw.url()}')
         
-        # break iteration if it reaches +5 hours
+        # break iteration if it reaches +3 hours
         # because max GitHub Actions for public is 6 hours
-        if sum(timestamp) >= 18000:
+        if sum(timestamp) >= 10800:
             break
+        
         start += 1
     
     return avg.result(timestamp)
