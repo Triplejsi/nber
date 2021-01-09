@@ -3,10 +3,8 @@ import matplotlib.font_manager as font_manager
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import re
 import requests
 import seaborn as sns
-import statistics
 import warnings
 from glob import glob
 
