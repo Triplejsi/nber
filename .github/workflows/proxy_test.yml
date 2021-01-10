@@ -1,0 +1,47 @@
+name: Proxy
+
+on:
+  push:
+    branches: 'main'
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        required: false
+      tags:
+        description: 'Manual trigger'
+        
+jobs:
+  printInputs:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        echo "Log level: ${{ github.event.inputs.logLevel }}"
+        echo "Tags: ${{ github.event.inputs.tags }}"
+  job_id:
+    name: RepEc
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run script
+      env:
+        # proxy
+        PROXY_USER: ${{ secrets.PROXY_USER }}
+        PROXY_PASSWORD: ${{ secrets.PROXY_PASSWORD }}
+        PROXY_HOST: ${{ secrets.PROXY_HOST }}
+        PROXY_PORT: ${{ secrets.PROXY_PORT }}
+        PROXY_SERVER: ${{ secrets.PROXY_SERVER }}        
+        # run script
+      run: |
+        python -c "import requests;\
+        from src.proxy import Proxy;\
+        proxy = Proxy().get_proxy();\
+        print(requests.get('https://google.com', proxies={'https': proxy}))
+        " 
